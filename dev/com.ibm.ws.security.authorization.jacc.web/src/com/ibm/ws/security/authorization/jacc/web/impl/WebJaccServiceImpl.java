@@ -790,4 +790,13 @@ public class WebJaccServiceImpl implements WebJaccService {
         return uriName;
     }
 
+    @Override
+    public void setPolicyContextID(String applicationName, String moduleName) {
+        JaccService jaccService = jaccServiceRef.getService();
+        if (jaccService != null) {
+            String contextID = jaccService.getContextId(applicationName, moduleName);
+            PolicyContext.setContextID(contextID);
+        }
+    }
+
 }

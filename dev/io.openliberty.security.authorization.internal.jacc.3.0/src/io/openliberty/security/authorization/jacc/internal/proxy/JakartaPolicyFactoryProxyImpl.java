@@ -41,4 +41,12 @@ public class JakartaPolicyFactoryProxyImpl implements PolicyProxy {
     public PrincipalMapper getPrincipalMapper() {
         return new PrincipalMapperImpl();
     }
+
+    @Override
+    public boolean isResetPolicyContextID() {
+        // Since the PolicyContext ID is no longer just used for authorization checks, but is also
+        // used for PolicyFactory calls, we do not want to "leak" its setting in the current thread
+        // which may be a pooled thread.
+        return true;
+    }
 }

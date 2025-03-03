@@ -95,6 +95,8 @@ public interface WebJaccService {
                                    HttpServletRequest req,
                                    Subject subject);
 
+    public void setPolicyContextID(String applicationName, String moduleName);
+
     /**
      * Reset the policyContext Handler as per JACC specification
      */

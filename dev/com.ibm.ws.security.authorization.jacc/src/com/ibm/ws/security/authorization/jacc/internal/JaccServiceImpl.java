@@ -199,5 +199,12 @@ public class JaccServiceImpl implements JaccService {
             if (tc.isDebugEnabled())
                 Tr.debug(tc, "Exception when resetting setHandlerData. Ignoring.. " + e.getException());
         }
+
+        // Starting with Jakarta Authorization 3.0 (EE 11), we also clear out the PolicyContext ID since it is used
+        // by the PolicyFactory
+        PolicyProxy proxy = policyProxy;
+        if (proxy != null && proxy.isResetPolicyContextID()) {
+            PolicyContext.setContextID(null);
+        }
     }
 }

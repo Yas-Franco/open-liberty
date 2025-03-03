@@ -28,6 +28,11 @@ public interface PolicyProxy {
 
     public boolean implies(String contextId, Subject subject, Permission permission);
 
+    default public boolean isResetPolicyContextID() {
+        // For pre-EE 11 scenarios, return false to not change behavior
+        return false;
+    }
+
     /**
      * In a Jakarta EE 11+ implementation this method returns the PrincipalMapper implementation
      *
