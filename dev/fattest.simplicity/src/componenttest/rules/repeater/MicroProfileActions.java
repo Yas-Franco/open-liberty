@@ -334,6 +334,44 @@ public class MicroProfileActions {
                                                                "mpReactiveMessaging-3.0", //standalone
                                                                "mpReactiveStreams-3.0" };//standalone
 
+    private static final String[] MP71_EE10_FEATURES_ARRAY = { "microProfile-7.0", //Needs updating to MicroProfile 7.1 when the feature has been created
+                                                               "cdi-4.0", //ee10
+                                                               "restfulWS-3.1", //ee10
+                                                               "restfulWSClient-3.1", //ee10
+                                                               "jsonb-3.0", //ee10
+                                                               "jsonp-2.1", //ee10
+                                                               "mpConfig-3.1",
+                                                               "mpFaultTolerance-4.1",
+                                                               "mpHealth-4.0",
+                                                               "mpJwt-2.1",
+                                                               "mpOpenAPI-4.0", //Needs updating to mpOpenAPI-4.1 when the feature has been created
+                                                               "mpTelemetry-2.1",
+                                                               "mpRestClient-4.0",
+                                                               "mpMetrics-5.1", //standalone
+                                                               "mpContextPropagation-1.3", //standalone
+                                                               "mpGraphQL-2.0", //standalone
+                                                               "mpReactiveMessaging-3.0", //standalone
+                                                               "mpReactiveStreams-3.0" };//standalone
+
+    private static final String[] MP71_EE11_FEATURES_ARRAY = { "microProfile-7.0", //Needs updating to MicroProfile 7.1 when the feature has been created
+                                                            "cdi-4.1", //ee11
+                                                            "restfulWS-4.0", //ee11
+                                                            "restfulWSClient-4.0", //ee11
+                                                            "jsonb-3.0", //ee11
+                                                            "jsonp-2.1", //ee11
+                                                            "mpConfig-3.1",
+                                                            "mpFaultTolerance-4.1",
+                                                            "mpHealth-4.0",
+                                                            "mpJwt-2.1",
+                                                            "mpOpenAPI-4.0", //Needs updating to mpOpenAPI-4.1 when the feature has been created
+                                                            "mpTelemetry-2.1",
+                                                            "mpRestClient-4.0",
+                                                            "mpMetrics-5.1", //standalone
+                                                            "mpContextPropagation-1.3", //standalone
+                                                            "mpGraphQL-2.0", //standalone
+                                                            "mpReactiveMessaging-3.0", //standalone
+                                                            "mpReactiveStreams-3.0" };//standalone
+
     private static final Set<String> MP10_FEATURE_SET = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(MP10_FEATURES_ARRAY)));
     private static final Set<String> MP12_FEATURE_SET = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(MP12_FEATURES_ARRAY)));
     private static final Set<String> MP13_FEATURE_SET = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(MP13_FEATURES_ARRAY)));
@@ -393,7 +431,7 @@ public class MicroProfileActions {
     public static final FeatureSet MP70_EE11_APP_MODE = new FeatureSet(MP70_EE11_APP_MODE_ID, MP70_EE11_FEATURE_SET, EEVersion.EE11);
 
     //All MicroProfile FeatureSets - must be descending order
-    private static final FeatureSet[] ALL_SETS_ARRAY = { MP70_EE11, MP70_EE10, MP61, MP60, MP50, MP41, MP40, MP33, MP32, MP30, MP22, MP21, MP20, MP14, MP13, MP12, MP10 };
+    private static final FeatureSet[] ALL_SETS_ARRAY = {MP70_EE11, MP70_EE10, MP61, MP60, MP50, MP41, MP40, MP33, MP32, MP30, MP22, MP21, MP20, MP14, MP13, MP12, MP10 };
     public static final List<FeatureSet> ALL = Collections.unmodifiableList(Arrays.asList(ALL_SETS_ARRAY));
 
     /**
