@@ -6,6 +6,12 @@
  * http://www.eclipse.org/legal/epl-2.0/
  *
  * SPDX-License-Identifier: EPL-2.0
+<<<<<<< HEAD
+=======
+ *
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+>>>>>>> e5aafff2fa6 (Add mptelemetry 2.1 TCK)
  *******************************************************************************/
 package io.openliberty.microprofile.telemetry.internal_fat_tck;
 
@@ -35,12 +41,21 @@ public class Telemetry21TCKLauncher {
 
     private static final String SERVER_NAME = "Telemetry21TCKServer";
 
+<<<<<<< HEAD
     @Server(SERVER_NAME)
     public static LibertyServer server;
 
     @ClassRule
     public static RepeatTests r = FATSuite.allMPTel21Repeats(SERVER_NAME);
 
+=======
+    @ClassRule
+    public static RepeatTests r = FATSuite.allMPTel21Repeats(SERVER_NAME);
+
+    @Server(SERVER_NAME)
+    public static LibertyServer server;
+
+>>>>>>> e5aafff2fa6 (Add mptelemetry 2.1 TCK)
     @BeforeClass
     public static void setUp() throws Exception {
         server.startServer();
