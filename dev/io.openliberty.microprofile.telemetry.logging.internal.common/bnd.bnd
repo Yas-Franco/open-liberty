@@ -46,7 +46,7 @@ Include-Resource: \
         OSGI-INF=resources/OSGI-INF
 
 -dsannotations: \
-        io.openliberty.microprofile.telemetry20.logging.internal.OpenTelemetryLogHandler	
+        io.openliberty.microprofile.telemetry.logging.internal.OpenTelemetryLogHandler	
 
 -buildpath: \
 	com.ibm.ws.org.osgi.annotation.versioning;version=latest,\
