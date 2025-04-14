@@ -36,7 +36,7 @@ import com.ibm.ws.logging.data.KeyValuePair.ValueTypes;
 import com.ibm.ws.logging.data.KeyValuePairList;
 import com.ibm.ws.logging.data.LogTraceData;
 
-import io.openliberty.microprofile.telemetry.internal.common.semconv.SemcovConstantsAccessor;
+import io.openliberty.microprofile.telemetry.logging.internal.semconv.SemcovConstantsAccessor;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.logs.LogRecordBuilder;
