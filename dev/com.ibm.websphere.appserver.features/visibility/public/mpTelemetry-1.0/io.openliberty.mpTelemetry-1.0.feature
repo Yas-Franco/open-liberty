@@ -43,7 +43,8 @@ IBM-SPI-Package: io.openliberty.microprofile.telemetry.spi
   com.ibm.ws.cdi.interfaces.jakarta, \
   io.openliberty.microprofile.telemetry.1.0.internal,\
   io.openliberty.io.opentelemetry,\
-  io.openliberty.microprofile.telemetry.internal.common.jakarta
+  io.openliberty.microprofile.telemetry.internal.common.jakarta,\
+  io.openliberty.microprofile.telemetry.logging.internal.common.jakarta
 -jars=io.openliberty.mpTelemetry.1.0.thirdparty; location:="dev/api/third-party/,lib/",\
   io.openliberty.microprofile.telemetry.spi; location:="dev/spi/ibm/"
 -files=dev/spi/ibm/javadoc/io.openliberty.microprofile.telemetry.spi_1.0-javadoc.zip
