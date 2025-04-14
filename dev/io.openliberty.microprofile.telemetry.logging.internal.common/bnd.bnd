@@ -19,8 +19,6 @@ WS-TraceGroup: TELEMETRY
 
 -dsannotations-inherit: true
 
-Export-Package: io.openliberty.microprofile.telemetry.logging.internal;'provide:'=true
-
 Import-Package: \
     org.osgi.framework,\
     org.osgi.service.component,\
@@ -43,7 +41,8 @@ Private-Package: \
 	io.openliberty.microprofile.telemetry.internal.common.resources
 	
 Export-Package: \
-	io.openliberty.microprofile.telemetry.internal.common.semconv
+	io.openliberty.microprofile.telemetry.logging.internal;'provide:'=true,\
+	io.openliberty.microprofile.telemetry.logging.internal.semconv
     
 Include-Resource: \
         OSGI-INF=resources/OSGI-INF
