@@ -19,7 +19,8 @@ WS-TraceGroup: TELEMETRY
 
 -dsannotations-inherit: true
 
-Export-Package: io.openliberty.microprofile.telemetry21.logging.internal;provide:=true
+Export-Package: io.openliberty.microprofile.telemetry21.internal.semconv
+
 
 Import-Package: \
     org.osgi.framework,\
@@ -39,14 +40,15 @@ Import-Package: \
     io.openliberty.microprofile.telemetry.internal.common,\
     *
     
-Private-Package: \
-	io.openliberty.microprofile.telemetry.internal.common.resources
-    
 Include-Resource: \
         OSGI-INF=resources/OSGI-INF
 
 -dsannotations: \
+<<<<<<< HEAD
         io.openliberty.microprofile.telemetry21.logging.internal.OpenTelemetryLogHandler	
+=======
+        io.openliberty.microprofile.telemetry21.internal.semconv.SemconvConstantsAccessorImpl
+>>>>>>> cecac05946e (Implement accessor for semcov constants)
 
 -buildpath: \
 	com.ibm.ws.org.osgi.annotation.versioning;version=latest,\
@@ -62,7 +64,12 @@ Include-Resource: \
 	com.ibm.ws.kernel.boot.core;version=latest,\
 	com.ibm.ws.kernel.service;version=latest,\
 	io.openliberty.microprofile.telemetry.internal.common;version=latest,\
+<<<<<<< HEAD
 	io.openliberty.io.opentelemetry.internal.2.1;version=latest,\
+=======
+	io.openliberty.microprofile.telemetry.logging.internal.common;version=latest,\
+	io.openliberty.io.opentelemetry.2.1;version=latest,\
+>>>>>>> cecac05946e (Implement accessor for semcov constants)
 	com.ibm.ws.kernel.boot.common;version=latest,\
 	io.openliberty.org.eclipse.microprofile.config.3.0,\
 	org.osgi.service.component.annotations
