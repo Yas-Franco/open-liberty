@@ -12,6 +12,6 @@
 #*******************************************************************************
 -include= ~../cnf/resources/bnd/transform.props
 
-Bundle-Name: io.openliberty.microprofile.telemetry.2.1.logging.internal.jakarta
-Bundle-SymbolicName: io.openliberty.microprofile.telemetry.2.1.logging.internal.jakarta
+Bundle-Name: io.openliberty.microprofile.telemetry.logging.internal.common.jakarta
+Bundle-SymbolicName: io.openliberty.microprofile.telemetry.logging.internal.common.jakarta
 
