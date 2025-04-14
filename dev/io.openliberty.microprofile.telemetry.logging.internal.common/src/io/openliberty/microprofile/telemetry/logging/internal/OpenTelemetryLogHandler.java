@@ -10,7 +10,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package io.openliberty.microprofile.telemetry21.logging.internal;
+package io.openliberty.microprofile.telemetry.logging.internal;
 
 import java.util.ArrayList;
 import java.util.Arrays;

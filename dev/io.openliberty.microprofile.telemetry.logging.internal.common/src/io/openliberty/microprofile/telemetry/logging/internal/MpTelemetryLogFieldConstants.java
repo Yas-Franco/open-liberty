@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
-package io.openliberty.microprofile.telemetry20.logging.internal;
+package io.openliberty.microprofile.telemetry.logging.internal;
 
 /**
  * This class contains the transformed Liberty event field names to match OpenTelemetry Log Attributes naming convention.
