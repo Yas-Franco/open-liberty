@@ -11,7 +11,7 @@ package io.openliberty.microprofile.telemetry.logging.internal;
 
 import com.ibm.ws.kernel.service.util.ServiceCaller;
 
-import io.openliberty.microprofile.telemetry.internal.common.semconv.SemcovConstantsAccessor;
+import io.openliberty.microprofile.telemetry.logging.internal.semconv.SemcovConstantsAccessor;
 import io.opentelemetry.semconv.UserAgentAttributes;
 
 /**
