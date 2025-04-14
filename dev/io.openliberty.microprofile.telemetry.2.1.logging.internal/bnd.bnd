@@ -40,9 +40,6 @@ Import-Package: \
     io.openliberty.microprofile.telemetry.internal.common,\
     *
     
-Include-Resource: \
-        OSGI-INF=resources/OSGI-INF
-
 -dsannotations: \
         io.openliberty.microprofile.telemetry21.internal.semconv.SemconvConstantsAccessorImpl
 
