@@ -41,6 +41,9 @@ Import-Package: \
     
 Private-Package: \
 	io.openliberty.microprofile.telemetry.internal.common.resources
+	
+Export-Package: \
+	io.openliberty.microprofile.telemetry.internal.common.semconv
     
 Include-Resource: \
         OSGI-INF=resources/OSGI-INF
