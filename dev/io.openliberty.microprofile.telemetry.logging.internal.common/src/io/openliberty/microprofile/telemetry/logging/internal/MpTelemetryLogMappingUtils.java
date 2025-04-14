@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
-package io.openliberty.microprofile.telemetry20.logging.internal;
+package io.openliberty.microprofile.telemetry.logging.internal;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;

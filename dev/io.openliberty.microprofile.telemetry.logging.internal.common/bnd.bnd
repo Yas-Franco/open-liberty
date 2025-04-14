@@ -19,7 +19,7 @@ WS-TraceGroup: TELEMETRY
 
 -dsannotations-inherit: true
 
-Export-Package: io.openliberty.microprofile.telemetry20.logging.internal;provide:=true
+Export-Package: io.openliberty.microprofile.telemetry.logging.internal;'provide:'=true
 
 Import-Package: \
     org.osgi.framework,\
