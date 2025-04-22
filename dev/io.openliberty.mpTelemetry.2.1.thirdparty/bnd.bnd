@@ -9,7 +9,7 @@
 #*******************************************************************************
 -include= ~../cnf/resources/bnd/bundle.props
 bVersion=1.0
-publish.wlp.jar.suffix: dev/api/third-party
+publish.wlp.jar.suffix: dev/api/stable
 
 Bundle-SymbolicName: io.openliberty.mpTelemetry.2.1.thirdparty; singleton:=true
 

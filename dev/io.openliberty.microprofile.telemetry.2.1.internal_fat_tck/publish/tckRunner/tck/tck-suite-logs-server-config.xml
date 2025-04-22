@@ -4,9 +4,7 @@
     and is available at 
         http://www.eclipse.org/legal/epl-2.0/
     
-    SPDX-License-Identifier: EPL-2.0 
-    Contributors: 
-        IBM Corporation - initial API and implementation
+    SPDX-License-Identifier: EPL-2.0
 -->
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
 

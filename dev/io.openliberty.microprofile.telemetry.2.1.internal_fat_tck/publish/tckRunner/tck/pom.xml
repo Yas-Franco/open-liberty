@@ -82,7 +82,7 @@
             <artifactId>microprofile-rest-client-api</artifactId>
             <version>3.0</version>
             <scope>system</scope>
-            <systemPath>${io.openliberty.org.eclipse.microprofile.rest.client.3.0_}</systemPath>
+            <systemPath>${io.openliberty.org.eclipse.microprofile.rest.client.4.0_}</systemPath>
         </dependency>
 
         <dependency>

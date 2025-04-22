@@ -12,8 +12,6 @@
  *******************************************************************************/
 apply from: '../wlp-gradle/subprojects/maven-central-mirror.gradle'
 
-addRequiredLibraries.dependsOn addJakartaTransformer
-
 dependencies {
   requiredLibs project(':io.openliberty.microprofile.telemetry.internal_fat.common')
 }
