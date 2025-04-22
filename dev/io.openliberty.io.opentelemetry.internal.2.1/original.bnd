@@ -11,6 +11,6 @@
 #     IBM Corporation - initial API and implementation
 #*******************************************************************************
 
-Bundle-Name: io.openliberty.io.opentelemetry.2.1
-Bundle-SymbolicName: io.openliberty.io.opentelemetry.2.1; singleton:=true
+Bundle-Name: io.openliberty.io.opentelemetry.internal.2.1
+Bundle-SymbolicName: io.openliberty.io.opentelemetry.internal.2.1; singleton:=true
 Bundle-Description: OpenTelemetry bundle

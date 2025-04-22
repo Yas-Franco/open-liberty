@@ -12,6 +12,6 @@
 #*******************************************************************************
 -include= ~../cnf/resources/bnd/transform.props
 
-Bundle-Name: io.openliberty.io.opentelemetry.2.1 Jakarta
-Bundle-SymbolicName: io.openliberty.io.opentelemetry.2.1.jakarta; singleton:=true
+Bundle-Name: io.openliberty.io.opentelemetry.internal.2.1 Jakarta
+Bundle-SymbolicName: io.openliberty.io.opentelemetry.internal.2.1.jakarta; singleton:=true
 Bundle-Description: OpenTelemetry bundle; version=${bVersion}; Jakarta Enabled

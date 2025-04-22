@@ -49,7 +49,7 @@ IBM-SPI-Package: io.openliberty.microprofile.telemetry.spi
   io.openliberty.org.jetbrains.annotation,\
   io.openliberty.io.zipkin.zipkin2.2.0,\
   io.openliberty.microprofile.telemetry.monitor.internal
--jars=io.openliberty.mpTelemetry.2.1.thirdparty; location:="dev/api/stable/,lib/",\
+-jars=io.openliberty.io.opentelemetry.2.1 ; location:="dev/api/stable/,lib/",\
   io.openliberty.microprofile.telemetry.spi; location:="dev/spi/ibm/"
 -files=dev/spi/ibm/javadoc/io.openliberty.microprofile.telemetry.spi_1.0-javadoc.zip
 kind=noship
