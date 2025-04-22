@@ -11,10 +11,11 @@
 bVersion=1.0
 publish.wlp.jar.suffix: dev/api/stable
 
-Bundle-SymbolicName: io.openliberty.mpTelemetry.2.1.thirdparty; singleton:=true
+Bundle-SymbolicName: io.openliberty.mpTelemetry.2.1.api; singleton:=true
 
 openTelemetryVersion=1.48.0
-alphaOpenTelemetryVersion=1.48.0.alpha
+openTelemetryInstrumentationVersion=2.14.0
+semconvOpenTelemetryVersion=1.32.0
 
 Private-Package: \
   io.opentelemetry.api; version=${openTelemetryVersion},\
@@ -32,9 +33,8 @@ Private-Package: \
   io.opentelemetry.sdk.autoconfigure.spi.traces;version=${openTelemetryVersion},\
   io.opentelemetry.sdk.autoconfigure.spi;version=${openTelemetryVersion},\
   io.opentelemetry.sdk.resources;version=${openTelemetryVersion},\
-  io.opentelemetry.semconv.trace.attributes;version=${alphaOpenTelemetryVersion},\
-  io.opentelemetry.semconv.resource.attributes;version=${alphaOpenTelemetryVersion},\
-  io.opentelemetry.instrumentation.annotations;version=2.0.0,\
+  io.opentelemetry.semconv;version=${semconvOpenTelemetryVersion},\
+  io.opentelemetry.instrumentation.annotations;${openTelemetryInstrumentationVersion},\
   io.opentelemetry.extension.incubator.metrics;version=${openTelemetryVersion},\
   io.opentelemetry.exporter.logging; version=${openTelemetryVersion}
 

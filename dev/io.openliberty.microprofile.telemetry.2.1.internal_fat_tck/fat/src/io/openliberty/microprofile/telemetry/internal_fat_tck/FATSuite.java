@@ -15,6 +15,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 import componenttest.annotation.MinimumJavaLevel;
 import componenttest.custom.junit.runner.AlwaysPassesTest;
+import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.rules.repeater.MicroProfileActions;
 import componenttest.rules.repeater.RepeatTests;
 import componenttest.topology.utils.tck.TCKUtilities;
@@ -31,6 +32,6 @@ public class FATSuite {
 
     public static RepeatTests allMPTel21Repeats(String serverName) {
         return MicroProfileActions
-                        .repeatIf(serverName, TCKUtilities::areAllFeaturesPresent, MicroProfileActions.MP71_EE11, MicroProfileActions.MP71_EE10);
+                        .repeatIf(serverName, TCKUtilities::areAllFeaturesPresent, TestMode.FULL, true, MicroProfileActions.MP71_EE10, MicroProfileActions.MP71_EE11);
     }
 }
