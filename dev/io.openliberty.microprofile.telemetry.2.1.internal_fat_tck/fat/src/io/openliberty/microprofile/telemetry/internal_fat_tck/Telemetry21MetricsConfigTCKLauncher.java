@@ -38,6 +38,9 @@ public class Telemetry21MetricsConfigTCKLauncher {
     @Server(SERVER_NAME)
     public static LibertyServer server;
 
+    @ClassRule
+    public static RepeatTests r = FATSuite.allMPTel21Repeats(SERVER_NAME);
+
     @BeforeClass
     public static void setUp() throws Exception {
         server.startServer();
