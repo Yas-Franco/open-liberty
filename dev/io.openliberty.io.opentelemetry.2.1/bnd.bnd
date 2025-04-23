@@ -11,7 +11,7 @@
 bVersion=1.0
 publish.wlp.jar.suffix: dev/api/stable
 
-Bundle-SymbolicName: io.openliberty.mpTelemetry.2.1.api; singleton:=true
+Bundle-SymbolicName: io.openliberty.io.opentelemetry.2.1; singleton:=true
 
 openTelemetryVersion=1.48.0
 openTelemetryInstrumentationVersion=2.14.0
