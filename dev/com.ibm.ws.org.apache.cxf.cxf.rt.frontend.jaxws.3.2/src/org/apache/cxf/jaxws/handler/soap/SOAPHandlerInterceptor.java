@@ -22,7 +22,6 @@ package org.apache.cxf.jaxws.handler.soap;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -31,7 +30,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.activation.DataSource;
 import javax.xml.namespace.QName;
 import javax.xml.soap.Node;
 import javax.xml.soap.SOAPBody;
@@ -48,8 +46,6 @@ import javax.xml.ws.handler.MessageContext;
 import javax.xml.ws.handler.soap.SOAPHandler;
 import javax.xml.ws.handler.soap.SOAPMessageContext;
 
-import org.apache.cxf.attachment.AttachmentDataSource;
-import org.apache.cxf.attachment.AttachmentImpl;
 import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.binding.soap.HeaderUtil;
 import org.apache.cxf.binding.soap.SoapMessage;
@@ -66,12 +62,13 @@ import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.interceptor.Interceptor;
 import org.apache.cxf.interceptor.InterceptorChain;
 import org.apache.cxf.interceptor.OutgoingChainInterceptor;
+import org.apache.cxf.interceptor.ReleaseTempFileHoldInterceptor;
 import org.apache.cxf.jaxws.handler.AbstractProtocolHandlerInterceptor;
 import org.apache.cxf.jaxws.handler.HandlerChainInvoker;
-import org.apache.cxf.message.Attachment;
 import org.apache.cxf.message.Exchange;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.message.MessageImpl;
+import org.apache.cxf.message.MessageUtils;
 import org.apache.cxf.phase.Phase;
 import org.apache.cxf.staxutils.StaxUtils;
 import org.apache.cxf.transport.MessageObserver;
@@ -90,7 +87,7 @@ public class SOAPHandlerInterceptor extends
         AbstractProtocolHandlerInterceptor<SoapMessage> implements
         SoapInterceptor {
     private static final SAAJOutInterceptor SAAJ_OUT = new SAAJOutInterceptor();
-
+ 
     private static final Logger LOG = LogUtils.getLogger(SOAPHandlerInterceptor.class); // Liberty Change #26529
     AbstractSoapInterceptor ending = new AbstractSoapInterceptor(
             SOAPHandlerInterceptor.class.getName() + ".ENDING",
@@ -136,12 +133,25 @@ public class SOAPHandlerInterceptor extends
             } // Liberty Change end #26529
             return;
         }
+
         // Liberty change begin
-        try {
-            // Mark attachment to hold for multiple reads if there is any
-            AttachmentUtil.holdTempFiles(message);
-        } catch (IOException e) {
-            LOG.warning("Attempt of putting hold on temporary file and stream failed!");
+        if (AttachmentUtil.isHoldTempFilesPropertyTrue(message)) {
+            try {
+                if (!MessageUtils.isOutbound(message)) {
+                    // When temporary file is read at inbound request,
+                    // cache mechanism marks it for deletion.
+                    // Trying to read same file at outbound response results in empty file
+                    // Here we prevent deletion of the file
+                    AttachmentUtil.holdTempFiles(message);
+                }
+            } catch (IOException e) {
+                LOG.warning("Attempt of putting hold on temporary file and stream failed!");
+            }
+            if (isFinestEnabled) {
+                LOG.finest("ReleaseTempFileHoldInterceptor will be added to interceptor chain.");
+            }
+            // Till we delete at outbound response with ReleaseTempFileHoldInterceptor
+            message.getInterceptorChain().add(new ReleaseTempFileHoldInterceptor());
         }
         // Liberty change end
         
@@ -176,7 +186,7 @@ public class SOAPHandlerInterceptor extends
                     } // Liberty Change end #26529
                 }
             }
-        }
+        }       
     }
 
     private void checkUnderstoodHeaders(SoapMessage soapMessage) {

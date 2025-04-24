@@ -27,7 +27,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.cxf.Bus;
-import org.apache.cxf.attachment.AttachmentUtil;
 import org.apache.cxf.binding.Binding;
 import org.apache.cxf.common.logging.LogUtils;
 import org.apache.cxf.endpoint.ConduitSelector;
@@ -64,16 +63,6 @@ public class OutgoingChainInterceptor extends AbstractPhaseInterceptor<Message> 
         if (message.getExchange().get(CACHE_INPUT_PROPERTY) == null) {
             message.put(CACHE_INPUT_PROPERTY, Boolean.TRUE);
         }
-        
-        // Liberty change begin
-        try {
-            // Release the hold from attachment if there is any
-            AttachmentUtil.releaseTempFileHold(message);
-        } catch (IOException e) {
-            LOG.warning("Attempt of relasing the hold from temporary file and stream failed!");
-        }
-        // Liberty change end
-        
         if (null != binding && null != binding.getOperationInfo() && binding.getOperationInfo().isOneWay()) {
             closeInput(message);
             return;

@@ -91,6 +91,8 @@ public final class AttachmentUtil {
     public static final String IBM_MTOM_ENABLED = "ibm-mtom-enabled";
     // Liberty change end
     
+    private static final String HOLD_TEMP_FILES = "ibm-hold-temp-files";  // Liberty Change
+
     static final class EnhancedMailcapCommandMap extends MailcapCommandMap {
         @Override
         public synchronized DataContentHandler createDataContentHandler(
@@ -214,13 +216,12 @@ public final class AttachmentUtil {
         throws IOException {
         Object directory = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_DIRECTORY);
         // Liberty change begin
-        if (directory == null)  { 
-            directory = System.getProperty(AttachmentDeserializer.ATTACHMENT_DIRECTORY);
+        if (directory == null) {
+            directory = getPropertyFromEndPointInfo(message, AttachmentDeserializer.ATTACHMENT_DIRECTORY);
         }
-        // Liberty change end
-	if (LOG.isLoggable(Level.FINEST)) {  //Liberty Change Start
-	   LOG.finest("setStreamedAttachmentProperties: Attachment directory: " + directory);
-	} //Liberty Change End
+        if (LOG.isLoggable(Level.FINEST)) {
+            LOG.finest("setStreamedAttachmentProperties: Attachment directory: " + directory);
+         } //Liberty Change End
         if (directory != null) {
             if (directory instanceof File) {
                 bos.setOutputDir((File)directory);
@@ -231,13 +232,12 @@ public final class AttachmentUtil {
 
         Object threshold = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_MEMORY_THRESHOLD);
         // Liberty change begin
-        if (threshold == null)  { 
-            threshold = System.getProperty(AttachmentDeserializer.ATTACHMENT_MEMORY_THRESHOLD);
+        if (threshold == null) {
+            threshold = getPropertyFromEndPointInfo(message, AttachmentDeserializer.ATTACHMENT_MEMORY_THRESHOLD);
         }
-        // Liberty change end
-	if (LOG.isLoggable(Level.FINE)) {  //Liberty Change Start
-	   LOG.fine("setStreamedAttachmentProperties: Attachment memory threshold: " + threshold);
-	} //Liberty Change End
+        if (LOG.isLoggable(Level.FINE)) {
+            LOG.fine("setStreamedAttachmentProperties: Attachment memory threshold: " + threshold);
+         } //Liberty Change End
         if (threshold != null) {
             if (threshold instanceof Long) {
                 bos.setThreshold((Long)threshold);
@@ -250,13 +250,12 @@ public final class AttachmentUtil {
 
         Object maxSize = message.getContextualProperty(AttachmentDeserializer.ATTACHMENT_MAX_SIZE);
         // Liberty change begin
-        if (maxSize == null)  { 
-            maxSize = System.getProperty(AttachmentDeserializer.ATTACHMENT_MAX_SIZE);
+        if (maxSize == null) {
+            maxSize = getPropertyFromEndPointInfo(message, AttachmentDeserializer.ATTACHMENT_MAX_SIZE);
         }
-        // Liberty change end
-	if (LOG.isLoggable(Level.FINEST)) { //Liberty Change Start
-	   LOG.finest("setStreamedAttachmentProperties: Attachment maxSize: " + maxSize);
-	} //Liberty Change End
+        if (LOG.isLoggable(Level.FINEST)) {
+            LOG.finest("setStreamedAttachmentProperties: Attachment maxSize: " + maxSize);
+         } //Liberty Change End
         if (maxSize != null) {
             if (maxSize instanceof Long) {
                 bos.setMaxSize((Long) maxSize);
@@ -706,7 +705,7 @@ public final class AttachmentUtil {
     private static DataSource loadDataSource(String contentId, Collection<Attachment> atts) {
         return new LazyDataSource(contentId, atts);
     }
-    
+
     // Liberty change begin
     public static boolean mtomOverride(org.apache.cxf.message.Message message, boolean defaultValue)     {
         boolean mtomEnabled = defaultValue;
@@ -739,7 +738,11 @@ public final class AttachmentUtil {
         if (attachmentDataSource!= null) {
             attachmentDataSource.hold(message);
             if (LOG.isLoggable(Level.FINEST)) {
-                LOG.finest("Temporary file and stream are set to hold from removal.");
+                LOG.finest("holdTempFiles : Temporary file and stream are set to hold from removal.");
+             }
+        } else {
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.finest("holdTempFiles : Couldn't get attachment data source!");
              }
         }
     }    
@@ -749,7 +752,11 @@ public final class AttachmentUtil {
         if (attachmentDataSource!= null) {
             attachmentDataSource.release();
             if (LOG.isLoggable(Level.FINEST)) {
-                LOG.finest("Temporary file and stream holds are released. They will be removed.");
+                LOG.finest("releaseTempFileHold : Temporary file and stream holds are released. They will be removed.");
+             }
+        } else {
+            if (LOG.isLoggable(Level.FINEST)) {
+                LOG.finest("releaseTempFileHold : Couldn't get attachment data source!");
              }
         }
     }
@@ -771,6 +778,27 @@ public final class AttachmentUtil {
             }
         }
         return attachmentDataSource;
+    }
+    
+    public static boolean isHoldTempFilesPropertyTrue(org.apache.cxf.message.Message message) {
+        Object propertyFromEndPointInfo = getPropertyFromEndPointInfo(message, HOLD_TEMP_FILES);
+        return PropertyUtils.isTrue(propertyFromEndPointInfo);
+    }
+    
+    /*
+     * @return  If <propertyName> end point info property value is set returns that value,
+     *          If no value set returns null
+     */
+    public static Object getPropertyFromEndPointInfo(org.apache.cxf.message.Message message, String propertyName)     {
+        Object propertyValue = null;
+        Endpoint endpoint = message.getExchange().getEndpoint();
+        if(endpoint != null)    {
+            EndpointInfo endpointInfo = endpoint.getEndpointInfo();
+            if(endpointInfo!= null)    {
+                propertyValue = endpointInfo.getProperty(propertyName);        
+            }
+        }
+        return propertyValue;
     }
     // Liberty change end
 }
