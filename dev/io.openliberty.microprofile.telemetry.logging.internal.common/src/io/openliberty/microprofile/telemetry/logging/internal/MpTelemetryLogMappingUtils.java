@@ -46,7 +46,6 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.TraceFlags;
 import io.opentelemetry.api.trace.TraceState;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.semconv.incubating.ThreadIncubatingAttributes;
 
 @Trivial
 public class MpTelemetryLogMappingUtils {
@@ -305,7 +304,7 @@ public class MpTelemetryLogMappingUtils {
                         attributes.put(MpTelemetryLogFieldConstants.LIBERTY_SEQUENCE, kvp.getStringValue());
                     } else if (key.equals(LogFieldConstants.IBM_THREADID) || AuditData.getThreadIDKey(0).equals(key)) {
                         // Add Thread information to Attributes Builder
-                        attributes.put(ThreadIncubatingAttributes.THREAD_ID, kvp.getIntValue());
+                        attributes.put(semcovConstantsAccessor.threadId(), kvp.getIntValue());
                     } else {
                         // Format and map the other audit event fields accordingly.
                         attributes.put(MpTelemetryAuditEventMappingUtils.getOTelMappedAuditEventKeyName(key), kvp.getStringValue());
