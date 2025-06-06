@@ -66,7 +66,7 @@ public class TelemetryUserFeatureTest extends FATServletClient {
 
     //Telemetry 20 because we're only testing runtime mode
     @ClassRule
-    public static RepeatTests r = TelemetryActions.telemetry20and21Repeats(SERVER_NAME);
+    public static RepeatTests r = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
 
     @BeforeClass
     public static void setUp() throws Exception {

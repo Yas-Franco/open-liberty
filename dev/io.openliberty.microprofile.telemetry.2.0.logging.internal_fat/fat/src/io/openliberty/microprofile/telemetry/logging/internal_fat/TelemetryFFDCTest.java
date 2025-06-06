@@ -45,7 +45,7 @@ public class TelemetryFFDCTest extends FATServletClient {
     public static LibertyServer server;
 
     @ClassRule
-    public static RepeatTests rt = TelemetryActions.latestTelemetry20and21Repeats();
+    public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
 
     private static final String USER_FEATURE_PATH = "usr/extension/lib/features/";
     private static final String USER_BUNDLE_PATH = "usr/extension/lib/";
