@@ -21,7 +21,7 @@ src: \
 fat.project: true
 
 tested.features=mpTelemetry-2.0,\
-  mpTelemetry-1.1,\
+  mpTelemetry-2.1,\
   pages-3.1,\
   checkpoint,\
   restfulwsclient-4.0,\

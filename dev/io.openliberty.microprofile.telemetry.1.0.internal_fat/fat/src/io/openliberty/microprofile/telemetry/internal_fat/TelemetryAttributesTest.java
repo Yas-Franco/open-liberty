@@ -47,7 +47,7 @@ public class TelemetryAttributesTest extends FATServletClient {
 
     //This test tests resources that were added to Liberty in MPTel 2.0
     @ClassRule
-    public static RepeatTests r = TelemetryActions.telemetry20and21Repeats(SERVER_NAME);
+    public static RepeatTests r = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
 
     @BeforeClass
     public static void setUp() throws Exception {

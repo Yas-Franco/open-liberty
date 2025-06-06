@@ -186,18 +186,16 @@ public class TelemetryActions {
     }
 
     public static RepeatTests telemetry21Repeats() {
-        return telemetry20Repeats(FeatureReplacementAction.ALL_SERVERS);
+        return telemetry21Repeats(FeatureReplacementAction.ALL_SERVERS);
     }
 
-
-    public static RepeatTests telemetry20and21Repeats(String serverName) {
+    public static RepeatTests telemetry21andLatest20Repeats(String serverName) {
         return repeat(serverName, MicroProfileActions.MP71_EE11, MP14_MPTEL21, MP41_MPTEL21, MP50_MPTEL21,
-                      MP50_MPTEL21_JAVA8, MicroProfileActions.MP71_EE10, MicroProfileActions.MP70_EE11, MP14_MPTEL20, MP41_MPTEL20, MP50_MPTEL20,
-                      MP50_MPTEL20_JAVA8, MP61_MPTEL20, MicroProfileActions.MP70_EE10);
+                      MP50_MPTEL21_JAVA8, MicroProfileActions.MP70_EE10);
     }
 
-    public static RepeatTests telemetry20and21Repeats() {
-        return telemetry20Repeats(FeatureReplacementAction.ALL_SERVERS);
+    public static RepeatTests telemetry21andLatest20Repeats() {
+        return telemetry21andLatest20Repeats(FeatureReplacementAction.ALL_SERVERS);
     }
 
     /*
@@ -244,18 +242,6 @@ public class TelemetryActions {
 
     public static RepeatTests latestTelemetry20Repeats(String serverName) {
         return repeat(serverName, MicroProfileActions.MP70_EE11);
-    }
-
-    /*
-     * This returns one repeat for every released version of MPTelemetry >= 2.0; the latest 2.0, and more to come when they exist.
-     * It also returns a repeat to cover ongoing development if that is not covered by one of the above.
-     */
-    public static RepeatTests latestTelemetry20and21Repeats() {
-        return latestTelemetry20Repeats(FeatureReplacementAction.ALL_SERVERS);
-    }
-
-    public static RepeatTests latestTelemetry20and21Repeats(String serverName) {
-        return repeat(serverName, MicroProfileActions.MP70_EE11, MicroProfileActions.MP70_EE11);
     }
 
     public static RepeatTests telemetry11Repeats(String serverName) {

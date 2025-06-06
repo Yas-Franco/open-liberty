@@ -53,7 +53,7 @@ public class TelemetryConfigRuntimeModeIgnoresMPConfigTest extends FATServletCli
 
     //This test is for the runtime mode, introduced in OTel 2.0
     @ClassRule
-    public static RepeatTests r = TelemetryActions.telemetry20and21Repeats(SERVER_NAME);
+    public static RepeatTests r = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
 
     @BeforeClass
     public static void setUp() throws Exception {
