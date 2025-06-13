@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024 IBM Corporation and others.
+ * Copyright (c) 2024, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -46,7 +46,7 @@ public class TelemetryMessagesTest extends FATServletClient {
     public static final String APP_NAME = "MpTelemetryLogApp";
     public static final String SERVER_NAME = "TelemetryMessage";
 
-    //This test will run on all mpTelemetry 2.1 repeats to ensure we have some test coverage on all versions.
+    //This test will run on all mpTelemetry 2.1 repeats and the latest mpTelemetry 2.0 repeat to ensure we have some test coverage on all versions.
     //I chose this one because TelemetryMessages is core to this bucket
     @ClassRule
     public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
