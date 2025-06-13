@@ -29,6 +29,7 @@ import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.rules.repeater.CheckpointRule;
 import componenttest.rules.repeater.CheckpointRule.ServerMode;
+import org.junit.rules.RuleChain;
 import componenttest.rules.repeater.RepeatTests;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.FATServletClient;
@@ -54,6 +55,9 @@ public class TelemetryAccessCheckpointTest extends FATServletClient {
     // Will re-enable in follow-on issue.
     @ClassRule
     public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
+
+    @ClassRule
+    public static RuleChain chain = RuleChain.outerRule(rt).around(checkpointRule);
 
     @Server(SERVER_NAME)
     public static LibertyServer server;
