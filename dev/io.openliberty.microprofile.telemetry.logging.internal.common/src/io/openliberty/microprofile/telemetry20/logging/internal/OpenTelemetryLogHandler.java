@@ -40,6 +40,8 @@ import com.ibm.wsspi.collector.manager.CollectorManager;
 import com.ibm.wsspi.collector.manager.Handler;
 import com.ibm.wsspi.collector.manager.SynchronousHandler;
 
+import org.osgi.service.component.annotations.Reference;
+
 import io.openliberty.checkpoint.spi.CheckpointPhase;
 import io.openliberty.microprofile.telemetry.internal.common.AgentDetection;
 import io.openliberty.microprofile.telemetry.internal.common.constants.OpenTelemetryConstants;
