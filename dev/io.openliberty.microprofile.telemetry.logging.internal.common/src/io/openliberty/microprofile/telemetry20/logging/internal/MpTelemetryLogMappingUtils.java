@@ -21,7 +21,6 @@ import com.ibm.websphere.logging.WsLevel;
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Trivial;
-import com.ibm.ws.kernel.service.util.ServiceCaller;
 import com.ibm.ws.logging.collector.CollectorConstants;
 import com.ibm.ws.logging.collector.CollectorJsonHelpers;
 import com.ibm.ws.logging.collector.LogFieldConstants;
@@ -48,13 +47,6 @@ import io.opentelemetry.context.Context;
 
 @Trivial
 public class MpTelemetryLogMappingUtils {
-
-    private static final ServiceCaller<SemcovConstantsAccessor> semcovConstantsAccessorCaller;
-    private static final SemcovConstantsAccessor semcovConstantsAccessor;
-    static {
-        semcovConstantsAccessorCaller = new ServiceCaller<SemcovConstantsAccessor>(MpTelemetryAccessEventMappingUtils.class, SemcovConstantsAccessor.class);
-        semcovConstantsAccessor = semcovConstantsAccessorCaller.current().get();
-    }
 
     private static final TraceComponent tc = Tr.register(MpTelemetryLogMappingUtils.class, "TELEMETRY",
                                                          "io.openliberty.microprofile.telemetry.internal.common.resources.MPTelemetry");
@@ -87,17 +79,17 @@ public class MpTelemetryLogMappingUtils {
      * @param event     The object originating from logging source which contains necessary fields
      * @param eventType The type of event
      */
-    public static void mapLibertyEventToOpenTelemetry(LogRecordBuilder builder, String eventType, Object event) {
+    public static void mapLibertyEventToOpenTelemetry(LogRecordBuilder builder, String eventType, Object event, SemcovConstantsAccessor semcovConstantsAccessor) {
         if (eventType.equals(CollectorConstants.MESSAGES_LOG_EVENT_TYPE)) {
-            mapMessageAndTraceToOpenTelemetry(builder, eventType, event);
+            mapMessageAndTraceToOpenTelemetry(builder, eventType, event, semcovConstantsAccessor);
         } else if (eventType.equals(CollectorConstants.TRACE_LOG_EVENT_TYPE)) {
-            mapMessageAndTraceToOpenTelemetry(builder, eventType, event);
+            mapMessageAndTraceToOpenTelemetry(builder, eventType, event, semcovConstantsAccessor);
         } else if (eventType.equals(CollectorConstants.FFDC_EVENT_TYPE)) {
-            mapFFDCToOpenTelemetry(builder, eventType, event);
+            mapFFDCToOpenTelemetry(builder, eventType, event, semcovConstantsAccessor);
         } else if (eventType.equals(CollectorConstants.AUDIT_LOG_EVENT_TYPE)) {
-            mapAuditLogsToOpenTelemetry(builder, eventType, event);
+            mapAuditLogsToOpenTelemetry(builder, eventType, event, semcovConstantsAccessor);
         } else if (eventType.equals(CollectorConstants.ACCESS_LOG_EVENT_TYPE)) {
-            mapAccessToOpenTelemetry(builder, eventType, event);
+            mapAccessToOpenTelemetry(builder, eventType, event, semcovConstantsAccessor);
         }
     }
 
@@ -108,7 +100,7 @@ public class MpTelemetryLogMappingUtils {
      * @param eventType The object originating from logging source which contains necessary fields.
      * @param event     The type of event
      */
-    private static void mapMessageAndTraceToOpenTelemetry(LogRecordBuilder builder, String eventType, Object event) {
+    private static void mapMessageAndTraceToOpenTelemetry(LogRecordBuilder builder, String eventType, Object event, SemcovConstantsAccessor semcovConstantsAccessor) {
         LogTraceData logData = (LogTraceData) event;
 
         // Get Timestamp from LogData and set it in the LogRecordBuilder
@@ -208,7 +200,7 @@ public class MpTelemetryLogMappingUtils {
      * @param eventType The object originating from logging source which contains necessary fields
      * @param event     The type of event
      */
-    private static void mapFFDCToOpenTelemetry(LogRecordBuilder builder, String eventType, Object event) {
+    private static void mapFFDCToOpenTelemetry(LogRecordBuilder builder, String eventType, Object event, SemcovConstantsAccessor semcovConstantsAccessor) {
         FFDCData ffdcData = (FFDCData) event;
 
         // Get Timestamp from LogData and set it in the LogRecordBuilder
@@ -258,7 +250,7 @@ public class MpTelemetryLogMappingUtils {
      * @param eventType The type of event
      * @param event     The object originating from logging source which contains necessary fields.
      */
-    private static void mapAuditLogsToOpenTelemetry(LogRecordBuilder builder, String eventType, Object event) {
+    private static void mapAuditLogsToOpenTelemetry(LogRecordBuilder builder, String eventType, Object event, SemcovConstantsAccessor semcovConstantsAccessor) {
         GenericData genData = (GenericData) event;
         KeyValuePair[] pairs = genData.getPairs();
         String key = null;
@@ -324,7 +316,7 @@ public class MpTelemetryLogMappingUtils {
      * @param eventType The type of event
      * @param event     The object originating from logging source which contains necessary fields.
      */
-    private static void mapAccessToOpenTelemetry(LogRecordBuilder builder, String eventType, Object event) {
+    private static void mapAccessToOpenTelemetry(LogRecordBuilder builder, String eventType, Object event, SemcovConstantsAccessor semcovConstantsAccessor) {
         AccessLogData accessLogData = (AccessLogData) event;
 
         builder.setSeverity(Severity.INFO2);
@@ -521,6 +513,7 @@ public class MpTelemetryLogMappingUtils {
         Instant instant = Instant.from(tempAccessor);
         return instant;
     }
+
     private static Object getPairValue(KeyValuePair value) {
         ValueTypes pairValueType = value.getType();
 
