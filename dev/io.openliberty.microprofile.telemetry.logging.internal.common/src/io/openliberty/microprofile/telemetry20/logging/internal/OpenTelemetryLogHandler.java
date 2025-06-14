@@ -43,6 +43,7 @@ import io.openliberty.microprofile.telemetry.internal.common.AgentDetection;
 import io.openliberty.microprofile.telemetry.internal.common.constants.OpenTelemetryConstants;
 import io.openliberty.microprofile.telemetry.internal.interfaces.OpenTelemetryAccessor;
 import io.openliberty.microprofile.telemetry.spi.OpenTelemetryInfo;
+import io.openliberty.microprofile.telemetry20.logging.internal.semconv.SemcovConstantsAccessor;
 import io.opentelemetry.api.logs.LogRecordBuilder;
 
 @Component(name = OpenTelemetryLogHandler.COMPONENT_NAME, service = { Handler.class }, configurationPolicy = ConfigurationPolicy.OPTIONAL, property = { "service.vendor=IBM" })
@@ -65,6 +66,9 @@ public class OpenTelemetryLogHandler implements SynchronousHandler {
     private List<String> sourcesList = new ArrayList<String>();
 
     static String accessLogField = null;
+
+    @Reference
+    SemcovConstantsAccessor semcovConstantsAccessor;
 
     @Activate
     protected void activate(ComponentContext cc, Map<String, Object> configuration) {
@@ -159,7 +163,7 @@ public class OpenTelemetryLogHandler implements SynchronousHandler {
         String eventType = MpTelemetryLogMappingUtils.getLibertyEventType(source);
 
         // Map the Liberty event to the OpenTelemetry Logs Data Model
-        MpTelemetryLogMappingUtils.mapLibertyEventToOpenTelemetry(builder, eventType, event);
+        MpTelemetryLogMappingUtils.mapLibertyEventToOpenTelemetry(builder, eventType, event, semcovConstantsAccessor);
     }
 
     /** {@inheritDoc} */
