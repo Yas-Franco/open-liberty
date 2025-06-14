@@ -14,9 +14,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.junit.After;
 import org.junit.Before;
@@ -53,6 +53,8 @@ public class TelemetryAuditTest extends FATServletClient {
     //I chose this one because TelemetryMessages is core to this bucket
     @ClassRule
     public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
+
+    protected static Logger LOG = Logger.getLogger("TelemetryAuditTest");
 
     @Server(SERVER_NAME)
     public static LibertyServer server;
@@ -107,7 +109,7 @@ public class TelemetryAuditTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure audit feature and audit source
-        setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE, APP_NAME);
 
         // Wait for the audit security management event that occurs at audit service startup to be bridged over.
         String auditLine = server.waitForStringInLog("AuditService", consoleLogFile);
@@ -148,7 +150,7 @@ public class TelemetryAuditTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure all sources
-        setConfig(server, messageLogFile, SERVER_XML_ALL_SOURCES_WITH_AUDIT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ALL_SOURCES_WITH_AUDIT, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an audit event
@@ -181,7 +183,7 @@ public class TelemetryAuditTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure audit feature only
-        setConfig(server, messageLogFile, SERVER_XML_ONLY_AUDIT_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ONLY_AUDIT_FEATURE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an audit event
@@ -192,7 +194,7 @@ public class TelemetryAuditTest extends FATServletClient {
         assertNull("Audit logs could be found.", auditLine);
 
         // Configure <mpTelemetry source="audit"/>
-        setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an audit event.
@@ -214,7 +216,7 @@ public class TelemetryAuditTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure audit feature and audit source
-        setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE, APP_NAME);
 
         // Wait for the audit security management event that occurs at audit service startup to be bridged over.
         String auditLine = server.waitForStringInLog("AuditService", consoleLogFile);
@@ -231,7 +233,7 @@ public class TelemetryAuditTest extends FATServletClient {
         checkAuditOTelAttributeMapping(auditLine);
 
         // Remove only audit source
-        setConfig(server, messageLogFile, SERVER_XML_ONLY_AUDIT_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ONLY_AUDIT_FEATURE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an audit event.
@@ -252,7 +254,7 @@ public class TelemetryAuditTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure audit source only
-        setConfig(server, messageLogFile, SERVER_XML_ONLY_AUDIT_SOURCE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ONLY_AUDIT_SOURCE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an audit event
@@ -263,7 +265,7 @@ public class TelemetryAuditTest extends FATServletClient {
         assertNull("Audit logs could be found.", auditLine);
 
         // Configure audit feature
-        setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE, APP_NAME);
 
         // Wait for the audit service startup audit event to be bridged over.
         String line = server.waitForStringInLog("AuditService", consoleLogFile);
@@ -290,7 +292,7 @@ public class TelemetryAuditTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure audit feature and audit source
-        setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE, APP_NAME);
 
         // Wait for the audit security management event that occurs at audit service startup to be bridged over.
         String auditLine = server.waitForStringInLog("AuditService", consoleLogFile);
@@ -307,7 +309,7 @@ public class TelemetryAuditTest extends FATServletClient {
         checkAuditOTelAttributeMapping(auditLine);
 
         // Remove only audit feature
-        setConfig(server, messageLogFile, SERVER_XML_ONLY_AUDIT_SOURCE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ONLY_AUDIT_SOURCE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an audit event.
@@ -328,7 +330,7 @@ public class TelemetryAuditTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure audit feature and audit source
-        setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE, APP_NAME);
 
         // Wait for the audit security management event that occurs at audit service startup to be bridged over.
         String auditLine = server.waitForStringInLog("AuditService", consoleLogFile);
@@ -345,7 +347,7 @@ public class TelemetryAuditTest extends FATServletClient {
         checkAuditOTelAttributeMapping(auditLine);
 
         // Remove audit feature and source
-        setConfig(server, messageLogFile, SERVER_XML_NO_AUDIT_SOURCE_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_NO_AUDIT_SOURCE_FEATURE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an audit event.
@@ -366,7 +368,7 @@ public class TelemetryAuditTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure invalid audit source
-        setConfig(server, messageLogFile, SERVER_XML_INVALID_AUDIT_SOURCE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_INVALID_AUDIT_SOURCE, APP_NAME);
 
         // Verify if the Audit Service is ready, from the Audit feature
         String auditSrvReadyLine = server.waitForStringInLog("CWWKS5851I", messageLogFile);
@@ -390,7 +392,7 @@ public class TelemetryAuditTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure all sources
-        setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_AUDIT_SOURCE_FEATURE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an audit event
@@ -418,7 +420,7 @@ public class TelemetryAuditTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure audit feature and audit source
-        setConfig(server, messageLogFile, SERVER_XML_AUDIT_FILE_HANDLER);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_AUDIT_FILE_HANDLER, APP_NAME);
 
         // Wait for the audit security management event that occurs at audit service startup to be bridged over.
         String auditLine = server.waitForStringInLog("AuditService", consoleLogFile);
@@ -457,12 +459,6 @@ public class TelemetryAuditTest extends FATServletClient {
         // Ensure only 2 liberty_audit events are bridged over, which should be only Security Audit Management events.
         int numOfAuditLogs = server.waitForMultipleStringsInLog(2, "liberty_audit", LOG_SEARCH_TIMEOUT, consoleLogFile);
         assertEquals("More than 2 audit events were bridged over.", 2, numOfAuditLogs);
-    }
-
-    private static void setConfig(LibertyServer server, RemoteFile logFile, String fileName) throws Exception {
-        server.setMarkToEndOfLog(logFile);
-        server.setServerConfigurationFile(fileName);
-        server.waitForConfigUpdateInLogUsingMark(Collections.singleton(APP_NAME), new String[] {});
     }
 
     private static void checkAuditOTelAttributeMapping(String auditLine) {

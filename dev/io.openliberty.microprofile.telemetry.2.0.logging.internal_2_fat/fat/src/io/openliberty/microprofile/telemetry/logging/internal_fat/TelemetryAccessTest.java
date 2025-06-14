@@ -14,7 +14,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -106,7 +105,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure access feature and access source
-        setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT, APP_NAME);
 
         // Trigger an access log event
         TestUtils.runApp(server, "access");
@@ -139,7 +138,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure access feature and access source
-        setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_CUSTOM);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_CUSTOM, APP_NAME);
 
         // Trigger an access log event
         TestUtils.runApp(server, "access");
@@ -180,7 +179,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure all sources
-        setConfig(server, messageLogFile, SERVER_XML_ALL_SOURCES_WITH_ACCESS);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ALL_SOURCES_WITH_ACCESS, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an access event
@@ -219,7 +218,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure access feature only
-        setConfig(server, messageLogFile, SERVER_XML_ONLY_ACCESS_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ONLY_ACCESS_FEATURE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an access event
@@ -230,7 +229,7 @@ public class TelemetryAccessTest extends FATServletClient {
         assertNull("Access logs could be found.", accessLine);
 
         // Configure <mpTelemetry source="accessLog"/>
-        setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an access event.
@@ -252,7 +251,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure access configuration and access source
-        setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an access event
@@ -265,7 +264,7 @@ public class TelemetryAccessTest extends FATServletClient {
         checkAccessOTelAttributeMapping(accessLine);
 
         // Remove only access source
-        setConfig(server, messageLogFile, SERVER_XML_ONLY_ACCESS_FEATURE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ONLY_ACCESS_FEATURE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an access event.
@@ -286,7 +285,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure access source only
-        setConfig(server, messageLogFile, SERVER_XML_ONLY_ACCESS_SOURCE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ONLY_ACCESS_SOURCE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an access event
@@ -297,7 +296,7 @@ public class TelemetryAccessTest extends FATServletClient {
         assertNull("Access logs could be found.", accessLine);
 
         // Configure access feature
-        setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an access event.
@@ -319,7 +318,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure access feature and access source
-        setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an access event
@@ -331,7 +330,7 @@ public class TelemetryAccessTest extends FATServletClient {
         checkAccessOTelAttributeMapping(accessLine);
 
         // Remove only access feature
-        setConfig(server, messageLogFile, SERVER_XML_ONLY_ACCESS_SOURCE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ONLY_ACCESS_SOURCE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         // Trigger an access event.
@@ -352,7 +351,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure invalid access source
-        setConfig(server, messageLogFile, SERVER_XML_INVALID_ACCESS_SOURCE);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_INVALID_ACCESS_SOURCE, APP_NAME);
 
         // Access events should NOT be bridged over to OpenTelemetry
         String accessLine = server.waitForStringInLog("liberty_access", LOG_SEARCH_TIMEOUT, consoleLogFile);
@@ -369,7 +368,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure invalid access source
-        setConfig(server, messageLogFile, SERVER_XML_INVALID_ACCESS_FORMAT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_INVALID_ACCESS_FORMAT, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         TestUtils.runApp(server, "logServlet");
@@ -393,7 +392,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure access feature and access source
-        setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT, APP_NAME);
 
         // Trigger an access log event
         TestUtils.runAccessApp(server, "runAccessApp", "w3c");
@@ -427,7 +426,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure access feature and access source
-        setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT, APP_NAME);
 
         // Trigger an access log event
         TestUtils.runAccessApp(server, "runAccessApp", "b3");
@@ -461,7 +460,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
         // Configure access feature and access source
-        setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT, APP_NAME);
 
         // Trigger an access log event
         TestUtils.runAccessApp(server, "runAccessApp", "jaeger");
@@ -496,7 +495,7 @@ public class TelemetryAccessTest extends FATServletClient {
         RemoteFile traceLogFile = server.getDefaultTraceFile();
 
         // Configure access feature and access source
-        setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ACCESS_SOURCE_DEFAULT, APP_NAME);
 
         // Trigger an access log event
         TestUtils.runApp(server, "landingPage");
@@ -562,12 +561,6 @@ public class TelemetryAccessTest extends FATServletClient {
             }
         };
         TestUtils.checkJsonMessage(auditLine, expectedAuditFieldsMap);
-    }
-
-    private static void setConfig(LibertyServer server, RemoteFile logFile, String fileName) throws Exception {
-        server.setMarkToEndOfLog(logFile);
-        server.setServerConfigurationFile(fileName);
-        server.waitForConfigUpdateInLogUsingMark(Collections.singleton(APP_NAME), new String[] {});
     }
 
 }
