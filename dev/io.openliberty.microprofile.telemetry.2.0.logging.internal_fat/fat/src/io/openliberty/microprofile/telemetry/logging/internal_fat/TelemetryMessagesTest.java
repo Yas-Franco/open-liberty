@@ -49,7 +49,7 @@ public class TelemetryMessagesTest extends FATServletClient {
     //This test will run on all mpTelemetry 2.1 repeats and the latest mpTelemetry 2.0 repeat to ensure we have some test coverage on all versions.
     //I chose this one because TelemetryMessages is core to this bucket
     @ClassRule
-    public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
+    public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats();
 
     @Server(SERVER_NAME)
     public static LibertyServer server;

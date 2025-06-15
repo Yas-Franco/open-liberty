@@ -49,7 +49,7 @@ public class TelemetryTraceTest extends FATServletClient {
     //This test will run on all mpTelemetry 2.1 and latest mpTelemetry 2.0 repeats to ensure we have some test coverage on all versions.
     //I chose this one because TelemetryTrace is core to this bucket
     @ClassRule
-    public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
+    public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats();
 
     @BeforeClass
     public static void testSetup() throws Exception {
