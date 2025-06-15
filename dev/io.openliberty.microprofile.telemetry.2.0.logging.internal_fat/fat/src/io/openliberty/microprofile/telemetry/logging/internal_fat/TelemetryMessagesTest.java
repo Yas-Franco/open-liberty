@@ -173,7 +173,7 @@ public class TelemetryMessagesTest extends FATServletClient {
     @Test
     public void testTelemetryLogLevels() throws Exception {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
-        setConfig(SERVER_XML_ALL_SOURCES, consoleLogFile, server);
+        FATSuite.setConfig(server, consoleLogFile, SERVER_XML_ALL_SOURCES, APP_NAME);
 
         TestUtils.runApp(server, "logServlet");
 
@@ -215,12 +215,6 @@ public class TelemetryMessagesTest extends FATServletClient {
         assertNotNull("Finest message could not be found.", finestLine);
         assertTrue("Incorrect log level was logged.", finestLine.contains("TRACE"));
 
-    }
-
-    private static String setConfig(String fileName, RemoteFile logFile, LibertyServer server) throws Exception {
-        server.setMarkToEndOfLog(logFile);
-        server.setServerConfigurationFile(fileName);
-        return server.waitForStringInLogUsingMark("CWWKG0017I.*|CWWKG0018I.*");
     }
 
     @AfterClass

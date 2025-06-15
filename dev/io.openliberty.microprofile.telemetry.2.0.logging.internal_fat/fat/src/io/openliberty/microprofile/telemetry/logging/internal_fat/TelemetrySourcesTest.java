@@ -90,7 +90,7 @@ public class TelemetrySourcesTest extends FATServletClient {
     @ExpectedFFDC({ "java.lang.NullPointerException" })
     public void testTelemetryAllSources() throws Exception {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
-        setConfig(SERVER_XML_ALL_SOURCES, consoleLogFile, server);
+        FATSuite.setConfig(server, consoleLogFile, SERVER_XML_ALL_SOURCES, APP_NAME);
 
         TestUtils.runApp(server, "logServlet");
         TestUtils.runApp(server, "ffdc1");
@@ -129,7 +129,7 @@ public class TelemetrySourcesTest extends FATServletClient {
     @ExpectedFFDC({ "java.lang.NullPointerException" })
     public void testTelemetryNoSource() throws Exception {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
-        setConfig(SERVER_XML_NO_SOURCE, consoleLogFile, server);
+        FATSuite.setConfig(server, consoleLogFile, SERVER_XML_NO_SOURCE, APP_NAME);
 
         TestUtils.runApp(server, "logServlet");
         TestUtils.runApp(server, "ffdc1");
@@ -165,7 +165,7 @@ public class TelemetrySourcesTest extends FATServletClient {
     @ExpectedFFDC({ "java.lang.NullPointerException" })
     public void testTelemetryNoTelemetryAttribute() throws Exception {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
-        setConfig(SERVER_XML_NO_TELEMETRY_ATTRIBUTE, consoleLogFile, server);
+        FATSuite.setConfig(server, consoleLogFile, SERVER_XML_NO_TELEMETRY_ATTRIBUTE, APP_NAME);
 
         TestUtils.runApp(server, "logServlet");
         TestUtils.runApp(server, "ffdc1");
@@ -203,7 +203,7 @@ public class TelemetrySourcesTest extends FATServletClient {
     @ExpectedFFDC({ "java.lang.NullPointerException" })
     public void testTelemetryEmptySource() throws Exception {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
-        setConfig(SERVER_XML_EMPTY_SOURCE, consoleLogFile, server);
+        FATSuite.setConfig(server, consoleLogFile, SERVER_XML_EMPTY_SOURCE, APP_NAME);
 
         TestUtils.runApp(server, "logServlet");
         TestUtils.runApp(server, "ffdc1");
@@ -226,7 +226,7 @@ public class TelemetrySourcesTest extends FATServletClient {
     @ExpectedFFDC({ "java.lang.NullPointerException" })
     public void testTelemetryInvalidSource() throws Exception {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
-        setConfig(SERVER_XML_INVALID_SOURCE, consoleLogFile, server);
+        FATSuite.setConfig(server, consoleLogFile, SERVER_XML_INVALID_SOURCE, APP_NAME);
 
         TestUtils.runApp(server, "logServlet");
         TestUtils.runApp(server, "ffdc1");
@@ -252,7 +252,7 @@ public class TelemetrySourcesTest extends FATServletClient {
     @ExpectedFFDC({ "java.lang.NullPointerException" })
     public void testTelemetryInvalidAndValidSource() throws Exception {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
-        setConfig(SERVER_XML_INVALID_AND_VALID_SOURCES, consoleLogFile, server);
+        FATSuite.setConfig(server, consoleLogFile, SERVER_XML_INVALID_AND_VALID_SOURCES, APP_NAME);
 
         TestUtils.runApp(server, "logServlet");
         TestUtils.runApp(server, "ffdc1");
@@ -293,7 +293,7 @@ public class TelemetrySourcesTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
         RemoteFile messageLogFile = server.getDefaultLogFile();
 
-        setConfig(SERVER_XML_MESSAGE_SOURCE, messageLogFile, server);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_MESSAGE_SOURCE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         TestUtils.runApp(server, "logServlet");
@@ -321,7 +321,7 @@ public class TelemetrySourcesTest extends FATServletClient {
         assertNull("FFDC message was found and should not have been bridged.", ffdcLine);
 
         //Update MPTelemetry sources to include messages, trace and ffdc.
-        setConfig(SERVER_XML_ALL_SOURCES, messageLogFile, server);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_ALL_SOURCES, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         TestUtils.runApp(server, "logServlet");
@@ -362,7 +362,7 @@ public class TelemetrySourcesTest extends FATServletClient {
         RemoteFile consoleLogFile = server.getConsoleLogFile();
         RemoteFile messageLogFile = server.getDefaultLogFile();
 
-        setConfig(SERVER_XML_MESSAGE_SOURCE, messageLogFile, server);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_MESSAGE_SOURCE, APP_NAME);
         server.setMarkToEndOfLog(consoleLogFile);
 
         TestUtils.runApp(server, "logServlet");
@@ -390,7 +390,7 @@ public class TelemetrySourcesTest extends FATServletClient {
         assertNull("FFDC message was found and should not have been bridged.", ffdcLine);
 
         //Update MPTelemetry sources to exclude all sources
-        setConfig(SERVER_XML_EMPTY_SOURCE, messageLogFile, server);
+        FATSuite.setConfig(server, messageLogFile, SERVER_XML_EMPTY_SOURCE, APP_NAME);
 
         server.setMarkToEndOfLog(consoleLogFile);
 
@@ -404,12 +404,6 @@ public class TelemetrySourcesTest extends FATServletClient {
         assertNull("App message was found and should not have been bridged.", messageLine);
         assertNull("FFDC message was found and should not have been bridged.", ffdcLine);
 
-    }
-
-    private static String setConfig(String fileName, RemoteFile logFile, LibertyServer server) throws Exception {
-        server.setMarkToEndOfLog(logFile);
-        server.setServerConfigurationFile(fileName);
-        return server.waitForStringInLogUsingMark("CWWKG0017I.*|CWWKG0018I.*");
     }
 
     @AfterClass
