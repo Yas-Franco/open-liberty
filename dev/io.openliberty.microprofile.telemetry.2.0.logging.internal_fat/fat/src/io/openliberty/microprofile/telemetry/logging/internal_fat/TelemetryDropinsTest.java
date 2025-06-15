@@ -47,7 +47,7 @@ public class TelemetryDropinsTest extends FATServletClient {
     public static LibertyServer server;
 
     @ClassRule
-    public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
+    public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats();
 
     @BeforeClass
     public static void initialSetup() throws Exception {

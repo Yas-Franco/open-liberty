@@ -46,7 +46,7 @@ public class TelemetryFFDCCheckpointTest extends FATServletClient {
     //This test will run on all mpTelemetry 2.1 repeats to ensure we have some test coverage on all versions.
     //I picked it for this because checkpoint is strategic so I picked one of the checkpoint tests
     @ClassRule
-    public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats(SERVER_NAME);
+    public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats();
 
     @BeforeClass
     public static void initialSetup() throws Exception {
