@@ -50,14 +50,11 @@ public class TelemetryAccessCheckpointTest extends FATServletClient {
                     .setServerStart(TelemetryAccessCheckpointTest::testSetup)
                     .setServerTearDown(TelemetryAccessCheckpointTest::testTearDown);
 
-    //This test will run on all mp 2.0 repeats to ensure we have some test coverage on all versions.
+    //This test will run on all mp 2.1 repeats to ensure we have some test coverage on all versions.
     //I chose this one because TelemetryMessages is core to this bucket
     // Will re-enable in follow-on issue.
     @ClassRule
     public static RepeatTests rt = TelemetryActions.telemetry21andLatest20Repeats();
-
-    @ClassRule
-    public static RuleChain chain = RuleChain.outerRule(rt).around(checkpointRule);
 
     @Server(SERVER_NAME)
     public static LibertyServer server;
