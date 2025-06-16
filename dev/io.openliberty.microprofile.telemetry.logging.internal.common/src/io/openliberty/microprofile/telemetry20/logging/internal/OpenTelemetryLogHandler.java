@@ -186,7 +186,18 @@ public class OpenTelemetryLogHandler implements SynchronousHandler, OpenTelemtry
     public void synchronousWrite(Object event) {
         OpenTelemetryInfo otelInstance = null;
 
-        if (OpenTelemetryAccessor.isRuntimeEnabled()) {
+        if (!CheckpointPhase.getPhase().restored()) {
+            // restored() true if checkpoint has been restored or was never active.
+            // so with the negation we enter this block if checkpoint is active and
+            // we have not yet restored.
+
+            // In that situation OpenTelemetry always returns a no-op OpenTelemetryInfo
+            // but we don't want to start poking around the internals before they're set
+            // up in the post-restore phase.
+
+            // in short, this block is no-op.
+
+        } else if (OpenTelemetryAccessor.isRuntimeEnabled()) {
             // Runtime OpenTelemetry instance
             otelInstance = this.runtimeOtelInfo;
             synchronousWriteInternal(event, otelInstance);
