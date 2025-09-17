@@ -93,6 +93,7 @@ import com.ibm.wsspi.http.channel.exception.BodyCompleteException;
 import com.ibm.wsspi.http.channel.exception.IllegalHttpBodyException;
 import com.ibm.wsspi.http.channel.exception.MessageTooLargeException;
 import com.ibm.wsspi.http.channel.values.ContentEncodingValues;
+import com.ibm.wsspi.http.channel.values.ConnectionValues;
 import com.ibm.wsspi.http.channel.values.HttpHeaderKeys;
 import com.ibm.wsspi.http.channel.values.MethodValues;
 import com.ibm.wsspi.http.channel.values.StatusCodes;
@@ -116,13 +117,11 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultLastHttpContent;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http2.DefaultHttp2Headers;
 import io.netty.handler.codec.http2.Http2Connection;
 import io.netty.handler.codec.http2.Http2Headers;
@@ -2325,15 +2324,15 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "sendHeaders: Adding close connection header due to keep alive disabled or exceeded number of maximum persistent requests");
             }
-            response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+            getResponse().setHeader(HttpHeaderKeys.HDR_CONNECTION,  ConnectionValues.CLOSE.getName());
         }
         if (HttpUtil.isContentLengthSet(response)) {
             this.nettyContext.channel().attr(NettyHttpConstants.CONTENT_LENGTH).set(HttpUtil.getContentLength(response));
         }
         final boolean isSwitching = response.status().equals(HttpResponseStatus.SWITCHING_PROTOCOLS);
 
-        if (isSwitching && "websocket".equalsIgnoreCase(response.headers().get(HttpHeaderNames.UPGRADE))) {
-            nettyContext.channel().attr(NettyHttpConstants.PROTOCOL).set("WebSocket");
+        if (isSwitching && "websocket".equalsIgnoreCase(getResponse().getHeader(HttpHeaderKeys.HDR_UPGRADE).asString())) {
+                nettyContext.channel().attr(NettyHttpConstants.PROTOCOL).set("WebSocket");
         }
         this.setHeadersSent();
     }
@@ -2915,8 +2914,7 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
                     // link header
                     // rel=preload
                     // and not nopush
-                    List<HeaderField> headers = msg.getAllHeaders();
-                    for (HeaderField header : headers) {
+                    for (HeaderField header : msg.getAllHeaders()) {
                         if (header.getName().equalsIgnoreCase("link") &&
                             header.asString().toLowerCase().contains("rel=preload") &&
                             !header.asString().toLowerCase().contains("nopush")) {
@@ -3021,23 +3019,28 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
                 complete = true;
             }
             if (complete) {
-                // TODO Change this to use getResponse API instead of Netty response object directly
+                // Create an empty HTTP response with the given HTTP version and status.
                 DefaultFullHttpResponse resp = new DefaultFullHttpResponse(nettyResponse.protocolVersion(), nettyResponse.status());
-                resp.headers().add(nettyResponse.headers());
+
+                Iterator<HeaderField> it = getResponse().getAllHeaders().iterator();
+                while (it.hasNext()) {
+                    HeaderField header = it.next();
+                    resp.headers().add(header.getName(), header.asString());
+                }
                 nettyResponse = resp;
                 ((NettyResponseMessage)msg).update(nettyResponse);
             }
             prepareNettyHeadersToSend();
-            if (nettyResponse.headers().contains(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text())) {
+            if (getResponse().containsHeader(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text().toString())) {
                 nettyContext.channel().attr(NettyHttpConstants.PROTOCOL).set("HTTP2");
                 HttpToHttp2ConnectionHandler handler = this.nettyContext.channel().pipeline().get(HttpToHttp2ConnectionHandler.class);
                 if (Objects.isNull(handler)) {
                 } else if (handler.connection().remote().allowPushTo()) {
-                    for (Entry<String, String> header : nettyResponse.headers()) {
-                        if (header.getKey().equalsIgnoreCase("link") &&
-                            header.getValue().toLowerCase().contains("rel=preload") &&
-                            !header.getValue().toLowerCase().contains("nopush")) {
-                            handleNettyPreload(header.getValue().substring(header.getValue().indexOf('<') + 1, header.getValue().indexOf('>')));
+                    for (HeaderField header : msg.getAllHeaders()) {
+                        if (header.getName().equalsIgnoreCase("link") &&
+                            header.asString().toLowerCase().contains("rel=preload") &&
+                            !header.asString().toLowerCase().contains("nopush")) {
+                            handleNettyPreload(header.asString().substring(header.asString().indexOf('<') + 1, header.asString().indexOf('>')));
                         }
                     }
                 }
@@ -3058,7 +3061,9 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
                 Tr.debug(tc, "Number of bytes to write: " + getNumBytesWritten());
             }
 
-            String streamId = nettyResponse.headers().get(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text(), "-1");
+            HeaderField streamIdField = getResponse().getHeader(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text().toString());
+            String streamId = (streamIdField.asString() != null) ? streamIdField.asString() : "-1";
+
             if (this.getTSC() instanceof NettyTCPConnectionContext) {
                 ((NettyTCPWriteRequestContext) (getTSC().getWriteInterface())).setStreamId(streamId);
             }
@@ -3311,7 +3316,6 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
                 if (0 < list.size()) {
                     buffers = new WsByteBuffer[list.size()];
                     list.toArray(buffers);
-                    String streamId = nettyResponse.headers().get(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text(), "-1");
                     clearPendingByteBuffers();
                     addToPendingByteBuffer(buffers, list.size());
                 } else {
@@ -3346,22 +3350,28 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
                 complete = true;
             }
             if (complete) {
+                // Create an empty HTTP response with the given HTTP version and status.
                 DefaultFullHttpResponse resp = new DefaultFullHttpResponse(nettyResponse.protocolVersion(), nettyResponse.status());
-                resp.headers().add(nettyResponse.headers());
+
+                Iterator<HeaderField> it = getResponse().getAllHeaders().iterator();
+                while (it.hasNext()) {
+                    HeaderField header = it.next();
+                    resp.headers().add(header.getName(), header.asString());
+                }
                 nettyResponse = resp;
                 ((NettyResponseMessage)msg).update(nettyResponse);
             }
             prepareNettyHeadersToSend();
-            if (nettyResponse.headers().contains(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text())) {
+            if (msg.containsHeader(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text().toString())) {
 
                 HttpToHttp2ConnectionHandler handler = this.nettyContext.channel().pipeline().get(HttpToHttp2ConnectionHandler.class);
                 if (Objects.isNull(handler)) {
                 } else if (handler.connection().remote().allowPushTo()) {
-                    for (Entry<String, String> header : nettyResponse.headers()) {
-                        if (header.getKey().equalsIgnoreCase("link") &&
-                            header.getValue().toLowerCase().contains("rel=preload") &&
-                            !header.getValue().toLowerCase().contains("nopush")) {
-                            handleNettyPreload(header.getValue().substring(header.getValue().indexOf('<') + 1, header.getValue().indexOf('>')));
+                    for (HeaderField header : msg.getAllHeaders()) {
+                        if (header.getName().equalsIgnoreCase("link") &&
+                            header.asString().toLowerCase().contains("rel=preload") &&
+                            !header.asString().toLowerCase().contains("nopush")) {
+                            handleNettyPreload(header.asString().substring(header.asString().indexOf('<') + 1, header.asString().indexOf('>')));
                         }
                     }
                 }
@@ -3382,7 +3392,9 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
                 Tr.debug(tc, "Number of bytes to write: " + getNumBytesWritten());
             }
 
-            String streamId = nettyResponse.headers().get(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text(), "-1");
+            HeaderField streamIdField = getResponse().getHeader(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text().toString());
+            String streamId = (streamIdField.asString() != null) ? streamIdField.asString() : "-1";
+
             if (this.getTSC() instanceof NettyTCPConnectionContext) {
                 ((NettyTCPWriteRequestContext) (getTSC().getWriteInterface())).setStreamId(streamId);
             }
@@ -3777,8 +3789,12 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
         }
         NettyResponseMessage resp = (NettyResponseMessage) getResponse();
         HttpHeaders trailers = resp.getNettyTrailers();
-        DefaultLastHttpContent lastContent = new LastStreamSpecificHttpContent(Integer.valueOf(nettyResponse.headers().get(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text(),
-                                                                                                        "-1")), trailers);
+
+        HeaderField streamIdField = resp.getHeader(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text().toString());
+        String streamId = (streamIdField.asString() != null) ? streamIdField.asString() : "-1";
+
+        DefaultLastHttpContent lastContent = new LastStreamSpecificHttpContent(Integer.valueOf(streamId), trailers);
+
         // Sending last http content since all data was written
         this.nettyContext.channel().eventLoop().execute(() -> nettyContext.channel().writeAndFlush(lastContent));
     }
@@ -4014,9 +4030,7 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
         final HttpBaseMessageImpl msg = getMessageBeingParsed();
         if (null != msg) {
             output.add("Message parsed: " + msg.toString());
-            Iterator<HeaderField> it = msg.getAllHeaders().iterator();
-            while (it.hasNext()) {
-                HeaderField header = it.next();
+            for (HeaderField header : msg.getAllHeaders()) {
                 output.add(header.getName() + "=" + header.asString());
             }
         } else {
@@ -5650,14 +5664,14 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
                     this.compressHandler = new DeflateOutputHandler(GenericUtils.getBytes(nettyRequest.headers().get(HttpHeaderKeys.HDR_USER_AGENT.getName())), bufferSize);
                     break;
                 case ("identity"):
-                    nettyResponse.headers().remove(HttpHeaderKeys.HDR_CONTENT_ENCODING.getName());
+                    getResponse().removeHeader(HttpHeaderKeys.HDR_CONTENT_ENCODING);
 
             }
 
         }
 
         if (Objects.nonNull(compressHandler)) {
-            nettyResponse.headers().remove(HttpHeaderKeys.HDR_CONTENT_LENGTH.getName());
+            getResponse().removeHeader(HttpHeaderKeys.HDR_CONTENT_LENGTH);
         }
     }
 
