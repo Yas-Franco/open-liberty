@@ -1,10 +1,10 @@
 /*******************************************************************************
- * Copyright (c) 2022 IBM Corporation and others.
+ * Copyright (c) 2022, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -120,11 +120,35 @@ public class JakartaSecurity30CDIExtensionTest {
                 allowing(annotatedType).getJavaClass();
                 will(returnValue(AnnotatedClass.class));
                 allowing(annotatedType).getAnnotations();
+                // JS 4.0+ - allow for new method calls
+                allowing(oidcAnnotation).annotationType();
+                allowing(primarySecurityCDIExtension).isEmptyModuleMap(null);
+                will(returnValue(true));
+            }
+        });
+
+    }
+
+    private void cdiExtensionChecksTrackerAndAddsFirstHAM() {
+        mockery.checking(new Expectations() {
+            {
+                // Check if tracker is empty
+                allowing(primarySecurityCDIExtension).isEmptyModuleMap(with(any(String.class)));
+                will(returnValue(true));  // Simulate empty tracker
+
+                // Expect addAuthMech call for adding first HAM to tracker
+                oneOf(primarySecurityCDIExtension).addAuthMech(
+                                                               with(any(String.class)),                           // applicationName
+                                                               with(same(OidcHttpAuthenticationMechanism.class)), // annotatedClass
+                                                               with(same(OidcHttpAuthenticationMechanism.class)), // implClass
+                                                               with(any(Set.class)),                              // annotations
+                                                               with(any(Properties.class))                        // props
+                );
             }
         });
     }
 
-    private void cdiExtensionAddsAuthenticationMechanism() {
+    void cdiExtensionAddsAuthenticationMechanism() {
         mockery.checking(new Expectations() {
             {
                 allowing(annotatedType).getAnnotations();

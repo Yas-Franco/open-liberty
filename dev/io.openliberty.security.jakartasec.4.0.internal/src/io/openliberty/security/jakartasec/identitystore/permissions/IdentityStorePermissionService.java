@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -21,9 +21,13 @@ public class IdentityStorePermissionService {
 
     private static final TraceComponent tc = Tr.register(IdentityStorePermissionService.class);
 
+    // static flag to ensure the debug message is logged only once
+    private static volatile boolean debugMessageLogged = false;
+
     public static void checkPermission(String name) {
-        if (tc.isDebugEnabled()) {
+        if (!(debugMessageLogged) && tc.isDebugEnabled()) {
             Tr.debug(tc, "Using Jakarta Security 4.0+ implementation (no-op).");
+            debugMessageLogged = true;
         }
     }
 

@@ -1,10 +1,10 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2025 IBM Corporation and others.
+ * Copyright (c) 2017, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -13,6 +13,7 @@
 package com.ibm.ws.security.javaeesec.cdi.extensions;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -22,6 +23,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
@@ -64,6 +67,7 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Sensitive;
 import com.ibm.ws.cdi.extension.WebSphereCDIExtension;
+import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 import com.ibm.ws.runtime.metadata.ModuleMetaData;
 import com.ibm.ws.security.javaeesec.ApplicationUtils;
 import com.ibm.ws.security.javaeesec.JavaEESecConstants;
@@ -77,6 +81,8 @@ import com.ibm.ws.webcontainer.security.metadata.LoginConfiguration;
 import com.ibm.ws.webcontainer.security.metadata.SecurityMetadata;
 import com.ibm.ws.webcontainer.security.util.WebConfigUtils;
 import com.ibm.wsspi.webcontainer.metadata.WebModuleMetaData;
+
+import io.openliberty.security.jakartasec.services.JakartaSecurityValidationService;
 
 /**
  * TODO: Add all JSR-375 API classes that can be bean types to api.classes.
@@ -113,6 +119,26 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
         mechanismClasses.add(HttpAuthenticationMechanism.class);
     }
 
+    // for multi-ham, if there are qualifiers, helper class to store *HAM details
+    //   as they are created and added into the CDI in afterBeanDiscovery()
+    // the http auth tracker cannot be used for this purpose as a) it only
+    //   stores HAM details of a single type of class, and b) it would be
+    //   overloading its core purpose
+    private final List<HAMDefinition> hamDefinitions = new ArrayList<>();
+
+    private static class HAMDefinition {
+        Class<?> implClass;
+        List<Class<?>> qualifiers;
+        Properties props;
+
+        HAMDefinition(Class<?> implClass, List<Class<?>> qualifiers, Properties props,
+                      Class<?> annotatedClass, Set<Annotation> annotations) {
+            this.implClass = implClass;
+            this.qualifiers = qualifiers;
+            this.props = props;
+        }
+    }
+
     public JavaEESecCDIExtension() {
         applicationName = getApplicationName();
         httpAuthenticationMechanismsTracker.initialize(applicationName);
@@ -121,6 +147,16 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
     // For unit testing
     protected static void setHttpAuthenticationMechanismsTracker(HttpAuthenticationMechanismsTracker anHttpAuthenticationMechanismsTracker) {
         httpAuthenticationMechanismsTracker = anHttpAuthenticationMechanismsTracker;
+    }
+
+    /**
+     * Get the shared HttpAuthenticationMechanismsTracker instance.
+     * Used by other extensions (e.g., JakartaSecurity30CDIExtension) to coordinate default HAM selection.
+     *
+     * @return the shared tracker instance
+     */
+    public static HttpAuthenticationMechanismsTracker getHttpAuthenticationMechanismsTracker() {
+        return httpAuthenticationMechanismsTracker;
     }
 
     @Override
@@ -133,44 +169,212 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
         mechanismClasses.remove(mechanismClass);
     }
 
+    /**
+     * Generic method to process all HAM definitions, with or without custom qualifiers (JS 4.0+).
+     *
+     * @param hamType              The HAM implementation class (BasicHttpAuthenticationMechanism, FormAuthenticationMechanism, or CustomFormAuthenticationMechanism)
+     * @param annotation           The annotation instance
+     * @param annotationType       The annotation type
+     * @param isAuthMechOverridden Whether auth mechanism is overridden by global login
+     * @param beanManager          CDI BeanManager
+     * @param javaClass            The annotated class
+     * @param annotations          Class-level annotations
+     * @param annotatedType        The annotated type
+     */
+    private <U> void processHAMDefinition(Class<?> hamType, Annotation annotation, Class<? extends Annotation> annotationType,
+                                          boolean isAuthMechOverridden, BeanManager beanManager, Class<?> javaClass,
+                                          Set<Annotation> annotations, AnnotatedType<U> annotatedType) {
+
+        List<Class<?>> qualifiers = getQualifierClassesFromAnnotation(annotation, annotationType);
+
+        // only add hamType (i.e. FormAuthenticationMechanism) to hamDefinitions
+        //   if it contains custom specified qualifiers, not default ones or none
+        if (hasCustomQualifiers(qualifiers)) {
+            Properties props = extractHAMProperties(hamType, annotation, annotationType);
+
+            if (tc.isDebugEnabled()) {
+                Tr.debug(tc, "Processing HAM type [" + hamType.getSimpleName()
+                             + "] with custom qualifiers [" + qualifiers.toString()
+                             + "] and props [" + props.toString() + "].");
+            }
+            // will use this in afterBeanDiscovery() to add the multiple HAMs,
+            //   even for the same type, qualifiers mean they must be different instances
+            hamDefinitions.add(new HAMDefinition(hamType, qualifiers, props, javaClass, annotations));
+        } else {
+            // has JS 4.0+ default qualifiers or no qualifiers at all, it will
+            //   be handled (created, configured) naturally by the CDI and existing process
+            if (tc.isDebugEnabled()) {
+                Tr.debug(tc, "Processing HAM type [" + hamType.getSimpleName()
+                             + "] with qualifiers [" + ((qualifiers == null) ? "none" : qualifiers.toString() + "]"));
+            }
+
+            if (isAuthMechOverridden) {
+                createModulePropertiesProviderBeanForGlobalLogin(beanManager, javaClass, annotations, qualifiers);
+            } else {
+                // BasicHAM
+                if (hamType.equals(BasicHttpAuthenticationMechanism.class)) {
+                    createModulePropertiesProviderBeanForBasicToAdd(annotation, annotationType, javaClass, annotations);
+                } else {
+                    // [Custom]FormHAM
+                    createModulePropertiesProviderBeanForFormToAdd(annotation, annotationType, javaClass, annotations);
+                }
+            }
+        }
+    }
+
+    /**
+     * Process a List annotation containing multiple HAM definitions
+     *
+     * @param hamType              The HAM implementation class
+     * @param hamTypeName          The HAM type name (e.g., "Basic", "Form", "CustomForm")
+     * @param singleAnnotationType The single annotation type (e.g., BasicAuthenticationMechanismDefinition.class)
+     * @param annotation           The List annotation instance
+     * @param annotationType       The List annotation type
+     * @param isAuthMechOverridden Whether auth mechanism is overridden
+     * @param beanManager          CDI BeanManager
+     * @param javaClass            The annotated class
+     * @param annotations          Class-level annotations
+     * @param annotatedType        The annotated type
+     */
+    private <U> void processHAMDefinitionList(Class<?> hamType, String hamTypeName,
+                                              Class<? extends Annotation> singleAnnotationType,
+                                              Annotation annotation, Class<? extends Annotation> annotationType,
+                                              boolean isAuthMechOverridden, BeanManager beanManager,
+                                              Class<?> javaClass, Set<Annotation> annotations,
+                                              AnnotatedType<U> annotatedType) {
+        if (tc.isDebugEnabled()) {
+            Tr.debug(tc, "Processing " + hamTypeName + "HAMList.");
+        }
+
+        try {
+            // get the array of HAM annotations from the List annotation
+            Method valueMethod = annotationType.getMethod("value");
+            Annotation[] hamAnnotations = (Annotation[]) valueMethod.invoke(annotation);
+
+            // process each HAM in the list
+            for (Annotation hamAnnotation : hamAnnotations) {
+                processHAMDefinition(hamType, hamAnnotation, singleAnnotationType,
+                                     isAuthMechOverridden, beanManager, javaClass, annotations, annotatedType);
+            }
+        } catch (Exception e) {
+            if (tc.isDebugEnabled()) {
+                Tr.error(tc, "Error processing " + hamTypeName + "AuthenticationMechanismDefinition.List.", e);
+            }
+        }
+    }
+
+    /**
+     * Extract properties from HAM annotation based on HAM type
+     *
+     * @param hamType        The HAM implementation class
+     * @param annotation     The annotation instance
+     * @param annotationType The annotation type
+     * @return Properties extracted from the annotation
+     */
+    private Properties extractHAMProperties(Class<?> hamType, Annotation annotation, Class<? extends Annotation> annotationType) {
+        if (hamType.equals(BasicHttpAuthenticationMechanism.class)) {
+            return extractBasicHAMProperties(annotation, annotationType);
+        } else if (hamType.equals(FormAuthenticationMechanism.class) || hamType.equals(CustomFormAuthenticationMechanism.class)) {
+            return extractFormHAMProperties(annotation, annotationType);
+        }
+        return new Properties();
+    }
+
+    /**
+     * Get the properties from BasicAuthenticationMechanismDefinition
+     */
+    private Properties extractBasicHAMProperties(Annotation annotation, Class<? extends Annotation> annotationType) {
+        Properties props = new Properties();
+        try {
+            Method realmNameMethod = annotationType.getMethod("realmName");
+            String realmName = (String) realmNameMethod.invoke(annotation);
+            props.put(JavaEESecConstants.REALM_NAME, realmName);
+        } catch (Exception e) {
+            if (tc.isDebugEnabled()) {
+                Tr.debug(tc, "Error extracting realmName from BasicAuthenticationMechanismDefinition", e);
+            }
+        }
+        return props;
+    }
+
+    /**
+     * Get the properties from [Custom|CustomForm]AuthenticationMechanismDefinition
+     */
+    private Properties extractFormHAMProperties(Annotation annotation, Class<? extends Annotation> annotationType) {
+        Properties props = new Properties();
+        try {
+            Method loginToContinueMethod = annotationType.getMethod("loginToContinue");
+            Annotation ltcAnnotation = (Annotation) loginToContinueMethod.invoke(annotation);
+            props = parseLoginToContinue(ltcAnnotation);
+        } catch (Exception e) {
+            if (tc.isDebugEnabled()) {
+                Tr.debug(tc, "Error extracting loginToContinue from " + annotationType.getSimpleName(), e);
+            }
+        }
+        return props;
+    }
+
+    /**
+     * This method process custom HAM classes in the application.
+     *
+     * @param processAnnotatedType The annotated type, i.e. the custom HAM class name.
+     * @param beanManager          CDI BeanManager
+     */
     public void processApplicationHAMClass(@Observes ProcessAnnotatedType<? extends HttpAuthenticationMechanism> processAnnotatedType, BeanManager beanManager) {
         processAnnotatedType(processAnnotatedType, beanManager);
     }
 
-    public <T> void processAnnotatedHAMandIS(@Observes @WithAnnotations({ BasicAuthenticationMechanismDefinition.class, FormAuthenticationMechanismDefinition.class,
+    /**
+     * This method processes annotations in the application which specify HAMs and identity stores -
+     * all new for Jakarta Security.
+     *
+     * Note: we can't explicitly "listen" for List annotations as they are nested
+     * interfaces that only exist in Jakarta Security 4.0+.
+     *
+     * @param <T>
+     * @param processAnnotatedType The annotated type, see @WithAnnotations
+     * @param beanManager          CDI BeanManager
+     */
+    public <T> void processAnnotatedHAMandIS(@Observes @WithAnnotations({ BasicAuthenticationMechanismDefinition.class,
+                                                                          FormAuthenticationMechanismDefinition.class,
                                                                           CustomFormAuthenticationMechanismDefinition.class, LdapIdentityStoreDefinition.class,
                                                                           DatabaseIdentityStoreDefinition.class,
-                                                                          LoginToContinue.class }) ProcessAnnotatedType<T> processAnnotatedType,
+                                                                          LoginToContinue.class, ApplicationScoped.class }) ProcessAnnotatedType<T> processAnnotatedType,
                                              BeanManager beanManager) {
         processAnnotatedType(processAnnotatedType, beanManager);
     }
 
     public <T> void processAnnotatedType(ProcessAnnotatedType<T> processAnnotatedType, BeanManager beanManager) {
-        if (tc.isDebugEnabled())
+        if (tc.isDebugEnabled()) {
             Tr.debug(tc, "instance: " + Integer.toHexString(this.hashCode()) + " BeanManager: " + Integer.toHexString(beanManager.hashCode()));
+        }
+
         AnnotatedType<T> annotatedType = processAnnotatedType.getAnnotatedType();
-
-        if (tc.isDebugEnabled())
-            Tr.debug(tc, "annotationType: " + annotatedType);
-
         Class<?> javaClass = annotatedType.getJavaClass();
+        Set<Annotation> annotations = annotatedType.getAnnotations();
+
         boolean isAuthMechOverridden = isAuthMechOverridden();
         boolean isApplicationAuthMech = isApplicationAuthMech(javaClass);
-        Set<Annotation> annotations = annotatedType.getAnnotations();
         if (isApplicationAuthMech) {
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "Found an application specific HttpAuthenticationMechanism: " + javaClass);
-            }
-
             if (isAuthMechOverridden) {
-                createModulePropertiesProviderBeanForGlobalLogin(beanManager, javaClass, annotations);
+                if (tc.isDebugEnabled()) {
+                    Tr.debug(tc, "Found an application specific HttpAuthenticationMechanism: "
+                                 + javaClass
+                                 + ", now creating module properties for global login.");
+                }
+                createModulePropertiesProviderBeanForGlobalLogin(beanManager, javaClass, annotations, null);
             } else {
                 Annotation ltc = annotatedType.getAnnotation(LoginToContinue.class);
+                if (tc.isDebugEnabled()) {
+                    Tr.debug(tc, "Found an application specific HttpAuthenticationMechanism: "
+                                 + javaClass
+                                 + ", now creating module properties application auth mech.");
+                }
                 createModulePropertiesProviderBeanForApplicationAuthMechToAdd(beanManager, ltc, javaClass, annotations);
             }
         }
 
-        //look at the class level annotations
+        // look at the class level annotations
         for (Annotation annotation : annotations) {
             if (tc.isDebugEnabled()) {
                 Tr.debug(tc, "Annotations found: " + annotation);
@@ -178,18 +382,31 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
             }
 
             Class<? extends Annotation> annotationType = annotation.annotationType();
+
+            // based on the annotation type which will correspond to @WithAnnotations
+            //   values, process the HAM.  Multiple HAMs of the same type are Lists!
             if (BasicAuthenticationMechanismDefinition.class.equals(annotationType)) {
-                if (isAuthMechOverridden) {
-                    createModulePropertiesProviderBeanForGlobalLogin(beanManager, javaClass, annotations);
-                } else {
-                    createModulePropertiesProviderBeanForBasicToAdd(beanManager, annotation, annotationType, javaClass, annotations);
-                }
-            } else if (FormAuthenticationMechanismDefinition.class.equals(annotationType) || CustomFormAuthenticationMechanismDefinition.class.equals(annotationType)) {
-                if (isAuthMechOverridden) {
-                    createModulePropertiesProviderBeanForGlobalLogin(beanManager, javaClass, annotations);
-                } else {
-                    createModulePropertiesProviderBeanForFormToAdd(beanManager, annotation, annotationType, javaClass, annotations);
-                }
+                processHAMDefinition(BasicHttpAuthenticationMechanism.class, annotation, annotationType,
+                                     isAuthMechOverridden, beanManager, javaClass, annotations, annotatedType);
+            } else if (FormAuthenticationMechanismDefinition.class.equals(annotationType)) {
+                processHAMDefinition(FormAuthenticationMechanism.class, annotation, annotationType,
+                                     isAuthMechOverridden, beanManager, javaClass, annotations, annotatedType);
+            } else if (CustomFormAuthenticationMechanismDefinition.class.equals(annotationType)) {
+                processHAMDefinition(CustomFormAuthenticationMechanism.class, annotation, annotationType,
+                                     isAuthMechOverridden, beanManager, javaClass, annotations, annotatedType);
+            } else if (isAuthenticationMechanismDefinitionList(annotationType, "Basic")) {
+                processHAMDefinitionList(BasicHttpAuthenticationMechanism.class, "Basic",
+                                         BasicAuthenticationMechanismDefinition.class, annotation, annotationType,
+                                         isAuthMechOverridden, beanManager, javaClass, annotations, annotatedType);
+            } else if (isAuthenticationMechanismDefinitionList(annotationType, "CustomForm")) {
+                // NOTE: always check CustomForm BEFORE Form since "CustomForm" contains "Form"
+                processHAMDefinitionList(CustomFormAuthenticationMechanism.class, "CustomForm",
+                                         CustomFormAuthenticationMechanismDefinition.class, annotation, annotationType,
+                                         isAuthMechOverridden, beanManager, javaClass, annotations, annotatedType);
+            } else if (isAuthenticationMechanismDefinitionList(annotationType, "Form")) {
+                processHAMDefinitionList(FormAuthenticationMechanism.class, "Form",
+                                         FormAuthenticationMechanismDefinition.class, annotation, annotationType,
+                                         isAuthMechOverridden, beanManager, javaClass, annotations, annotatedType);
             } else if (LdapIdentityStoreDefinition.class.equals(annotationType)) {
                 createLdapIdentityStoreBeanToAdd(beanManager, annotation, annotationType);
                 identityStoreRegistered = true;
@@ -200,16 +417,32 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
         }
     }
 
+    /***
+     * Pre processing of beans before any beans have been discovered.
+     *
+     * @param beforeBeanDiscovery event type of the container fired before bean discovery begins.
+     * @param beanManager         CDI BeanManager
+     */
     public void beforeBeanDiscovery(@Observes BeforeBeanDiscovery beforeBeanDiscovery, BeanManager beanManager) {
         AnnotatedType<SecurityContextProducer> securityContextProducerType = beanManager.createAnnotatedType(SecurityContextProducer.class);
         beforeBeanDiscovery.addAnnotatedType(securityContextProducerType, SecurityContextProducer.class.getName() + ":" + getClass().getClassLoader().hashCode());
+
         AnnotatedType<AutoApplySessionInterceptor> autoApplySessionInterceptorType = beanManager.createAnnotatedType(AutoApplySessionInterceptor.class);
         beforeBeanDiscovery.addAnnotatedType(autoApplySessionInterceptorType, AutoApplySessionInterceptor.class.getName() + ":" + getClass().getClassLoader().hashCode());
+
         AnnotatedType<RememberMeInterceptor> rememberMeInterceptorInterceptorType = beanManager.createAnnotatedType(RememberMeInterceptor.class);
         beforeBeanDiscovery.addAnnotatedType(rememberMeInterceptorInterceptorType, RememberMeInterceptor.class.getName() + ":" + getClass().getClassLoader().hashCode());
     }
 
+    /***
+     * Post processing of beans after all the beans have been discovered.
+     *
+     * @param <T>
+     * @param afterBeanDiscovery event type of the container fired after bean discovery ends.
+     * @param beanManager        CDI BeanManager
+     */
     public <T> void afterBeanDiscovery(@Observes AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager) {
+
         if (tc.isDebugEnabled())
             Tr.debug(tc, "instance: " + Integer.toHexString(this.hashCode()) + " BeanManager: " + Integer.toHexString(beanManager.hashCode()));
         try {
@@ -225,6 +458,60 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
         } catch (DeploymentException de) {
             afterBeanDiscovery.addDefinitionError(de);
         }
+
+        boolean hasCDIDiscoveredHAMs = !httpAuthenticationMechanismsTracker.isEmptyModuleMap(applicationName);
+        if (tc.isDebugEnabled()) {
+            Tr.debug(tc, "Has CDI-discovered HAMs in tracker: " + hasCDIDiscoveredHAMs);
+            Tr.debug(tc, "Number of custom qualified HAM definitions: " + hamDefinitions.size());
+        }
+
+        if (!hasCDIDiscoveredHAMs && !hamDefinitions.isEmpty()) {
+            // no CDI-discovered HAMs so we must have only custom qualified HAMs,
+            //   add the first one to tracker this signals Jakarta Security is active
+
+            HAMDefinition firstHAM = hamDefinitions.get(0);
+            addAuthMech(applicationName, firstHAM.implClass, firstHAM.implClass, Collections.emptySet(), null);
+            if (tc.isDebugEnabled()) {
+                Tr.debug(tc, "Empty tracker so added HAM for Jakarta Security activation: "
+                             + firstHAM.implClass.getName());
+            }
+        }
+
+        // create a separate bean for each HAM definition with qualifiers
+        for (int i = 0; i < hamDefinitions.size(); i++) {
+            HAMDefinition hamDef = hamDefinitions.get(i);
+            if (tc.isDebugEnabled()) {
+                Tr.debug(tc, "Adding qualified hamDefinition for class ["
+                             + hamDef.implClass.getCanonicalName() + "] with qualifiers ["
+                             + hamDef.qualifiers.toString() + "].");
+            }
+
+            // add the specified qualifiers - always add @Any
+            List<Annotation> qualifierAnnotations = new ArrayList<>();
+            qualifierAnnotations.add(new AnnotationLiteral<Any>() {
+                private static final long serialVersionUID = 1L;
+            });
+
+            for (Class<?> qClass : hamDef.qualifiers) {
+                Annotation qualifier = createQualifierAnnotation(qClass);
+                if (qualifier != null) {
+                    qualifierAnnotations.add(qualifier);
+                }
+            }
+
+            final Properties instanceProps = hamDef.props;
+
+            // Create QualifiedHAMBean instead of using createWith()
+            Set<Annotation> qualifierSet = new HashSet<>(qualifierAnnotations);
+            QualifiedHAMBean qualifiedHAMBean = new QualifiedHAMBean(beanManager, hamDef.implClass, qualifierSet, instanceProps);
+            beansToAdd.add(qualifiedHAMBean);
+
+            if (tc.isDebugEnabled()) {
+                Tr.debug(tc, "Added QualifiedHAMBean for " + hamDef.implClass.getName() +
+                             " with qualifiers: " + qualifierSet);
+            }
+        }
+
         if (!httpAuthenticationMechanismsTracker.isEmptyModuleMap(applicationName)) {
             // this is a JSR375 app.
             ModulePropertiesProviderBean bean = new ModulePropertiesProviderBean(beanManager, httpAuthenticationMechanismsTracker.getModuleMap(applicationName));
@@ -234,7 +521,7 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
         }
 
         // TODO: Validate beans to add.
-        for (Bean bean : beansToAdd) {
+        for (Bean<?> bean : beansToAdd) {
             afterBeanDiscovery.addBean(bean);
         }
 
@@ -243,8 +530,71 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
         }
     }
 
+    /**
+     * For the *HamDefinition annotations, extract the qualifiers value.
+     *
+     * @param annotation     is the specific annotation
+     * @param annotationType is the specific annotation type
+     * @return a list of qualifier classes, or an empty list if no qualifiers.
+     */
+
+    @FFDCIgnore(value = { Exception.class })
+    private List<Class<?>> getQualifierClassesFromAnnotation(Annotation annotation, Class<? extends Annotation> annotationType) {
+        Method qualifiersMethod;
+        Class<?>[] qualifiers = null;
+        try {
+            qualifiersMethod = annotationType.getMethod(JavaEESecConstants.QUALIFIERS);
+            qualifiers = (Class<?>[]) qualifiersMethod.invoke(annotation);
+        } catch (Exception e) {
+            // no "qualifiers" attribute - pre Jakarta Security 4.0
+            return Collections.emptyList();
+        }
+
+        if ((qualifiers != null) & (qualifiers.length > 0)) {
+            return new ArrayList<>(Arrays.asList(qualifiers));
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Create a qualifier annotation instance from a qualifier class
+     *
+     * @param qualifierClass The qualifier class
+     * @return Annotation instance, or null if creation fails
+     */
+    private Annotation createQualifierAnnotation(Class<?> qualifierClass) {
+        String qualifierName = qualifierClass.getName();
+
+        // handle default qualifiers (nested interfaces) using reflection
+        if (isDefaultQualifier(qualifierClass)) {
+            try {
+                // get the Literal.INSTANCE field using reflection
+                Class<?> literalClass = Class.forName(qualifierName + "$Literal");
+                Field instanceField = literalClass.getField("INSTANCE");
+                return (Annotation) instanceField.get(null);
+            } catch (Exception e) {
+                if (tc.isDebugEnabled()) {
+                    Tr.debug(tc, "Could not create default qualifier annotation for: " + qualifierName, e);
+                }
+                return null;
+            }
+        }
+
+        // for custom application-defined qualifiers
+        return new AnnotationLiteral() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public Class<? extends Annotation> annotationType() {
+                return (Class<? extends Annotation>) qualifierClass;
+            }
+        };
+    }
+
     void printBeans(BeanManager beanManager, String stage) {
         Set<Bean<?>> beans = beanManager.getBeans(Object.class, new AnnotationLiteral<Any>() {
+            private static final long serialVersionUID = 1L;
         });
         for (Bean<?> bean : beans) {
             Tr.debug(tc, stage + " bean name: " + bean.getBeanClass().getName());
@@ -266,40 +616,76 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
         }
     }
 
-    public void processBasicHttpAuthMechNeeded(@Observes ProcessBeanAttributes<BasicHttpAuthenticationMechanism> processBeanAttributes, BeanManager beanManager) {
-        if (!existAuthMech(applicationName, BasicHttpAuthenticationMechanism.class)) {
-            processBeanAttributes.veto();
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "BasicHttpAuthenticationMechanism is disabled since another HttpAuthorizationMechanism is registered.");
-            }
-        }
-    }
+    /**
+     * Common method to process HAM bean attributes and veto if qualified HAMs exist.
+     *
+     * This is called *after* all the HAMs have been processed, so the internal tracker
+     * and ham definitions lists are complete.
+     *
+     * @param <T>                   The HAM implementation type
+     * @param processBeanAttributes The ProcessBeanAttributes event
+     * @param hamClass              The HAM class to check for
+     * @param hamTypeName           The HAM type name for debug messages
+     *                                  (e.g., "Basic", "Form", "CustomForm")
+     */
+    private <T extends HttpAuthenticationMechanism> void processHttpAuthMechNeeded(ProcessBeanAttributes<T> processBeanAttributes,
+                                                                                   Class<T> hamClass,
+                                                                                   String hamTypeName) {
+        // don't veto if in tracker OR in hamDefinitions
+        boolean inTracker = existAuthMech(applicationName, hamClass);
+        boolean inHamDefinitions = hamDefinitions.stream().anyMatch(def -> def.implClass.equals(hamClass));
 
-    public void processFormAuthMechNeeded(@Observes ProcessBeanAttributes<FormAuthenticationMechanism> processBeanAttributes, BeanManager beanManager) {
-        if (!existAuthMech(applicationName, FormAuthenticationMechanism.class)) {
+        if (!inTracker && !inHamDefinitions) {
             processBeanAttributes.veto();
             if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "FormAuthenticationMechanism is disabled since another HttpAuthorizationMechanism is registered.");
-            }
-        }
-    }
-
-    public void processCustomFormAuthMechNeeded(@Observes ProcessBeanAttributes<CustomFormAuthenticationMechanism> processBeanAttributes, BeanManager beanManager) {
-        if (!existAuthMech(applicationName, CustomFormAuthenticationMechanism.class)) {
-            processBeanAttributes.veto();
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "CustomFormAuthenticationMechanism is disabled since another HttpAuthorizationMechanism is registered.");
+                Tr.debug(tc, hamTypeName + "HttpAuthenticationMechanism is disabled since it is not configured within the application.");
             }
         }
     }
 
     /**
-     * @param <T>
-     * @param beanManager
-     * @param annotation
-     * @param annotationType
+     * Invoked when BasicHAM discovered in application.
+     *
+     * @param processBeanAttributes
+     * @param beanManager           CDI BeanManager
      */
-    private <T> void createModulePropertiesProviderBeanForFormToAdd(BeanManager beanManager, Annotation annotation, Class<? extends Annotation> annotationType,
+    public void processBasicHttpAuthMechNeeded(@Observes ProcessBeanAttributes<BasicHttpAuthenticationMechanism> processBeanAttributes,
+                                               BeanManager beanManager) {
+        processHttpAuthMechNeeded(processBeanAttributes, BasicHttpAuthenticationMechanism.class, "Basic");
+    }
+
+    /**
+     * Invoked when FormHAM discovered in application.
+     *
+     * @param processBeanAttributes
+     * @param beanManager
+     */
+    public void processFormAuthMechNeeded(@Observes ProcessBeanAttributes<FormAuthenticationMechanism> processBeanAttributes,
+                                          BeanManager beanManager) {
+        processHttpAuthMechNeeded(processBeanAttributes, FormAuthenticationMechanism.class, "Form");
+    }
+
+    /**
+     * Invoked when CustomFormHAM discovered in application.
+     *
+     * @param processBeanAttributes
+     * @param beanManager
+     */
+    public void processCustomFormAuthMechNeeded(@Observes ProcessBeanAttributes<CustomFormAuthenticationMechanism> processBeanAttributes,
+                                                BeanManager beanManager) {
+        processHttpAuthMechNeeded(processBeanAttributes, CustomFormAuthenticationMechanism.class, "CustomForm");
+    }
+
+    /**
+     * Update the HTTP authentication mechanism tracker which provides configuration for the HAMs,
+     * with the properties for the [Custom]FormHAM.
+     *
+     * @param annotation     The annotation instance
+     * @param annotatedType  The annotated type
+     * @param annotatedClass The annotated class
+     * @param annotations    Class-level annotations
+     */
+    private <T> void createModulePropertiesProviderBeanForFormToAdd(Annotation annotation, Class<? extends Annotation> annotationType,
                                                                     Class<?> annotatedClass, Set<Annotation> annotations) {
         try {
             Method loginToContinueMethod = annotationType.getMethod("loginToContinue");
@@ -320,13 +706,16 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
     }
 
     /**
-     * @param beanManager
-     * @param annotations
-     * @param annotation
-     * @param annotationType
+     * Update the HTTP authentication mechanism tracker which provides configuration for the HAMs,
+     * with the properties for the BasicHAM.
+     *
+     * @param annotation     The annotation instance
+     * @param annotatedType  The annotated type
+     * @param annotatedClass The annotated class
+     * @param annotations    Class-level annotations
      */
-    private void createModulePropertiesProviderBeanForBasicToAdd(BeanManager beanManager, Annotation annotation,
-                                                                 Class<? extends Annotation> annotationType, Class annotatedClass, Set<Annotation> annotations) {
+    private void createModulePropertiesProviderBeanForBasicToAdd(Annotation annotation, Class<? extends Annotation> annotationType,
+                                                                 Class<?> annotatedClass, Set<Annotation> annotations) {
         try {
             Method realmNameMethod = annotationType.getMethod("realmName");
             String realmName = (String) realmNameMethod.invoke(annotation);
@@ -349,12 +738,14 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
         for (Annotation annt : annotations) {
             Class<? extends Annotation> annType = annt.annotationType();
             if (DECORATOR.equals(annType.getSimpleName())) {
-                if (tc.isDebugEnabled())
+                if (tc.isDebugEnabled()) {
                     Tr.debug(tc, "Add Decorator=true");
+                }
                 props.put(DECORATOR, true);
             } else if (ALTERNATIVE.equals(annType.getSimpleName())) {
-                if (tc.isDebugEnabled())
+                if (tc.isDebugEnabled()) {
                     Tr.debug(tc, "Add Alternative=true");
+                }
                 props.put(ALTERNATIVE, true);
 
             }
@@ -389,7 +780,7 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
      * @param beanManager
      * @param annotations
      */
-    private void createModulePropertiesProviderBeanForGlobalLogin(BeanManager beanManager, Class annotatedClass, Set<Annotation> annotations) {
+    private void createModulePropertiesProviderBeanForGlobalLogin(BeanManager beanManager, Class annotatedClass, Set<Annotation> annotations, List<Class<?>> qualifiers) {
         try {
             Properties props;
             Class implClass;
@@ -874,7 +1265,10 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
     }
 
     /**
-     * make sure that there is one HAM for each modules, and if there is a HAM in a module, make sure there is no login configuration in web.xml.
+     * Verify the configuration after all the beans have been discovered.
+     *
+     * - ensure for Jakarta Security 1.0-3.0, there is one HAM for each module, and
+     * - if there is a HAM in a module, make sure there is no login configuration in web.xml
      **/
     private void verifyConfiguration() throws DeploymentException {
         Map<URL, ModuleMetaData> mmds = getModuleMetaDataMap();
@@ -885,8 +1279,9 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
                     String j2eeModuleName = mmd.getJ2EEName().getModule();
                     Map<Class<?>, Properties> authMechs = httpAuthenticationMechanismsTracker.getAuthMechs(applicationName, j2eeModuleName);
                     if (authMechs != null && !authMechs.isEmpty()) {
-                        // make sure that only one HAM.
-                        if (authMechs.size() != 1 && !isDecoratorOrAlternative(authMechs)) {
+
+                        // one HAM for each module (JS 1.0-3.0 only)
+                        if (!JakartaSecurityValidationService.isJakartaSecurity40OrHigher() && authMechs.size() != 1 && !isDecoratorOrAlternative(authMechs)) {
                             String appName = mmd.getJ2EEName().getApplication();
                             String authMechNames = getAuthMechNames(authMechs);
                             Tr.error(tc, "JAVAEESEC_CDI_ERROR_MULTIPLE_HTTPAUTHMECHS", j2eeModuleName, appName, authMechNames);
@@ -894,6 +1289,7 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
                             throw new DeploymentException(msg);
                         }
 
+                        // correct number of HAMs, ensure no login config in web.xml
                         SecurityMetadata smd = (SecurityMetadata) ((WebModuleMetaData) mmd).getSecurityMetaData();
                         if (smd != null) {
                             LoginConfiguration lc = smd.getLoginConfiguration();
@@ -1120,4 +1516,54 @@ public class JavaEESecCDIExtension<T> implements Extension, WebSphereCDIExtensio
         return httpAuthenticationMechanismsTracker.existAuthMech(applicationName, authMechToExist);
     }
 
+    @Override
+    public boolean isEmptyModuleMap(String applicationName) {
+        return httpAuthenticationMechanismsTracker.isEmptyModuleMap(applicationName);
+    }
+
+    /**
+     * Check if the annotation type is an AuthenticationMechanismDefinition.List
+     * Works for Basic, Form, and CustomForm HAM List annotations.
+     *
+     * Note: we can't explicitly "listen" for List annotations as they are nested
+     * interfaces that only exist in Jakarta Security 4.0+
+     *
+     * @param annotationType The annotation type to check.
+     * @param hamTypeName    The HAM type name to match (e.g., "Basic", "Form", "CustomForm").
+     * @return true if the annotation is a List annotation for the specified HAM type.
+     */
+    private boolean isAuthenticationMechanismDefinitionList(Class<? extends Annotation> annotationType, String hamTypeName) {
+        return annotationType.getName().contains(hamTypeName + "AuthenticationMechanismDefinition$List");
+    }
+
+    /**
+     * Is a qualifier class the default qualifier for HAMs (JS 4.0+).
+     *
+     * @param qualifierClass The class to check.
+     * @return true if class is the default qualifier, false else.
+     */
+    private boolean isDefaultQualifier(Class<?> qualifierClass) {
+        String qualifierName = qualifierClass.getName();
+        return qualifierName.contains("$BasicAuthenticationMechanism") ||
+               qualifierName.contains("$FormAuthenticationMechanism") ||
+               qualifierName.contains("$CustomFormAuthenticationMechanism");
+    }
+
+    /**
+     * Does a list of qualifier classes have a custom (non JS 4.0+ default)
+     * qualifier (i.e. "Admin" or "User").
+     *
+     * @param qualifiers The list of classes to check if any of them contain a
+     *                       custom one.
+     * @return true if any qualifier is custom, false else (or if list is empty
+     *         or if all are the JS 4.0+ default).
+     */
+    private boolean hasCustomQualifiers(List<Class<?>> qualifiers) {
+        if (qualifiers == null || qualifiers.isEmpty()) {
+            return false;
+        }
+
+        // Check if any qualifier is NOT a default qualifier
+        return qualifiers.stream().anyMatch(q -> !isDefaultQualifier(q));
+    }
 }
