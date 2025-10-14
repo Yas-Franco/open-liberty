@@ -14,6 +14,7 @@ import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 
 import com.ibm.websphere.ras.Tr;
@@ -45,7 +46,7 @@ public class ProviderServiceProxyImpl implements ProviderServiceProxy {
     private String originalSystemPolicyFactoryName = null;
     private String originalSystemFactoryName = null;
 
-    @Reference(service = ProviderService.class, policy = ReferencePolicy.DYNAMIC, name = KEY_JACC_PROVIDER_SERVICE)
+    @Reference(service = ProviderService.class, policy = ReferencePolicy.DYNAMIC, name = KEY_JACC_PROVIDER_SERVICE, cardinality = ReferenceCardinality.OPTIONAL)
     protected void setJaccProviderService(ServiceReference<ProviderService> reference) {
         jaccProviderService.setReference(reference);
         initializeSystemProperties(reference);
@@ -68,23 +69,23 @@ public class ProviderServiceProxyImpl implements ProviderServiceProxy {
     @Override
     public PolicyProxy getPolicyProxy(PolicyConfigurationManager pcm) {
         ProviderService providerService = jaccProviderService.getService();
-        if (providerService == null) {
-            return null;
-        }
-        WsLocationAdmin locationAdmin = locationAdminRef.getService();
-        PolicyFactory policyFactory;
-        if (policyFactoryName != null) {
-            policyFactory = PolicyFactory.getPolicyFactory();
-            if (!(policyFactory instanceof PolicyFactoryImpl)) {
-                policyFactory = new PolicyFactoryImpl(policyFactory, locationAdmin, providerService, pcm);
-                PolicyFactory.setPolicyFactory(policyFactory);
-            } else if (((PolicyFactoryImpl) policyFactory).providerService != providerService) {
-                policyFactory = new PolicyFactoryImpl(policyFactory.getWrapped(), locationAdmin, providerService, pcm);
+        // If there isn't a ProviderService, just use the spec way to get and set the Policy
+        if (providerService != null) {
+            WsLocationAdmin locationAdmin = locationAdminRef.getService();
+            PolicyFactory policyFactory;
+            if (policyFactoryName != null) {
+                policyFactory = PolicyFactory.getPolicyFactory();
+                if (!(policyFactory instanceof PolicyFactoryImpl)) {
+                    policyFactory = new PolicyFactoryImpl(policyFactory, locationAdmin, providerService, pcm);
+                    PolicyFactory.setPolicyFactory(policyFactory);
+                } else if (((PolicyFactoryImpl) policyFactory).providerService != providerService) {
+                    policyFactory = new PolicyFactoryImpl(policyFactory.getWrapped(), locationAdmin, providerService, pcm);
+                    PolicyFactory.setPolicyFactory(policyFactory);
+                }
+            } else {
+                policyFactory = new PolicyFactoryImpl(locationAdmin, providerService, pcm);
                 PolicyFactory.setPolicyFactory(policyFactory);
             }
-        } else {
-            policyFactory = new PolicyFactoryImpl(locationAdmin, providerService, pcm);
-            PolicyFactory.setPolicyFactory(policyFactory);
         }
         return new JakartaPolicyFactoryProxyImpl();
     }
@@ -92,7 +93,12 @@ public class ProviderServiceProxyImpl implements ProviderServiceProxy {
     @Override
     public PolicyConfigurationFactory getPolicyConfigFactory() {
         ProviderService providerService = jaccProviderService.getService();
-        return providerService == null ? null : providerService.getPolicyConfigFactory();
+        PolicyConfigurationFactory policyConfigFactory = null;
+        if (providerService != null) {
+            policyConfigFactory = providerService.getPolicyConfigFactory();
+
+        }
+        return new JakartaPolicyConfigFactoryProxy(policyConfigFactory);
     }
 
     @Override
@@ -103,12 +109,12 @@ public class ProviderServiceProxyImpl implements ProviderServiceProxy {
 
     @Override
     public String getPolicyName() {
-        return policyFactoryName != null ? policyFactoryName : PolicyFactoryImpl.class.getName();
+        return policyFactoryName != null ? policyFactoryName : JakartaPolicyFactoryProxyImpl.class.getName();
     }
 
     @Override
     public String getFactoryName() {
-        return factoryName;
+        return factoryName != null ? factoryName : JakartaPolicyConfigFactoryProxy.class.getName();
     }
 
     protected void activate(ComponentContext cc) {

@@ -180,6 +180,10 @@ public class WebJaccServiceImpl implements WebJaccService {
             return;
         }
 
+        if (webPC == null) {
+            return;
+        }
+
         try {
             processRole(webPC, webAppConfig);
             List<SecurityConstraint> scList = scc.getSecurityConstraints();

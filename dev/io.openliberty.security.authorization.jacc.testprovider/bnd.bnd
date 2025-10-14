@@ -8,14 +8,10 @@
 # SPDX-License-Identifier: EPL-2.0
 #*******************************************************************************
 -include= ~../cnf/resources/bnd/bundle.props
+-sub: *.bnd
 
 bVersion=1.0
 
-Bundle-Name: Liberty Jakarta Authorization Provider 3.0
-Bundle-SymbolicName: io.openliberty.security.authorization.jacc.testprovider
-Bundle-Description: Liberty Jakarta Authorization Provider, version=${bVersion}
-
-Bundle-ActivationPolicy: lazy
 
 javac.source: 17
 javac.target: 17
@@ -29,30 +25,6 @@ Require-Capability: osgi.ee; filter:="(&(osgi.ee=JavaSE)(version=17))"
 test.project: true
 
 WS-TraceGroup: Authorization
-
-Export-Package: \
- com.ibm.ws.security.authorization.jacc.provider;provide:=true, \
- com.ibm.ws.security.authorization.jacc.service;provide:=true
-
-Import-Package: \
-  com.ibm.websphere.ras, \
-  com.ibm.websphere.security.auth, \
-  com.ibm.websphere.security.cred, \
-  com.ibm.wsspi.security.authorization.jacc, \
-  com.ibm.ws.ffdc, \
-  javax.security.auth, \
-  javax.security.auth.login, \
-  jakarta.security.jacc, \
-  org.osgi.framework.*, \
-  org.osgi.service.component.*
-
-Private-Package: com.ibm.ws.security.authorization.jacc.role
-
-Include-Resource: \
-  @\${repo;com.ibm.ws.security.authorization.jacc.testprovider.jakarta}!/(OSGI-INF/l10n/*|OSGI-INF/metatype/*)
-
--dsannotations: \
-  com.ibm.ws.security.authorization.jacc.service.ProviderServiceImpl
 
 -buildpath: \
   io.openliberty.jakarta.authorization.3.0;version=latest,\
