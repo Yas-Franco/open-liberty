@@ -1,5 +1,5 @@
-/*******************************************************************************
- * Copyright (c) 2017 IBM Corporation and others.
+/*
+ * Copyright 2017,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -9,7 +9,7 @@
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
- *******************************************************************************/
+ */
 package com.ibm.ws.security.csiv2.config.tss;
 
 import java.io.Serializable;
@@ -27,6 +27,9 @@ public class ServerTransportAddress implements Serializable {
 
     public ServerTransportAddress(TransportAddress transportAddress) {
         this.transportAddress = transportAddress;
+    }
+    public TransportAddress getTransportAddress() {
+        return transportAddress;
     }
 
     public String getHost() {

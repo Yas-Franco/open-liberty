@@ -1,5 +1,5 @@
-/*******************************************************************************
- * Copyright (c) 2015, 2024 IBM Corporation and others.
+/*
+ * Copyright 2015,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -9,7 +9,7 @@
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
- *******************************************************************************/
+ */
 /*
  * Some of the code was derived from code supplied by the Apache Software Foundation licensed under the Apache License, Version 2.0.
  */
@@ -24,9 +24,11 @@ import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
@@ -556,6 +558,19 @@ public class SocketFactory extends SocketFactoryHelper {
                 }
             }
         }
-        return addresses.toArray(new TransportAddress[addresses.size()]);
+
+        // Use linked hash set to remove duplicate TransportAddresses and preserve order
+        Set<ServerTransportAddress> set = addresses.stream()
+                .map(ServerTransportAddress::new)
+                .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+        TransportAddress[] result = set
+                .stream()
+                .map(ServerTransportAddress::getTransportAddress)
+                .toArray(TransportAddress[]::new);
+
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+            Tr.debug(tc, "Eliminated " + (addresses.size() - result.length) + " duplicate transport addresses");
+
+        return result;
     }
 }
