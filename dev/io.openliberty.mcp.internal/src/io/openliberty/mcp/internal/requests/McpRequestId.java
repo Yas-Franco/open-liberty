@@ -50,7 +50,7 @@ public final class McpRequestId {
     }
 
     /**
-     * Overrides the equals method to compare if two MCP Request IDs are equal
+     * Two IDs are equal if they are the same type and have the same value
      *
      * @param obj The McpRequestId object to compare.
      * @return True if the MCP Request IDs are equal, false otherwise.

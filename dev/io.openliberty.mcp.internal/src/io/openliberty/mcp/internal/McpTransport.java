@@ -54,7 +54,6 @@ public class McpTransport {
     private McpRequest mcpRequest;
     private Writer writer;
     private McpProtocolVersion version;
-    private String sessionId;
     private McpSession sessionInfo;
     private static final AtomicInteger TIMEOUT_SECONDS = new AtomicInteger(30); //Make this configurable
 
@@ -69,7 +68,7 @@ public class McpTransport {
      * Initialises McpTransport
      * Checks if the request is valid so we know if further processing can be done
      *
-     * @return true if initialisation is successful, false otherwise.
+     * @param sessionStore the session store
      * @throws IOException if an I/O exception occurs.
      */
     @FFDCIgnore(NoSuchElementException.class)
