@@ -70,7 +70,7 @@ public class TestUtils {
     public static ToolMetadata findTool(Class<?> cls, String name) {
         List<ToolMetadata> tools = Arrays.stream(cls.getDeclaredMethods())
                                          .filter(m -> m.isAnnotationPresent(Tool.class))
-                                         .map(m -> ToolMetadata.createFrom(m.getAnnotation(Tool.class), null, new MockAnnotatedMethod<>(m)))
+                                         .map(m -> ToolMetadata.createFrom(m.getAnnotation(Tool.class), null, new MockAnnotatedMethod<>(m), null, null))
                                          .filter(m -> m.name().equals(name))
                                          .collect(Collectors.toList());
         if (tools.size() != 1) {
