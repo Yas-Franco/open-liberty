@@ -64,5 +64,12 @@ instrument.disabled: true
   io.netty:netty-handler-proxy;version=${nettyVersion},\
   io.netty:netty-resolver;version=${nettyVersion},\
   io.netty:netty-transport;version=${nettyVersion},\
-  io.netty:netty-transport-native-unix-common;version=${nettyVersion}
+  io.netty:netty-transport-native-unix-common;version=${nettyVersion},\
+  io.netty:netty-transport-classes-epoll;version=${nettyVersion},\
+  io.netty:netty-transport-native-epoll;version=${nettyVersion},\
+  io.netty:netty-transport-classes-kqueue;version=${nettyVersion},
+  netty-transport-native-epoll-4.1.126.Final-linux-x86_64;version=${nettyVersion},\
+  netty-transport-native-epoll-4.1.126.Final-linux-aarch_64;version=${nettyVersion},\
+  netty-transport-native-kqueue-4.1.126.Final-osx-x86_64;version=${nettyVersion},\
+  netty-transport-native-kqueue-4.1.126.Final-osx-aarch_64;version=${nettyVersion}
   
