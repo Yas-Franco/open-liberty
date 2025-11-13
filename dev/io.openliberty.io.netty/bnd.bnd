@@ -48,7 +48,13 @@ Import-Package: \
   @\${repo;io.netty:netty-transport-native-kqueue:jar:osx-x86_64;${nettyVersion};EXACT}!/(META-INF/native/*),\
   @\${repo;io.netty:netty-transport-native-kqueue:jar:osx-aarch_64;${nettyVersion};EXACT}!/(META-INF/native/*)
 
-  
+Bundle-NativeCode: \
+  META-INF/native/libnetty_transport_native_epoll_aarch_64.so; osname=Linux; processor=aarch64,\
+  META-INF/native/libnetty_transport_native_epoll_x86_64.so; osname=Linux; processor=x86_64,\
+  META-INF/native/libnetty_transport_native_kqueue_aarch_64.jnilib; osname=MacOSX; processor=aarch_64,\
+  META-INF/native/libnetty_transport_native_kqueue_x86_64.jnilib; osname=MacOSX; processor=x86_64,\
+  *
+
 Export-Package: \
   !io.netty.handler.ssl.*,\
   io.netty.*;version=${nettyVersion}; -split-package:=merge-first
