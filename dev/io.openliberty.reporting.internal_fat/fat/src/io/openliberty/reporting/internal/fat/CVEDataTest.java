@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024 IBM Corporation and others.
+ * Copyright (c) 2024, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -67,7 +67,6 @@ public class CVEDataTest extends FATServletClient {
         server.addIgnoredErrors(Collections.singletonList("CWWKF1704W"));
 
         Properties props = createJSON("\\{\"productEdition.*\\}");
-
         assertTrue("The property 'id' is not null or empty",
                    props.getProperty("id") != null && !props.getProperty("id").isEmpty());
 
@@ -106,7 +105,6 @@ public class CVEDataTest extends FATServletClient {
         assertTrue("The property 'features' did not match", features != null);
 
         assertTrue("The property 'iFixes' did not match", iFixes != null);
-
     }
 
     @Test
