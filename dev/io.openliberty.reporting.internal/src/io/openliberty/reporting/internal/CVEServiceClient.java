@@ -51,7 +51,7 @@ public class CVEServiceClient {
      * @return json JSONObject
      * @throws IOException
      */
-    public JSONObject retrieveCVEData(Map<String, String> data, String urlLink) throws IOException {
+    public void retrieveCVEData(Map<String, String> data, String urlLink) throws IOException {
 
         String jsonData = buildJsonString(data);
         JSONObject json = new JSONObject();
@@ -72,9 +72,10 @@ public class CVEServiceClient {
         }
 
         try (Reader reader = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
-            json = JSONObject.parse(reader);
+            System.out.println(reader);
+        } catch (Exception e) {
+
         }
-        return json;
     }
 
     /**
@@ -99,7 +100,7 @@ public class CVEServiceClient {
         connection.setSSLSocketFactory(sc.getSocketFactory());
         connection.setRequestMethod("POST");
         connection.setRequestProperty("Content-Type", "application/json");
-        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Accept", "text/plain");
         connection.setDoOutput(true);
 
         return connection;

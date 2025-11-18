@@ -44,7 +44,7 @@ public class CVEReportingConfigTest extends FATServletClient {
     public void tearDown() throws Exception {
 
         if (server.isStarted()) {
-            server.stopServer();
+            server.stopServer("CWWKE1102W", "CWWKE1107W");
         }
 
         server.restoreServerConfiguration();

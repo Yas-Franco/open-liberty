@@ -10,17 +10,18 @@
 
 package io.openliberty.reporting.internal.fat;
 
-import componenttest.custom.junit.runner.AlwaysPassesTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import componenttest.custom.junit.runner.AlwaysPassesTest;
+
 @RunWith(Suite.class)
 @SuiteClasses({ AlwaysPassesTest.class,
-//        CVEReportingConfigTest.class,
-//        CVEDataTest.class,
-//        CVEResponseTest.class,
-//        CVEReportingCheckpointTest.class
+                CVEReportingConfigTest.class,
+                CVEDataTest.class,
+//                CVEResponseTest.class,
+                CVEReportingCheckpointTest.class
 })
 public class FATSuite {
 
