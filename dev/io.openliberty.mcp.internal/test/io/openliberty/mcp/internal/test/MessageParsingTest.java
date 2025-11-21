@@ -10,8 +10,8 @@
 package io.openliberty.mcp.internal.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -91,7 +91,7 @@ public class MessageParsingTest {
         assertThat(request.id().value(), equalTo(new BigDecimal(2)));
         assertThat(request.getRequestMethod(), equalTo(RequestMethod.TOOLS_CALL));
         McpToolCallParams toolCallRequest = request.getParams(McpToolCallParams.class, jsonb);
-        assertThat(toolCallRequest.getArguments(jsonb), arrayContaining("Hello"));
+        assertEquals(Map.of("input", "Hello"), toolCallRequest.getArguments(jsonb));
     }
 
     @Test
@@ -338,7 +338,8 @@ public class MessageParsingTest {
                         """);
         McpRequest request = jsonb.fromJson(reader, McpRequest.class);
         McpToolCallParams toolCallRequest = request.getParams(McpToolCallParams.class, jsonb);
-        assertThat(toolCallRequest.getArguments(jsonb), arrayContaining(111, 222));
+
+        assertEquals(Map.of("num1", 111, "num2", 222), toolCallRequest.getArguments(jsonb));
     }
 
     @Test
@@ -358,7 +359,7 @@ public class MessageParsingTest {
                         """);
         McpRequest request = jsonb.fromJson(reader, McpRequest.class);
         McpToolCallParams toolCallRequest = request.getParams(McpToolCallParams.class, jsonb);
-        assertThat(toolCallRequest.getArguments(jsonb), arrayContaining(true));
+        assertEquals(Map.of("input", true), toolCallRequest.getArguments(jsonb));
     }
 
 }

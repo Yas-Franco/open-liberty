@@ -22,7 +22,10 @@ import io.openliberty.mcp.annotations.Tool;
 import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
 import io.openliberty.mcp.internal.ToolMetadata.SpecialArgumentMetadata;
 import io.openliberty.mcp.internal.exceptions.GenericArgumentException;
+import io.openliberty.mcp.internal.requests.McpRequestIdDeserializer;
+import io.openliberty.mcp.internal.requests.McpRequestIdSerializer;
 import io.openliberty.mcp.internal.schemas.SchemaRegistry;
+import io.openliberty.mcp.internal.tools.BeanMethodHandler.MethodMetadata;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.spi.AfterDeploymentValidation;
 import jakarta.enterprise.inject.spi.AnnotatedMethod;
@@ -31,6 +34,9 @@ import jakarta.enterprise.inject.spi.Bean;
 import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.enterprise.inject.spi.Extension;
 import jakarta.enterprise.inject.spi.ProcessManagedBean;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.JsonbConfig;
 
 /**
  * Finds tools
@@ -44,14 +50,21 @@ public class McpCdiExtension implements Extension {
     private ConcurrentHashMap<String, LinkedList<String>> duplicateToolsMap = new ConcurrentHashMap<>();
 
     private SchemaRegistry schemas = new SchemaRegistry();
+    private Jsonb jsonb = createJsonb();
 
-    void registerTools(@Observes ProcessManagedBean<?> pmb) {
+    private static Jsonb createJsonb() {
+        JsonbConfig jsonbConfig = new JsonbConfig().withSerializers(new McpRequestIdSerializer())
+                                                   .withDeserializers(new McpRequestIdDeserializer());
+    
+        return JsonbBuilder.create(jsonbConfig);
+    }
+
+    void registerTools(@Observes ProcessManagedBean<?> pmb, BeanManager beanManager) {
         AnnotatedType<?> type = pmb.getAnnotatedBeanClass();
-        Class<?> javaClass = type.getJavaClass();
         for (AnnotatedMethod<?> m : type.getMethods()) {
             Tool toolAnnotation = m.getAnnotation(Tool.class);
             if (toolAnnotation != null) {
-                registerTool(toolAnnotation, pmb.getBean(), m);
+                registerTool(toolAnnotation, pmb.getBean(), m, beanManager);
             }
         }
     }
@@ -107,8 +120,12 @@ public class McpCdiExtension implements Extension {
     private boolean reportOnDuplicateSpecialArguments(AfterDeploymentValidation afterDeploymentValidation) {
         AtomicBoolean error = new AtomicBoolean(false);
         for (ToolMetadata tool : tools.getAllTools()) {
+            if (tool.methodMetadata().isEmpty()) {
+                continue;
+            }
+            MethodMetadata methodMetadata = tool.methodMetadata().get();
             Map<SpecialArgumentType.Resolution, Integer> resultCountMap = new HashMap<>();
-            for (SpecialArgumentMetadata specialArgument : tool.specialArguments()) {
+            for (SpecialArgumentMetadata specialArgument : methodMetadata.specialArguments()) {
                 SpecialArgumentType.Resolution specialArgumentTypeResolution = specialArgument.typeResolution();
                 if (specialArgumentTypeResolution.specialArgsType() == SpecialArgumentType.UNSUPPORTED) {
                     continue;
@@ -133,7 +150,10 @@ public class McpCdiExtension implements Extension {
     private boolean reportOnInvalidSpecialArguments(AfterDeploymentValidation afterDeploymentValidation) {
         boolean error = false;
         for (ToolMetadata tool : tools.getAllTools()) {
-            for (SpecialArgumentMetadata specialArgument : tool.specialArguments()) {
+            if (tool.methodMetadata().isEmpty()) {
+                continue;
+            }
+            for (SpecialArgumentMetadata specialArgument : tool.methodMetadata().get().specialArguments()) {
                 if (specialArgument.typeResolution().specialArgsType() == SpecialArgumentType.UNSUPPORTED) {
                     error = true;
                     Tr.error(tc, "CWMCM0007E.invalid.arguments", tool.getToolQualifiedName(),
@@ -144,9 +164,9 @@ public class McpCdiExtension implements Extension {
         return error;
     }
 
-    private void registerTool(Tool tool, Bean<?> bean, AnnotatedMethod<?> method) {
+    private void registerTool(Tool tool, Bean<?> bean, AnnotatedMethod<?> method, BeanManager beanManager) {
         try {
-            ToolMetadata toolmd = ToolMetadata.createFrom(tool, bean, method);
+            ToolMetadata toolmd = ToolMetadata.createFrom(tool, bean, method, beanManager, jsonb);
             duplicateToolsMap.computeIfAbsent(toolmd.name(), key -> new LinkedList<>()).add(toolmd.getToolQualifiedName());
             tools.addTool(toolmd);
             if (TraceComponent.isAnyTracingEnabled()) {
@@ -169,6 +189,10 @@ public class McpCdiExtension implements Extension {
 
     public SchemaRegistry getSchemaRegistry() {
         return schemas;
+    }
+
+    public Jsonb getJsonb() {
+        return jsonb;
     }
 
 }

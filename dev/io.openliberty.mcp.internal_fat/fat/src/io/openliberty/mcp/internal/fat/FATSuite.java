@@ -27,6 +27,7 @@ import io.openliberty.mcp.internal.fat.protocol.ProtocolVersionTest;
 import io.openliberty.mcp.internal.fat.statelessMode.StatefulModeTest;
 import io.openliberty.mcp.internal.fat.statelessMode.StatelessModeTest;
 import io.openliberty.mcp.internal.fat.tool.AsyncToolCancellationTest;
+import io.openliberty.mcp.internal.fat.tool.AsyncToolsErrorHandlingTest;
 import io.openliberty.mcp.internal.fat.tool.AsyncToolsTest;
 import io.openliberty.mcp.internal.fat.tool.CancellationTest;
 import io.openliberty.mcp.internal.fat.tool.DeploymentProblemTest;
@@ -43,6 +44,7 @@ import io.openliberty.mcp.internal.fat.tool.ToolTest;
 @SuiteClasses({
                 AsyncToolsTest.class,
                 AsyncToolCancellationTest.class,
+                AsyncToolsErrorHandlingTest.class,
                 AsyncToolLifecycleTest.class,
                 BeanLifecycleTest.class,
                 DeploymentProblemTest.class,
