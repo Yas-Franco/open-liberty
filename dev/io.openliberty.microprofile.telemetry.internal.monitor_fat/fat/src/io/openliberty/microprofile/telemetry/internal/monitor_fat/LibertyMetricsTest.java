@@ -100,6 +100,6 @@ public class LibertyMetricsTest extends BaseTestClass {
 	        "io_openliberty_request_timing_active.*",
 	        "io_openliberty_request_timing_slow.*",
 	        "io_openliberty_request_timing_hung.*",
-	        "io_openliberty_request_timing_processed.*"});
+	        "io_openliberty_request_timing_processed.*"}, 10);
 	}
 }
