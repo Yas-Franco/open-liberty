@@ -66,12 +66,12 @@ public abstract class BaseTestClass {
             int lineNum = 0;
             while ((line = br.readLine()) != null) {
                 lineNum++;
-                Log.info(c, "requestContainerHttpServlet", String.format("Line %d (length=%d): [%s]", lineNumber, line.length(), line));
+                Log.info(c, "requestContainerHttpServlet", String.format("Line %d (length=%d): [%s]", lineNum, line.length(), line));
                 if (line.length() > 0) {
                     lines.append(line).append(sep);
                 }
             }
-            Log.info(c, "requestContainerHttpServlet", String.format("Total lines read: %d, StringBuilder length: %d", lineNumber, lines.length()));
+            Log.info(c, "requestContainerHttpServlet", String.format("Total lines read: %d, StringBuilder length: %d", lineNum, lines.length()));
 
             // while ((line = br.readLine()) != null && line.length() > 0) {
             //     lines.append(line).append(sep);
