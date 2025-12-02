@@ -204,6 +204,7 @@ public class MergeProcessorImpl implements MergeProcessor {
                 }
             }
 
+            boolean zConRolesIdentical = isZConRolesAllowedIdentical(inProgressModels);
             boolean securityIdentical = isSecurityIdentical(inProgressModels);
             boolean infoIdentical = isInfoIdentical(inProgressModels);
             boolean externalDocsIdentical = isExternalDocsIdentical(inProgressModels);
@@ -244,6 +245,10 @@ public class MergeProcessorImpl implements MergeProcessor {
 
                 if (!serversIdentical) {
                     moveServersUnderPaths(inProgress.model);
+                }
+
+                if (!zConRolesIdentical) {
+                    moveZConRolesAllow(inProgress.model);
                 }
 
                 if (inProgress.documentNameProcessor.hasRenames()) {
@@ -343,13 +348,16 @@ public class MergeProcessorImpl implements MergeProcessor {
                 return false;
             }
 
-            EXTENSIONS_NOT_CHEKCED_FOR_DUPLICATES.stream().forEach(extensions::remove);
-
             boolean clashesFound = false;
             for (Entry<OpenAPIProvider, Map<String, Object>> entry : this.topLevelExtensions.entrySet()) {
                 OpenAPIProvider otherProvider = entry.getKey();
                 Map<String, Object> otherExtensions = entry.getValue();
                 for (Entry<String, Object> extensionEntry : extensions.entrySet()) {
+
+                    if (EXTENSIONS_NOT_CHEKCED_FOR_DUPLICATES.contains(extensionEntry.getKey())) {
+                        continue;
+                    }
+
                     String key = extensionEntry.getKey();
                     Object value = extensionEntry.getValue();
                     Object otherValue = otherExtensions.get(key);
@@ -447,6 +455,45 @@ public class MergeProcessorImpl implements MergeProcessor {
             document.setSecurity(null);
         }
 
+        //See https://www.ibm.com/docs/en/zos-connect/3.0.0?topic=authorization-how-define-roles for details on x-ibm-zcon-roles-allowed
+        //Like security, it can be defined on the top level or on specific operations
+        private void moveZConRolesAllow(OpenAPI document) {
+
+            final String MAP_KEY = "x-ibm-zcon-roles-allowed";
+
+            Map<String, Object> extensions = new HashMap<>(document.getExtensions());
+            if (extensions == null) {
+                return;
+            }
+
+            if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+                Tr.event(this, tc, "Moving ibm-zcon-roles-allowed from the top level to under paths");
+            }
+
+            Paths paths = document.getPaths();
+            if (paths == null) {
+                return;
+            }
+
+            for (PathItem item : notNull(paths.getPathItems()).values()) {
+                for (Operation op : notNull(item.getOperations()).values()) {
+                    if (op.getExtensions() == null) {
+                        //Hopefully OpenAPI can handle the same map being passed in
+                        //to multiple operations, but why risk it?
+                        Map<String, Object> zConMap = new HashMap<>();
+                        zConMap.put(MAP_KEY, extensions.get(MAP_KEY));
+                        op.setExtensions(zConMap);
+                    } else {
+                        Map<String, Object> localExtenionsMap = new HashMap<>(op.getExtensions());
+                        localExtenionsMap.putIfAbsent(MAP_KEY, extensions.get(MAP_KEY)); //A more specific setting will override the default
+                        op.setExtensions(localExtenionsMap);
+                    }
+                }
+            }
+
+            extensions.remove(MAP_KEY);
+            document.setExtensions(extensions);
+        }
     }
 
     /**
@@ -626,6 +673,11 @@ public class MergeProcessorImpl implements MergeProcessor {
 
     private static boolean serverEndsWithContextRoot(Server server, String contextRoot) {
         return server.getUrl().endsWith(contextRoot) || server.getUrl().endsWith(contextRoot + "/");
+    }
+
+    private static boolean isZConRolesAllowedIdentical(List<InProgressModel> models) {
+        List<Object> zconExtensions = models.stream().map(d -> d.model.getExtensions().get("x-ibm-zcon-roles-allowed")).collect(toList());
+        return allEqual(zconExtensions, ModelEquality::equals);
     }
 
     private static boolean isSecurityIdentical(List<InProgressModel> models) {
