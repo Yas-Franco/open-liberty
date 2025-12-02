@@ -47,6 +47,7 @@
 		},
 		"/foo3": {
 			"get": {
+		        "x-ibm-zcon-roles-allowed": [ "Robs" ],
 				"summary": "openapi.json - Get test data",
 				"responses": {
 					"200": {

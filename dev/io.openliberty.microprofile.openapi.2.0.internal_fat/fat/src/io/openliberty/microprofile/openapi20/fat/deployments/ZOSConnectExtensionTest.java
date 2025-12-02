@@ -10,8 +10,7 @@
 package io.openliberty.microprofile.openapi20.fat.deployments;
 
 import static com.ibm.websphere.simplicity.ShrinkHelper.DeployOptions.SERVER_ONLY;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -113,8 +113,16 @@ public class ZOSConnectExtensionTest {
         List<String> pathNames = new ArrayList<>();
         openapiNode.fieldNames().forEachRemaining(pathNames::add);
 
-        assertThat("Path names not found in expected order in " + doc,
-                   pathNames, contains("/test2/foo1", "/test2/foo2", "/test2/foo3", "/test3/bar1", "/test3/bar2", "/test3/bar3"));
+        assertEquals("There should be exactly six instances of [x-ibm-zcon-roles-allowed] (one per operation) in " + doc,
+                     6, StringUtils.countMatches(openapiNode.toPrettyString(), "x-ibm-zcon-roles-allowed"));
+
+        assertEquals("Bobs", openapiNode.path("/test1/foo1").path("get").path("x-ibm-zcon-roles-allowed").get(0).asText());
+        assertEquals("Bobs", openapiNode.path("/test1/foo2").path("get").path("x-ibm-zcon-roles-allowed").get(0).asText());
+        assertEquals("Robs", openapiNode.path("/test1/foo3").path("get").path("x-ibm-zcon-roles-allowed").get(0).asText());
+        assertEquals("Staff", openapiNode.path("/test2/bar1").path("get").path("x-ibm-zcon-roles-allowed").get(0).asText());
+        assertEquals("Staff", openapiNode.path("/test2/bar2").path("get").path("x-ibm-zcon-roles-allowed").get(0).asText());
+        assertEquals("Guests", openapiNode.path("/test2/bar3").path("get").path("x-ibm-zcon-roles-allowed").get(0).asText());
+
     }
 
     private void setMergeConfig(List<String> included, List<String> excluded, MpOpenAPIInfoElement info) throws Exception {

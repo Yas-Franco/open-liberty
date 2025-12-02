@@ -47,6 +47,7 @@
 		},
 		"/bar3": {
 			"get": {
+     		    "x-ibm-zcon-roles-allowed": [ "Guests" ],
 				"summary": "openapi.json - Get test data",
 				"responses": {
 					"200": {
