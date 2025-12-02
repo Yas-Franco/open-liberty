@@ -16,6 +16,7 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.RecordComponent;
@@ -24,11 +25,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import io.openliberty.data.internal.persistence.Util;
@@ -42,16 +43,20 @@ import io.openliberty.data.internal.persistence.orm.Models.MappedSuperclass;
 import jakarta.data.exceptions.MappingException;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Convert;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 
 /**
  * TODO javadoc and trace
  */
 public class EntityParser {
-
-    // State of the parser
-    private enum STATE {
-        INIT, PARSING, GENERATING
-    };
 
     // ORM sets
     private final SortedSet<MappedSuperclass> mappedSuperclasses;
@@ -59,8 +64,10 @@ public class EntityParser {
     private final SortedSet<EmbeddableRecord> embeddables;
     private final SortedSet<Converter> converters;
 
-    // Convertible classes
+    // ORM associated sets
     private final Set<Class<?>> convertibles;
+    private final LinkedHashSet<String> tableNames;
+    private final LinkedHashSet<String> classNames;
 
     // Relationships
     private final Relationships relate;
@@ -69,7 +76,7 @@ public class EntityParser {
     private final String tablePrefix;
 
     // State controls flow from initialization to generation
-    private final AtomicReference<STATE> state;
+    private boolean doneParsing;
 
     // Current entity being parsed
     private Class<?> currentEntity;
@@ -80,44 +87,49 @@ public class EntityParser {
         this.entities = new TreeSet<>();
         this.embeddables = new TreeSet<>();
         this.converters = new TreeSet<>();
+
         this.convertibles = new HashSet<>();
+        this.tableNames = new LinkedHashSet<>();
+        this.classNames = new LinkedHashSet<>();
+
         this.relate = new Relationships();
+
         this.tablePrefix = tablePrefix;
-        this.state = new AtomicReference<>(STATE.INIT);
+
+        this.doneParsing = false;
     }
 
     // ENTRY POINTS
     public void parseAnnotatedEntity(Class<?> annotatedEntity) {
-        state.compareAndSet(STATE.INIT, STATE.PARSING);
-        if (state.get() != STATE.PARSING) {
+        if (doneParsing) {
             // Internal exception
-            throw new IllegalStateException("Attempted to parse an entity while EntityParser was in state: " + state.get());
+            throw new IllegalStateException("Attempted to parse an entity after generating mapping");
         }
 
-        for (Convert convert : AnnoUtils.findConvertersInEntity(annotatedEntity)) {
-            recordConverter(convert);
+        for (Class<?> superclass = annotatedEntity; //
+                        superclass != null && superclass != Object.class; //
+                        superclass = superclass.getSuperclass()) {
+            parseAnnotatedObject(superclass);
         }
     }
 
     public void parseRecord(Class<?> record, Class<?> generatedEntity) {
-        state.compareAndSet(STATE.INIT, STATE.PARSING);
-        if (state.get() != STATE.PARSING) {
+        if (doneParsing) {
             // Internal exception
-            throw new IllegalStateException("Attempted to parse an entity while EntityParser was in state: " + state.get());
+            throw new IllegalStateException("Attempted to parse an entity after generating mapping");
         }
 
         relate.entityToRecord(generatedEntity, record);
-
         parse(generatedEntity, tablePrefix + record.getSimpleName());
     }
 
     public void parseUnannotatedEntity(Class<?> entity) {
-        state.compareAndSet(STATE.INIT, STATE.PARSING);
-        if (state.get() != STATE.PARSING) {
+        if (doneParsing) {
             // Internal exception
-            throw new IllegalStateException("Attempted to parse an entity while EntityParser was in state: " + state.get());
+            throw new IllegalStateException("Attempted to parse an entity after generating mapping");
         }
 
+        this.tableNames.add(tablePrefix + entity.getSimpleName());
         parse(entity, tablePrefix + entity.getSimpleName());
 
     }
@@ -288,22 +300,29 @@ public class EntityParser {
             }
             attr.setKind(kind);
 
-            //TODO avoid finding attributes for embeddables if we already found them.
             if (attr.isEmbedded()) {
-                Set<Attribute> overrides = finalizeAttributes(c, findAttributes(type));
-                attr.setOverrides(overrides);
+                if (relate.embedHasEntity(type)) {
+                    relate.entityToEmbed(c, type);
+                } else {
+                    Set<Attribute> overrides = finalizeAttributes(c, findAttributes(type));
+                    attr.setOverrides(overrides);
 
-                embeddables.add(new EmbeddableRecord(type, overrides));
-                relate.entityToEmbed(c, type);
+                    embeddables.add(new EmbeddableRecord(type, overrides));
+                    relate.entityToEmbed(c, type);
+                }
             }
 
             if (attr.isEmbeddedCollection()) {
-                Set<Attribute> overrides = finalizeAttributes(c, findAttributes(collectionType));
-                attr.setOverrides(overrides);
-                attr.setCollectionId(id);
+                if (relate.embedHasEntity(collectionType)) {
+                    relate.entityToEmbed(c, collectionType);
+                } else {
+                    Set<Attribute> overrides = finalizeAttributes(c, findAttributes(collectionType));
+                    attr.setOverrides(overrides);
+                    attr.setCollectionId(id);
 
-                embeddables.add(new EmbeddableRecord(collectionType, overrides));
-                relate.entityToEmbed(c, collectionType);
+                    embeddables.add(new EmbeddableRecord(collectionType, overrides));
+                    relate.entityToEmbed(c, collectionType);
+                }
             }
 
             if (attr.isId()) {
@@ -377,14 +396,123 @@ public class EntityParser {
         }
     }
 
+    private void parseAnnotatedObject(Class<?> c) {
+        if (classNames.contains(c.getName())) {
+            return;
+        }
+
+        if (c.isAnnotationPresent(Entity.class)) {
+            classNames.add(c.getName());
+            if (c.isAnnotationPresent(Table.class))
+                tableNames.add(c.getAnnotation(Table.class).name());
+            else
+                tableNames.add(c.getSimpleName());
+        }
+
+        for (Convert convert : c.getAnnotationsByType(Convert.class))
+            if (convert.converter() != null && convert.converter() != AttributeConverter.class)
+                recordConverter(convert);
+
+        for (Field f : c.getDeclaredFields()) {
+            forEmbeddable(f).ifPresent(emb -> parseAnnotatedObject(emb));
+            forMapping(f).ifPresent(entity -> parseAnnotatedObject(entity));
+            for (Convert convert : f.getAnnotationsByType(Convert.class))
+                if (convert.converter() != null && convert.converter() != AttributeConverter.class)
+                    recordConverter(convert);
+        }
+
+        for (Method m : c.getDeclaredMethods()) {
+            forEmbeddable(m).ifPresent(emb -> parseAnnotatedObject(emb));
+            forMapping(m).ifPresent(entity -> parseAnnotatedObject(entity));
+            for (Convert convert : m.getAnnotationsByType(Convert.class))
+                if (convert.converter() != null && convert.converter() != AttributeConverter.class)
+                    recordConverter(convert);
+        }
+
+    }
+
+    private Optional<Class<?>> forEmbeddable(Field f) {
+        if (f.isAnnotationPresent(Embedded.class) ||
+            f.isAnnotationPresent(EmbeddedId.class)) {
+            if (f.getType().isAnnotationPresent(Embeddable.class)) {
+                return Optional.of(f.getType());
+            }
+            return Optional.of(getEmbeddableClass(f.getGenericType()));
+        }
+        return Optional.empty();
+    }
+
+    private Optional<Class<?>> forMapping(Field f) {
+        if (f.isAnnotationPresent(ManyToOne.class) ||
+            f.isAnnotationPresent(OneToOne.class)) {
+            if (f.getType().isAnnotationPresent(Entity.class)) {
+                return Optional.of(f.getType());
+            }
+        }
+
+        if (f.isAnnotationPresent(ManyToMany.class) ||
+            f.isAnnotationPresent(OneToMany.class)) {
+            return Optional.of(getEntityClass(f.getGenericType()));
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<Class<?>> forEmbeddable(Method m) {
+        if (m.isAnnotationPresent(Embedded.class) ||
+            m.isAnnotationPresent(EmbeddedId.class)) {
+            if (m.getReturnType().isAnnotationPresent(Embeddable.class)) {
+                return Optional.of(m.getReturnType());
+            }
+            return Optional.of(getEmbeddableClass(m.getGenericReturnType()));
+        }
+        return Optional.empty();
+    }
+
+    private Optional<Class<?>> forMapping(Method m) {
+        if (m.isAnnotationPresent(ManyToOne.class) ||
+            m.isAnnotationPresent(OneToOne.class)) {
+            if (m.getReturnType().isAnnotationPresent(Entity.class)) {
+                return Optional.of(m.getReturnType());
+            }
+        }
+
+        if (m.isAnnotationPresent(ManyToMany.class) ||
+            m.isAnnotationPresent(OneToMany.class)) {
+            return Optional.of(getEntityClass(m.getGenericReturnType()));
+        }
+
+        return Optional.empty();
+    }
+
+    private Class<?> getEmbeddableClass(java.lang.reflect.Type type) {
+        if (type instanceof ParameterizedType) {
+            java.lang.reflect.Type[] typeParams = //
+                            ((ParameterizedType) type).getActualTypeArguments();
+            for (java.lang.reflect.Type t : typeParams)
+                if (t instanceof Class && ((Class<?>) t).isAnnotationPresent(Embeddable.class)) {
+                    return (Class<?>) t;
+                }
+        }
+        return null;
+    }
+
+    private Class<?> getEntityClass(java.lang.reflect.Type type) {
+        if (type instanceof ParameterizedType) {
+            java.lang.reflect.Type[] typeParams = //
+                            ((ParameterizedType) type).getActualTypeArguments();
+            for (java.lang.reflect.Type t : typeParams)
+                if (t instanceof Class && ((Class<?>) t).isAnnotationPresent(Entity.class)) {
+                    return (Class<?>) t;
+                }
+        }
+        return null;
+    }
+
     // GENERATORS
 
     public List<String> generateView() {
-        state.compareAndSet(STATE.PARSING, STATE.GENERATING);
-        if (state.get() != STATE.GENERATING) {
-            // Internal exception
-            throw new IllegalStateException("Attempted to generate EntityParser view while EntityParser was in state: " + state.get());
-        }
+        doneParsing = true;
 
         View view = new View(mappedSuperclasses.size() + entities.size() + embeddables.size() + converters.size());
 
@@ -408,21 +536,17 @@ public class EntityParser {
     }
 
     public LinkedHashSet<String> getClassNames() {
-        //TODO
-        return new LinkedHashSet<>();
+        doneParsing = true;
+        return classNames;
     }
 
     public LinkedHashSet<String> getTableNames() {
-        //TODO
-        return new LinkedHashSet<>();
+        doneParsing = true;
+        return tableNames;
     }
 
     public Set<Class<?>> getConvertibiles() {
-        state.compareAndSet(STATE.PARSING, STATE.GENERATING);
-        if (state.get() != STATE.GENERATING) {
-            // Internal exception
-            throw new IllegalStateException("Attempted to generate EntityParser view while EntityParser was in state: " + state.get());
-        }
+        doneParsing = true;
         return convertibles;
     }
 }

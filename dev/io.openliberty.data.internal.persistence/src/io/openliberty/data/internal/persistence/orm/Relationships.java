@@ -102,4 +102,8 @@ class Relationships {
     public boolean entityHasRecord(Class<?> entity) {
         return entityToRecord.containsKey(entity);
     }
+
+    public boolean embedHasEntity(Class<?> embed) {
+        return embedToEntity.containsKey(embed);
+    }
 }
