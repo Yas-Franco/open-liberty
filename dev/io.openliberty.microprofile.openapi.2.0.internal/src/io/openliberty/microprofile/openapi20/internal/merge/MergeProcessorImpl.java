@@ -462,7 +462,7 @@ public class MergeProcessorImpl implements MergeProcessor {
             final String MAP_KEY = "x-ibm-zcon-roles-allowed";
 
             Map<String, Object> extensions = new HashMap<>(document.getExtensions());
-            if (extensions == null) {
+            if (extensions.isEmpty() || !extensions.containsKey(MAP_KEY)) {
                 return;
             }
 
@@ -676,7 +676,8 @@ public class MergeProcessorImpl implements MergeProcessor {
     }
 
     private static boolean isZConRolesAllowedIdentical(List<InProgressModel> models) {
-        List<Object> zconExtensions = models.stream().map(d -> d.model.getExtensions().get("x-ibm-zcon-roles-allowed")).collect(toList());
+        List<Object> zconExtensions = models.stream().map(d -> d.model.getExtensions())
+                                            .filter(Objects::nonNull).map(e -> e.get("x-ibm-zcon-roles-allowed")).collect(toList());
         return allEqual(zconExtensions, ModelEquality::equals);
     }
 
