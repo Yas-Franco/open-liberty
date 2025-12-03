@@ -461,10 +461,12 @@ public class MergeProcessorImpl implements MergeProcessor {
 
             final String MAP_KEY = "x-ibm-zcon-roles-allowed";
 
-            Map<String, Object> extensions = new HashMap<>(document.getExtensions());
-            if (extensions.isEmpty() || !extensions.containsKey(MAP_KEY)) {
+            Map<String, Object> oldExtensions = document.getExtensions();
+            if (oldExtensions == null || oldExtensions.isEmpty() || !oldExtensions.containsKey(MAP_KEY)) {
                 return;
             }
+
+            Map<String, Object> extensions = new HashMap<>(document.getExtensions());
 
             if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
                 Tr.event(this, tc, "Moving ibm-zcon-roles-allowed from the top level to under paths");
