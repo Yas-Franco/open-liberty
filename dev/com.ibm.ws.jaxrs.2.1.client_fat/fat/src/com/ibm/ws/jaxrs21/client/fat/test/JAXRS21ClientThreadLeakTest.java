@@ -31,26 +31,28 @@ import com.ibm.websphere.simplicity.ShrinkHelper;
 import com.ibm.websphere.simplicity.log.Log;
 
 import componenttest.annotation.Server;
+import componenttest.annotation.TestServlet;
 import componenttest.annotation.SkipForRepeat;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.HttpUtils;
+import componenttest.topology.utils.FATServletClient;
+import com.ibm.ws.jaxrs21.client.threadleak.client.JAXRS21ClientTestServlet;
 
 @RunWith(FATRunner.class)
 @SkipForRepeat({SkipForRepeat.EE9_FEATURES, SkipForRepeat.EE10_FEATURES, SkipForRepeat.EE11_FEATURES})
-public class JAXRS21ClientThreadLeakTest extends JAXRS21AbstractTest {
+public class JAXRS21ClientThreadLeakTest extends FATServletClient {
+
+    private static final String appName = "jaxrs21clientthreadleak";
 
     @Server("jaxrs21.client.JAXRS21ClientThreadLeakTest")
+    @TestServlet(servlet = JAXRS21ClientTestServlet.class, contextRoot = appName)
     public static LibertyServer server;
-
-    private static final String clientcallbackwar = "jaxrs21clientthreadleak";
-
-    private final static String target = "jaxrs21clientthreadleak/JAXRS21ClientTestServlet";
 
     @BeforeClass
     public static void setup() throws Exception {
 
-        ShrinkHelper.defaultDropinApp(server, clientcallbackwar,
+        ShrinkHelper.defaultDropinApp(server, appName,
                                       "com.ibm.ws.jaxrs21.client.threadleak.client",
                                       "com.ibm.ws.jaxrs21.client.threadleak.server");
 
@@ -66,88 +68,14 @@ public class JAXRS21ClientThreadLeakTest extends JAXRS21AbstractTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        server.stopServer("CWWKE1102W");
+         if (server != null) {
+            server.stopServer();
+         }
     }
 
     @Before
-    public void preTest() {
-        serverRef = server;
-    }
+    public void beforeTest() {}
 
     @After
-    public void afterTest() {
-        serverRef = null;
-    }
-
-   /**
-     * Test that verifies thread count does not continuously increase when making
-     * repeated JAX-RS client requests that fail due to connection timeouts.
-     * To test the fix CXF-9171 added by cxf team for thread leak
-     * This test:
-     * 1. Gets the initial thread count from metrics
-     * 2. Makes multiple requests to non-routable IP addresses (simulating connection failures)
-     * 3. Waits for cleanup to occur
-     * 4. Verifies that thread count has not increased significantly
-     */
-    @Test
-    public void testThreadLeakWithFailedConnections() throws Exception {
-        Class<?> c = this.getClass();
-        
-        // Get initial thread count
-        int initialThreadCount = getThreadCount();
-        System.out.println("Initial thread count: " + initialThreadCount);
-        
-        // Make multiple requests that will fail (non-routable IP)
-        Map<String, String> params = new HashMap<String, String>();
-        params.put("param", "testThreadLeak");
-        params.put("iterations", "100"); 
-        
-        this.runTestOnServer(target, "testThreadLeak", params, "Thread leak test completed");
-        
-        // Get final thread count
-        int finalThreadCount = getThreadCount();
-        System.out.println("Final thread count: " + finalThreadCount);
-        
-        // Calculate the increase
-        int threadIncrease = finalThreadCount - initialThreadCount;
-        System.out.println("Thread count increase: " + threadIncrease);
-        
-        // Thread count should not increase by more than a reasonable amount (e.g., 10 threads)
-        // Some increase is acceptable due to normal server operations
-        assertTrue("Thread count increased by " + threadIncrease + " which exceeds acceptable threshold of 10",
-                   threadIncrease <= 10);
-    }
-
-    /**
-     * Helper method to get the current thread count from the server's metrics endpoint.
-     */
-    private int getThreadCount() throws Exception {
-        String metricsUrl = "http://" + server.getHostname() + ":" + 
-                           server.getHttpDefaultPort() + "/metrics/base";
-        
-        HttpURLConnection con = HttpUtils.getHttpConnection(new URL(metricsUrl), 
-                                                            HttpURLConnection.HTTP_OK, 10);
-        BufferedReader br = HttpUtils.getConnectionStream(con);
-        String line;
-        int threadCount = -1;
-        
-        while ((line = br.readLine()) != null) {
-            if (line.contains("base_thread_count") && !line.startsWith("#")) {
-                // Parse the thread count from the metrics output
-                // Format: base_thread_count 123
-                String[] parts = line.split("\\s+");
-                if (parts.length >= 2) {
-                    threadCount = Integer.parseInt(parts[1]);
-                    break;
-                }
-            }
-        }
-        br.close();
-        
-        if (threadCount == -1) {
-            throw new Exception("Could not find base_thread_count in metrics");
-        }
-        
-        return threadCount;
-    }
+    public void afterTest() {}
 }
