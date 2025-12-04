@@ -58,6 +58,7 @@ public class Models {
 
         private AttributeKind kind;
         private Attribute collectionId = null;
+        private Class<?> collectionType = null;
         private Set<Attribute> overrides = Set.of();
 
         public Attribute(Class<?> type, Type genericType, String name, AccessType access) {
@@ -81,6 +82,14 @@ public class Models {
 
         public void setCollectionId(Attribute collectionId) {
             this.collectionId = collectionId;
+        }
+
+        public Class<?> collectionType() {
+            return collectionType;
+        }
+
+        public void setCollectionType(Class<?> collectionType) {
+            this.collectionType = collectionType;
         }
 
         public Set<Attribute> overrides() {
@@ -153,6 +162,7 @@ public class Models {
                    ", access=" + access + //
                    ", kind=" + kind + //
                    ", collectionId=" + collectionId + //
+                   ", collectionType=" + collectionType + //
                    ", overrides=" + overrides + "]";
         }
     }

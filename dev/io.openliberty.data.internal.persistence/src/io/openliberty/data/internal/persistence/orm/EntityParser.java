@@ -22,6 +22,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.RecordComponent;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -128,8 +129,9 @@ public class EntityParser {
      * - class name
      *
      * @param annotatedEntity the entity class
+     * @return Class the annotatedEntity
      */
-    public void parseAnnotatedEntity(Class<?> annotatedEntity) {
+    public Class<?> parseAnnotatedEntity(Class<?> annotatedEntity) {
         if (doneParsing) {
             // Internal exception
             throw new IllegalStateException("Attempted to parse an entity after generating mapping");
@@ -140,6 +142,8 @@ public class EntityParser {
                         superclass = superclass.getSuperclass()) {
             parseAnnotatedObject(superclass);
         }
+
+        return annotatedEntity;
     }
 
     /**
@@ -148,8 +152,9 @@ public class EntityParser {
      *
      * @param record          the record class
      * @param generatedEntity the generated entity class
+     * @return Class the record class
      */
-    public void parseRecord(Class<?> record, Class<?> generatedEntity) {
+    public Class<?> parseRecord(Class<?> record, Class<?> generatedEntity) {
         if (doneParsing) {
             // Internal exception
             throw new IllegalStateException("Attempted to parse an entity after generating mapping");
@@ -157,6 +162,8 @@ public class EntityParser {
 
         entityToRecord.put(generatedEntity, record);
         parse(generatedEntity, tablePrefix + record.getSimpleName());
+
+        return record;
     }
 
     /**
@@ -164,14 +171,17 @@ public class EntityParser {
      * constructs an orm model for that entity.
      *
      * @param entity the entity class
+     * @return class the entity class
      */
-    public void parseUnannotatedEntity(Class<?> entity) {
+    public Class<?> parseUnannotatedEntity(Class<?> entity) {
         if (doneParsing) {
             // Internal exception
             throw new IllegalStateException("Attempted to parse an entity after generating mapping");
         }
 
         parse(entity, tablePrefix + entity.getSimpleName());
+
+        return entity;
     }
 
     // PARSER
@@ -182,6 +192,7 @@ public class EntityParser {
      * @param entity    the entity class
      * @param tableName the table name, including prefix
      */
+    @Trivial
     private void parse(Class<?> entity, String tableName) {
         this.currentEntity = entity;
         this.idAttributes = new HashSet<>();
@@ -370,6 +381,7 @@ public class EntityParser {
 
             final AttributeKind kind;
             if (isCollection) {
+                attr.setCollectionType(collectionType);
                 if (isCollectionBasic)
                     kind = AttributeKind.BASIC$ELEMENT_COLLECTION;
                 else
@@ -429,6 +441,7 @@ public class EntityParser {
      * mapped superclasses. In that case, overrides belong on its embedded
      * attributes.
      */
+    @Trivial
     private boolean isRootEntityOrMappedSuperclass(Class<?> holder) {
         if (currentEntity == null || holder == null) {
             return false;
@@ -461,40 +474,27 @@ public class EntityParser {
         }
 
         // Reuse the same attribute discovery logic we already have
-        Set<Attribute> attrs = findAttributes(type);
+        Set<Attribute> attrs;
+        if (embeddables.containsKey(type)) {
+            attrs = Collections.unmodifiableSet(embeddables.get(type).attributes());
+        } else {
+            // TODO internal error - embeddable should have already been parsed
+            attrs = Set.of();
+        }
 
         for (Attribute attr : attrs) {
-            Class<?> at = attr.type();
-
-            boolean isCollection = Collection.class.isAssignableFrom(at);
-            Class<?> elementType = null;
-            boolean elementBasic = false;
-            if (isCollection && attr.genericType() instanceof ParameterizedType pt) {
-                Type t = pt.getActualTypeArguments()[0];
-                if (t instanceof Class<?>) {
-                    elementType = (Class<?>) t;
-                    elementBasic = elementType.isPrimitive()
-                                   || elementType.isInterface()
-                                   || Serializable.class.isAssignableFrom(elementType);
-                }
-            }
-
-            boolean isBasic = at.isPrimitive()
-                              || at.isInterface()
-                              || Serializable.class.isAssignableFrom(at);
-
             String namePrefix = prefix.isEmpty() ? "" : prefix + ".";
 
-            if (isCollection && !elementBasic && elementType != null) {
-                // Collection of embeddables: recurse into the element type
-                buildOverridesForType(elementType, namePrefix + attr.name(), result, visiting);
-            } else if (!isCollection && !isBasic) {
+            if (attr.isEmbeddedCollection()) {
+                // Collection of embeddables: recurse into the collectionType
+                buildOverridesForType(attr.collectionType(), namePrefix + attr.name(), result, visiting);
+            } else if (attr.isEmbedded()) {
                 // Single embedded object: recurse into its type
-                buildOverridesForType(at, namePrefix + attr.name(), result, visiting);
+                buildOverridesForType(attr.type(), namePrefix + attr.name(), result, visiting);
             } else {
                 // Leaf attribute (basic or collection of basic): add as override
                 String overrideName = namePrefix + attr.name();
-                Class<?> leafType = isCollection && elementType != null ? elementType : at;
+                Class<?> leafType = attr.isCollection() ? attr.collectionType() : attr.type();
                 // For overrides we only really need the type and name; access=FIELD is fine
                 result.add(new Attribute(leafType, attr.genericType(), overrideName, AccessType.FIELD));
             }
@@ -585,9 +585,6 @@ public class EntityParser {
             return;
         }
 
-        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
-            Tr.entry(tc, "parseAnnotatedObject", c);
-
         if (c.isAnnotationPresent(Entity.class)) {
             String cn, tn;
 
@@ -620,9 +617,6 @@ public class EntityParser {
                 if (convert.converter() != null && convert.converter() != AttributeConverter.class)
                     foundConverter(convert);
         }
-
-        if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled())
-            Tr.exit(tc, "parseAnnotatedObject");
     }
 
     @Trivial
