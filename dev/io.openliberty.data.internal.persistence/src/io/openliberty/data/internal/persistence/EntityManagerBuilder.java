@@ -538,6 +538,8 @@ public abstract class EntityManagerBuilder {
     @FFDCIgnore(NoSuchMethodException.class)
     private Method getSetMethod(Class<?> entityClass, Method getter) {
         String getterName = getter.getName();
+        Class<?> getterReturnType = getter.getReturnType();
+
         String setterName;
         if (getterName.charAt(0) == 'g')
             setterName = 's' + getterName.substring(1);
@@ -549,11 +551,11 @@ public abstract class EntityManagerBuilder {
 
         Method setter = null;
         try {
-            setter = entityClass.getMethod(setterName);
+            setter = entityClass.getMethod(setterName, getterReturnType);
         } catch (NoSuchMethodException x) {
             for (Class<?> c = entityClass; setter == null && c != null; c = c.getSuperclass())
                 try {
-                    setter = c.getDeclaredMethod(setterName);
+                    setter = c.getDeclaredMethod(setterName, getterReturnType);
                 } catch (NoSuchMethodException xx) {
                 }
             if (setter == null)
