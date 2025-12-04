@@ -213,7 +213,8 @@ public class EntityParser {
             // Record entity-mappedSuperclass relationship
             Set<Class<?>> superclasses = entitiesSuperclasses.get(currentEntity);
             if (superclasses == null)
-                entitiesSuperclasses.put(currentEntity, superclasses = new HashSet<>(Set.of(superclass)));
+                entitiesSuperclasses.put(currentEntity, superclasses = new HashSet<>());
+            superclasses.add(superclass);
 
             // Record the mappedSuperclass and any embeddables found along the way
             if (!mappedSuperclasses.containsKey(superclass)) {
