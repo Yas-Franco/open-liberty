@@ -1881,7 +1881,7 @@ public class JakartaPersistenceServlet extends FATServlet {
     }
 
     @Test
-    @SkipIfSysProp(DB_Oracle)  // Reference issue: https://github.com/OpenLiberty/open-liberty/issues/33573
+    //@SkipIfSysProp(DB_Oracle)  // Reference issue: https://github.com/OpenLiberty/open-liberty/issues/33573
     public void testLobInsertAndRetrieve() throws Exception {
 
         try {
@@ -1900,11 +1900,10 @@ public class JakartaPersistenceServlet extends FATServlet {
 
         try {
             tx.begin();
-
             DocumentEntity r1 = em.find(DocumentEntity.class, 1L);
-   
-            assertEquals("", r1.getContent());
             tx.commit();
+            
+            assertNull(r1.getContent());
         } catch (Exception e) {
             if (tx.getStatus() == jakarta.transaction.Status.STATUS_ACTIVE) {
                 tx.rollback();
