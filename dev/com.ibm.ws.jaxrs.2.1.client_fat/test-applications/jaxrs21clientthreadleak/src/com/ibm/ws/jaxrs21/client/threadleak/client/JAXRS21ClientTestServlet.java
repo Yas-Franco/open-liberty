@@ -67,7 +67,6 @@ public class JAXRS21ClientTestServlet extends FATServlet {
     private int getBaseThreadCountFromMetrics() {
         try {
             String metricsUrl = SERVER_CONTEXT_ROOT + "/metrics/base";
-            System.out.println("metricsUrl: " + metricsUrl);
             URL url = new URL(metricsUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
@@ -91,7 +90,7 @@ public class JAXRS21ClientTestServlet extends FATServlet {
                 in.close();
             }
         } catch (Exception e) {
-            System.out.println("Neena: Error fetching metrics: " + e.getMessage());
+            System.out.println("Error fetching metrics: " + e.getMessage());
         }
         return -1;
     }
