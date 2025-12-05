@@ -2209,13 +2209,13 @@ public class DataJPATestServlet extends FATServlet {
             query.setParameter("yExclusiveMax", 200);
 
             // TODO enable once #29460 is fixed
-            //@SuppressWarnings("unchecked")
-            //Stream<Segment> results = query.getResultStream();
+            @SuppressWarnings("unchecked")
+            Stream<Segment> results = query.getResultStream();
 
-            //assertEquals(List.of(s5.id, s6.id),
-            //             results
-            //                             .map(s -> s.id)
-            //                             .collect(Collectors.toList()));
+            assertEquals(List.of(s5.id, s6.id),
+                         results
+                                         .map(s -> s.id)
+                                         .collect(Collectors.toList()));
         } finally {
             if (tran.getStatus() == Status.STATUS_ACTIVE)
                 tran.commit();
