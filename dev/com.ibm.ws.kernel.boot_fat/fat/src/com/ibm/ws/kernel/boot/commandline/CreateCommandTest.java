@@ -118,27 +118,27 @@ public class CreateCommandTest {
     public void testServerNameWithSpaceRejected() throws Exception {
         String invalidServerName = "my server";
         
-        // Need to quote the server name to pass it as a single argument with spaces
-        String quotedServerName = "\"" + invalidServerName + "\"";
-        
-        ProgramOutput po = LibertyServerUtils.executeLibertyCmd(bootstrap, "server", "create", quotedServerName);
+        // Use the preserveSpaces flag to ensure the server name with space is passed as a single argument
+        ProgramOutput po = LibertyServerUtils.executeLibertyCmd(bootstrap, "server", true, "create", invalidServerName);
         
         // Verify that the command failed (non-zero return code)
         assertTrue("Expected non-zero return code when creating server with space in name. STDOUT: " + po.getStdout() + " STDERR: " + po.getStderr(),
                    po.getReturnCode() != 0);
         
+        // Error messages may be in stdout or stderr depending on how the command is executed
+        String output = po.getStdout() + " " + po.getStderr();
+        
         // Verify that the error output contains the CWWKE0012E error message
-        String stderr = po.getStderr();
-        assertTrue("Expected CWWKE0012E error message in output. STDERR: " + stderr,
-                   stderr.contains("CWWKE0012E"));
+        assertTrue("Expected CWWKE0012E error message in output. OUTPUT: " + output,
+                   output.contains("CWWKE0012E"));
         
         // Verify that the error message mentions the invalid server name
-        assertTrue("Expected error message to mention the invalid server name '" + invalidServerName + "'. STDERR: " + stderr,
-                   stderr.contains(invalidServerName));
+        assertTrue("Expected error message to mention the invalid server name '" + invalidServerName + "'. OUTPUT: " + output,
+                   output.contains(invalidServerName));
         
         // Verify that the error message mentions "character that is not valid" or similar
-        assertTrue("Expected error message to mention invalid character. STDERR: " + stderr,
-                   stderr.contains("character") && (stderr.contains("not valid") || stderr.contains("invalid")));
+        assertTrue("Expected error message to mention invalid character. OUTPUT: " + output,
+                   output.contains("character") && (output.contains("not valid") || output.contains("invalid")));
         
         // Verify that the server directory was NOT created
         String invalidServerPath = installPath + "/usr/servers/" + invalidServerName;
