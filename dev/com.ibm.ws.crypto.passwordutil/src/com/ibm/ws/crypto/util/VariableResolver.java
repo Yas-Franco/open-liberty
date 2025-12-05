@@ -32,6 +32,7 @@ public class VariableResolver implements KeyStringResolver {
 
     @Override
     public char[] getKey(String val) {
+        // Use resolveRawString instead of resolveString so that VariableRegistry doesn't normalize the value saved in server config.
         return registry.resolveRawString(val).toCharArray();
     }
 }
