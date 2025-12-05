@@ -603,9 +603,10 @@ public class RepositoryImpl<R> implements InvocationHandler {
                                     Tr.debug(this, tc, "flush");
                                 em.flush();
                                 // TODO 1.1 only detach if a stateless repository
-                                if (entityInfo != null && !entityInfo.isHibernate) {
+                                if (!entityInfo.isHibernate && // TODO remove this condition once #33544 is fixed
+                                    entityInfo != null) {
                                     // Only valid if flush writes to the database,
-                                    // and Hibernate does not seem to honor flush.
+                                    // and Hibernate does not seem to honor flush. #33544
                                     if (trace && tc.isDebugEnabled())
                                         Tr.debug(this, tc, "clear");
                                     em.clear();
