@@ -14,6 +14,7 @@ import com.ibm.websphere.simplicity.ProgramOutput;
 import com.ibm.websphere.simplicity.log.Log;
 import com.ibm.websphere.simplicity.ShrinkHelper;
 import componenttest.annotation.AllowedFFDC;
+import componenttest.annotation.MinimumJavaLevel;
 import componenttest.annotation.Server;
 import componenttest.annotation.SkipIfSysProp;
 import componenttest.custom.junit.runner.FATRunner;
@@ -288,8 +289,8 @@ public class FIPS1403SecurityUtilityTests {
 
     @Test
     @AllowedFFDC({ "java.lang.RuntimeException" })
+    @MinimumJavaLevel(javaLevel = 11)
     public void fips140_3NoSuchAlgorithmExceptionTest() throws Exception {
-
         // Enable FIPS at server level without referencing the custom profile
         ProgramOutput po = runSecurityUtilityCommand(new String[] {SEC_CONF_FIPS_COMMAND, OPT_SERVER + "=" + SERVER_NAME});
         assertEquals("securityUtility configureFIPS did not result in expected return code.",0, po.getReturnCode());
