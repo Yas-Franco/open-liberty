@@ -27,7 +27,7 @@ apply from: '../wlp-gradle/subprojects/maven-central-mirror.gradle'
 
 dependencies {
   implementation('org.springframework.boot:spring-boot-starter-web')
-  providedRuntime('org.springframework.boot:spring-boot-tomcat-runtime')
+  providedRuntime('org.springframework.boot:spring-boot-starter-tomcat-runtime')
   implementation ('org.springframework.boot:spring-boot-starter-validation') {
     exclude group: 'org.hibernate.validator', module: 'hibernate-validator'
   }

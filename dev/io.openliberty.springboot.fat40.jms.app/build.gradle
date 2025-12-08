@@ -31,5 +31,5 @@ dependencies {
   implementation('org.springframework.integration:spring-integration-jms')
   implementation('org.springframework.boot:spring-boot-starter-jdbc')
   providedCompile('jakarta.jms:jakarta.jms-api:3.1.0')
-  providedRuntime('org.springframework.boot:spring-boot-tomcat-runtime')
+  providedRuntime('org.springframework.boot:spring-boot-starter-tomcat-runtime')
 }
