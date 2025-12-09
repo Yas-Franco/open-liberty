@@ -12,7 +12,7 @@
  */
 @org.osgi.annotation.versioning.Version("1.0.0")
 @TraceOptions(traceGroup = TraceConstants.TRACE_GROUP, messageBundle = TraceConstants.MESSAGE_BUNDLE)
-package io.openliberty.security.jakartasec.identitystore.permissions;
+package io.openliberty.security.jakartasec40.identitystore;
 
 import com.ibm.websphere.ras.annotation.TraceOptions;
 

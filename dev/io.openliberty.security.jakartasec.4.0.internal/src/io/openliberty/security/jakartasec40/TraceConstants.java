@@ -7,13 +7,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
+package io.openliberty.security.jakartasec40;
+
 /**
- * @version 1.0.0
+ * Constants for package-info and tracing functionality.
  */
-@org.osgi.annotation.versioning.Version("1.0.0")
-@TraceOptions(traceGroup = TraceConstants.TRACE_GROUP, messageBundle = TraceConstants.MESSAGE_BUNDLE)
-package io.openliberty.security.jakartasec.identitystore.permissions;
+public class TraceConstants {
 
-import com.ibm.websphere.ras.annotation.TraceOptions;
-
-import io.openliberty.security.jakartasec40.TraceConstants;
+    public static final String TRACE_GROUP = "JakartaSecurity40";
+    public static final String MESSAGE_BUNDLE = "io.openliberty.security.jakartasec40.internal.resources.JakartaSecurity40Messages";
+}
