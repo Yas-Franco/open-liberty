@@ -338,7 +338,9 @@ public class MergeProcessorTest {
         assertEquals("Eves", result.getPaths().getPathItem("/test2/testB").getGET().getExtensions().get(TESTED_EXTENSION).toString());
 
         //Finally assert that there is no mention of the zcon extension on the top level
-        assertFalse(result.getExtensions().containsKey(TESTED_EXTENSION));
+        //On Smallrye OpenAPI 4.0.9 getExtensions will return null if there are no extensions
+        //(BaseExtensibleModel will return null if stream.allMatch(<predicate>) is true, which is always is for an empty stream
+        assertFalse(result.getExtensions() != null && result.getExtensions().containsKey(TESTED_EXTENSION));
     }
 
     /**
@@ -368,7 +370,9 @@ public class MergeProcessorTest {
         assertFalse(result.getPaths().getPathItem("/test3/testB").getGET().getExtensions().containsKey(TESTED_EXTENSION));
 
         //Finally assert that there is no mention of the zcon extension on the top level
-        assertFalse(result.getExtensions().containsKey(TESTED_EXTENSION));
+        //On Smallrye OpenAPI 4.0.9 getExtensions will return null if there are no extensions
+        //(BaseExtensibleModel will return null if stream.allMatch(<predicate>) is true, which is always is for an empty stream
+        assertFalse(result.getExtensions() != null && result.getExtensions().containsKey(TESTED_EXTENSION));
     }
 
     /**
@@ -394,7 +398,9 @@ public class MergeProcessorTest {
         assertFalse(result.getPaths().getPathItem("/test3/testB").getGET().getExtensions().containsKey(TESTED_EXTENSION));
 
         //Finally assert that there is no mention of the zcon extension on the top level
-        assertFalse(result.getExtensions().containsKey(TESTED_EXTENSION));
+        //On Smallrye OpenAPI 4.0.9 getExtensions will return null if there are no extensions
+        //(BaseExtensibleModel will return null if stream.allMatch(<predicate>) is true, which is always is for an empty stream
+        assertFalse(result.getExtensions() != null && result.getExtensions().containsKey(TESTED_EXTENSION));
     }
 
     private OpenAPI loadModel(String modelResource) {
