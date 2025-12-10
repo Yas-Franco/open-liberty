@@ -60,7 +60,8 @@ Private-Package: com.ibm.ws.sib.admin.internal,\
  com.ibm.ws.messaging.service.JsAdminServiceImpl, \
  com.ibm.ws.messaging.service.JsMainAdminServiceImpl, \
  com.ibm.ws.sib.admin.internal.JsMainImpl, \
- com.ibm.ws.sib.processor.impl.store.ItemInterfaceFactory
+ com.ibm.ws.sib.processor.impl.store.ItemInterfaceFactory, \
+ com.ibm.ws.sib.admin.internal.SibIntrospectorImpl
 
 instrument.disabled: true
 
