@@ -34,11 +34,13 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Trivial;
 
+import io.openliberty.data.internal.persistence.DataProvider;
 import io.openliberty.data.internal.persistence.Util;
 import io.openliberty.data.internal.persistence.orm.Models.AccessType;
 import io.openliberty.data.internal.persistence.orm.Models.Attribute;
@@ -90,6 +92,7 @@ public class EntityParser {
     private final LinkedHashSet<String> classNames;
 
     // Global configurations
+    private final DataProvider provider;
     private final String tablePrefix;
 
     // State controls flow from initialization to generation
@@ -99,8 +102,14 @@ public class EntityParser {
     private Class<?> currentEntity;
     private Set<Attribute> idAttributes;
 
+    /**
+     * Construct a new entity parser.
+     *
+     * @param tablePrefix the table prefix or empty string if none.
+     * @param provider    OSGi service representing this Data provider.
+     */
     @Trivial
-    public EntityParser(String tablePrefix) {
+    public EntityParser(String tablePrefix, DataProvider provider) {
         this.mappedSuperclasses = new HashMap<>();
         this.entities = new HashMap<>();
         this.embeddables = new HashMap<>();
@@ -113,6 +122,7 @@ public class EntityParser {
         this.tableNames = new LinkedHashSet<>();
         this.classNames = new LinkedHashSet<>();
 
+        this.provider = provider;
         this.tablePrefix = tablePrefix;
 
         this.doneParsing = false;
@@ -543,17 +553,24 @@ public class EntityParser {
     @Trivial
     private void verify() {
         if (idAttributes.isEmpty()) {
-            EntityRecord invalid = entities.get(currentEntity);
-            Set<Class<?>> supers = entitiesSuperclasses.get(currentEntity);
-            Set<MappedSuperclass> invalidSupers = supers == null || supers.isEmpty() ? //
-                            Set.of() : //
-                            supers.stream() //
-                                            .map(c -> mappedSuperclasses.get(c))//
-                                            .collect(Collectors.toSet());
-
-            //TODO NLS
-            throw new MappingException("The entity " + invalid + " had no id attribute"
-                                       + (invalidSupers.isEmpty() ? " " : " nor was any id attribute found on any mapped superclass " + invalidSupers));
+            Class<?> recordEntityClass = entityToRecord.get(currentEntity);
+            if (recordEntityClass == null) {
+                throw exc(MappingException.class,
+                          "CWWKD1122.entity.lacks.id",
+                          currentEntity.getName(),
+                          provider.compat.persistenceFeatureName());
+            } else { // a Java record entity
+                String recordComponentNames = Stream //
+                                .of(recordEntityClass.getRecordComponents()) //
+                                .map(RecordComponent::getName) //
+                                .reduce("", (s, n) -> s.length() == 0 //
+                                                ? n //
+                                                : (s + ", " + n));
+                throw exc(MappingException.class,
+                          "CWWKD1121.record.lacks.id",
+                          recordEntityClass.getName(),
+                          recordComponentNames);
+            }
         }
 
         if (idAttributes.size() > 1) {

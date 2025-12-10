@@ -12,19 +12,38 @@ package io.openliberty.data.internal.persistence.orm;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Map;
+
 import org.junit.Test;
 
+import io.openliberty.data.internal.persistence.DataProvider;
 import io.openliberty.data.internal.persistence.orm.TestConverters.InvalidConverter;
 import jakarta.data.exceptions.MappingException;
 
 /**
- *
+ * Unit testing of error paths in EntityParser.
  */
 public class EntityParserErrorTests {
+    private final DataProvider provider;
+
+    public EntityParserErrorTests() {
+        provider = new DataProvider(//
+                        Map.of(), // properties
+                        null, // CDIService
+                        null, // ClassLoaderIdentifierService
+                        new MockVersionCompatibility(), //
+                        null, // ConfigurationAdmin
+                        null, // ExecutorService
+                        null, // LocalTransactionCurrent
+                        null, // MetaDataIdentifierService
+                        null, // ResourceConfigFactory
+                        null // EmbeddableWebSphereTransactionManager
+        );
+    }
 
     @Test
     public void noIdEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", provider);
 
         try {
             p.parseUnannotatedEntity(WithoutId.class);
@@ -37,23 +56,25 @@ public class EntityParserErrorTests {
 
     @Test
     public void noIdInMappedSuperclassEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", provider);
 
         try {
             p.parseUnannotatedEntity(WithoutIdMappedSuperclass.class);
             fail("Should not have been able to parse an entity without an id atribute");
         } catch (MappingException e) {
-            assertTrue("Error message should have contained entity class name " + WithoutIdMappedSuperclass.class.getName() + " but was " + e.getMessage(),
-                       e.getMessage().contains("WithoutIdMappedSuperclass"));
+            assertTrue("The CWWKD1122E error message should be used,",
+                       e.getMessage().startsWith("CWWKD1122E:"));
 
-            assertTrue("Error message should have contained mappedsuperclass name " + SuperAlpha.class.getName() + " but was " + e.getMessage(),
-                       e.getMessage().contains("SuperAlpha"));
+            assertTrue("Error message should have contained entity class name " +
+                       WithoutIdMappedSuperclass.class.getName() +
+                       " but was " + e.getMessage(),
+                       e.getMessage().contains("WithoutIdMappedSuperclass"));
         }
     }
 
     @Test
     public void multipleIdInMappedSuperclassEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", provider);
 
         try {
             p.parseUnannotatedEntity(WithMultipleIds.class);
@@ -69,7 +90,7 @@ public class EntityParserErrorTests {
 
     @Test
     public void invalidConverterEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", provider);
 
         try {
             p.parseUnannotatedEntity(WithConverterInvalid.class);

@@ -12,17 +12,36 @@ package io.openliberty.data.internal.persistence.orm;
 import static org.junit.Assert.assertEquals;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
+
+import io.openliberty.data.internal.persistence.DataProvider;
 
 /**
  * TODO test an annotated entity
  */
 public class EntityParserTests {
+    private final DataProvider provider;
+
+    public EntityParserTests() {
+        provider = new DataProvider(//
+                        Map.of(), // properties
+                        null, // CDIService
+                        null, // ClassLoaderIdentifierService
+                        new MockVersionCompatibility(), //
+                        null, // ConfigurationAdmin
+                        null, // ExecutorService
+                        null, // LocalTransactionCurrent
+                        null, // MetaDataIdentifierService
+                        null, // ResourceConfigFactory
+                        null // EmbeddableWebSphereTransactionManager
+        );
+    }
 
     @Test
     public void simpleEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(Simple.class);
         List<String> xmls = p.generateView();
 
@@ -48,7 +67,7 @@ public class EntityParserTests {
 
     @Test
     public void simpleEntityWithPrefixTest() {
-        EntityParser p = new EntityParser("prefix");
+        EntityParser p = new EntityParser("prefix", null);
         p.parseUnannotatedEntity(Simple.class);
         List<String> xmls = p.generateView();
 
@@ -74,7 +93,7 @@ public class EntityParserTests {
 
     @Test
     public void versionedEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(Versioned.class);
         List<String> xmls = p.generateView();
 
@@ -101,7 +120,7 @@ public class EntityParserTests {
 
     @Test
     public void recordEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseRecord(RecordEntity.class, RecordEntityEntity.class);
         List<String> xmls = p.generateView();
 
@@ -129,7 +148,7 @@ public class EntityParserTests {
 
     @Test
     public void recordComplexEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseRecord(RecordComplex.class, RecordComplexEntity.class);
         List<String> xmls = p.generateView();
 
@@ -174,7 +193,7 @@ public class EntityParserTests {
 
     @Test
     public void collectionEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(Collection.class);
         List<String> xmls = p.generateView();
 
@@ -202,7 +221,7 @@ public class EntityParserTests {
 
     @Test
     public void collectionEmbeddedEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(CollectionEmbedded.class);
         List<String> xmls = p.generateView();
 
@@ -248,7 +267,7 @@ public class EntityParserTests {
 
     @Test
     public void propertyEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(Property.class);
         List<String> xmls = p.generateView();
 
@@ -278,7 +297,7 @@ public class EntityParserTests {
 
     @Test
     public void embeddedEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(WithEmbedded.class);
         List<String> xmls = p.generateView();
 
@@ -319,7 +338,7 @@ public class EntityParserTests {
 
     @Test
     public void embeddedIdEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(WithEmbeddedId.class);
         List<String> xmls = p.generateView();
 
@@ -359,7 +378,7 @@ public class EntityParserTests {
 
     @Test
     public void embeddedRecordEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(WithEmbeddedRecord.class);
         List<String> xmls = p.generateView();
 
@@ -402,7 +421,7 @@ public class EntityParserTests {
 
     @Test
     public void mappedSuperClassEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(WithMappedSuperclass.class);
         List<String> xmls = p.generateView();
 
@@ -478,7 +497,7 @@ public class EntityParserTests {
 
     @Test
     public void mappedSuperClassEmbeddedIdEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(WithMappedSuperclassPrime.class);
         List<String> xmls = p.generateView();
 
@@ -572,7 +591,7 @@ public class EntityParserTests {
 
     @Test
     public void converterEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(WithConverter.class);
         List<String> xmls = p.generateView();
 
@@ -619,7 +638,7 @@ public class EntityParserTests {
 
     @Test
     public void converterComplexEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(WithConverterComplex.class);
         List<String> xmls = p.generateView();
 
@@ -685,7 +704,7 @@ public class EntityParserTests {
 
     @Test
     public void annotatedWithConverterEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseAnnotatedEntity(WithEntityAnnotation.class);
         List<String> xmls = p.generateView();
 
@@ -712,7 +731,7 @@ public class EntityParserTests {
 
     @Test
     public void multilayerEmbeddedEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(WithMultilayerEmbedded.class);
         List<String> xmls = p.generateView();
 
@@ -782,7 +801,7 @@ public class EntityParserTests {
 
     @Test
     public void multilayerEmbeddedCollectionEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(WithMultilayerEmbeddedCollection.class);
         List<String> xmls = p.generateView();
 
@@ -854,7 +873,7 @@ public class EntityParserTests {
 
     @Test
     public void embeddedMulilayerCollectionEntityTest() {
-        EntityParser p = new EntityParser("");
+        EntityParser p = new EntityParser("", null);
         p.parseUnannotatedEntity(WithEmbeddedMultilayerCollection.class);
         List<String> xmls = p.generateView();
 

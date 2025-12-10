@@ -349,7 +349,7 @@ public class DBStoreEMBuilder extends EntityManagerBuilder implements DDLGenerat
 
         ArrayList<InMemoryMappingFile> generatedEntities = new ArrayList<InMemoryMappingFile>();
 
-        EntityParser parser = new EntityParser(tablePrefix);
+        EntityParser parser = new EntityParser(tablePrefix, provider);
 
         for (Class<?> c : entityTypes) {
             if (c.isAnnotationPresent(Entity.class)) {
