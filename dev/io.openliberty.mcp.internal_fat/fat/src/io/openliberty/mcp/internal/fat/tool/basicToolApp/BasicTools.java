@@ -495,4 +495,12 @@ public class BasicTools {
         return result;
     }
 
+    @Tool(name = "get-user-jp",
+          title = "ユーザー情報取得", // Retrieve user information
+          description = "指定されたユーザー ID の名前とロールを取得します。") // Retrieve the name and role of the specified user ID
+    public String getUserJp(@ToolArg(name = "userid",
+                                     description = "対象ユーザーのユーザーID。") String userId) { // The user ID of the target user
+        return "ID: " + userId + ", Name: 仮名, role: user";
+    }
+
 }

@@ -2210,6 +2210,23 @@ public class ToolTest extends FATServletClient {
                                         "name": "simpleMetaRequest",
                                         "description": "return string made from args and metadata",
                                         "title": "return string made from args and metadata"
+                                    },
+                                    {
+                                      "name": "get-user-jp",
+                                      "title": "ユーザー情報取得",
+                                      "description": "指定されたユーザー ID の名前とロールを取得します。",
+                                      "inputSchema": {
+                                        "type": "object",
+                                        "properties": {
+                                          "userid": {
+                                            "description": "対象ユーザーのユーザーID。",
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "userid"
+                                        ]
+                                      }
                                     }
                                 ]
                             },
@@ -4056,6 +4073,42 @@ public class ToolTest extends FATServletClient {
                                                                   .run(String.class);
 
         assertTrue(response.contains("Invalid or Expired Session Id"));
+    }
+
+    @Test
+    public void testNonLatinCharacters() throws Exception {
+        String request = """
+                        {
+                          "jsonrpc": "2.0",
+                          "id": "1",
+                          "method": "tools/call",
+                          "params": {
+                            "name": "get-user-jp",
+                            "arguments": {
+                              "userid": "ユーザー1"
+                            }
+                          }
+                        }
+                        """;
+
+        String response = client.callMCP(request);
+        String expected = """
+                          {
+                            "jsonrpc": "2.0",
+                            "id": "1",
+                            "result": {
+                                "isError": false,
+                                "content": [
+                                    {
+                                        "text": "ID: ユーザー1, Name: 仮名, role: user",
+                                        "type": "text"
+                                    }
+                                ],
+                            }
+                        }
+                        """;
+
+        JSONAssert.assertEquals(expected, response, JSONCompareMode.STRICT);
     }
 
 }
