@@ -11,6 +11,8 @@ package io.openliberty.mcp.internal.fat.tool;
 
 import static com.ibm.websphere.simplicity.ShrinkHelper.DeployOptions.SERVER_ONLY;
 import static componenttest.custom.junit.runner.Mode.TestMode.FULL;
+import static componenttest.rules.repeater.EERepeatActions.EE10;
+import static componenttest.rules.repeater.EERepeatActions.EE11;
 import static io.openliberty.mcp.internal.fat.utils.TestConstants.ACCEPT;
 import static io.openliberty.mcp.internal.fat.utils.TestConstants.MCP_PROTOCOL_VERSION;
 import static io.openliberty.mcp.internal.fat.utils.TestConstants.MCP_SESSION_ID;
@@ -27,9 +29,13 @@ import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
+import org.junit.runners.model.Statement;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 
@@ -38,6 +44,9 @@ import com.ibm.websphere.simplicity.ShrinkHelper;
 import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
+import componenttest.custom.junit.runner.Mode.TestMode;
+import componenttest.custom.junit.runner.TestModeFilter;
+import componenttest.rules.repeater.EERepeatActions;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.FATServletClient;
 import componenttest.topology.utils.HttpRequest;
@@ -52,6 +61,25 @@ public class ToolTest extends FATServletClient {
 
     @Server("mcp-server")
     public static LibertyServer server;
+
+    @ClassRule
+    public static TestRule repeatInLiteOnly;
+
+    static {
+        if (TestModeFilter.FRAMEWORK_TEST_MODE == TestMode.LITE) {
+            // Whole bucket is repeated in FULL mode
+            // We want to add a repeat for just this test when running in LITE mode
+            repeatInLiteOnly = EERepeatActions.repeat("mcp-server", TestMode.LITE, /* skipTransformation */ true, EE10, EE11);
+        } else {
+            // In full mode, return a no-op
+            repeatInLiteOnly = new TestRule() {
+                @Override
+                public Statement apply(Statement statement, Description desc) {
+                    return statement;
+                }
+            };
+        }
+    }
 
     @Rule
     public McpClient client = new McpClient(server, "/toolTest");
