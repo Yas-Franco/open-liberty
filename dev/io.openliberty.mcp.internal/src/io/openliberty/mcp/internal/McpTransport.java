@@ -12,6 +12,7 @@ package io.openliberty.mcp.internal;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -65,7 +66,9 @@ public class McpTransport {
         this.req = req;
         this.res = res;
         this.jsonb = jsonb;
-        writer = res.getWriter();
+        req.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        res.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        writer = res.getWriter(); // Writer must be acquired after setting response character encoding
     }
 
     /**
