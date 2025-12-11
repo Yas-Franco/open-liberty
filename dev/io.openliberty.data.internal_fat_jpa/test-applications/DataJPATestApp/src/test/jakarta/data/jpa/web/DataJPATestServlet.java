@@ -2775,21 +2775,46 @@ public class DataJPATestServlet extends FATServlet {
     @Test
     public void testIdClass() {
 
-        assertIterableEquals(List.of("Minnesota", "New York"),
-                             cities.findByName("Rochester")
-                                             .map(c -> c.stateName)
-                                             .collect(Collectors.toList()));
+        assertEquals(List.of("Minnesota", "New York"),
+                     cities.findByName("Rochester")
+                                     .map(c -> c.stateName)
+                                     .collect(Collectors.toList()));
 
-        assertIterableEquals(List.of("Kansas City", "Springfield"),
-                             cities.findByStateName("Missouri")
-                                             .map(c -> c.name)
-                                             .collect(Collectors.toList()));
+        assertEquals(List.of("Kansas City", "Springfield"),
+                     cities.findByStateName("Missouri")
+                                     .map(c -> c.name)
+                                     .collect(Collectors.toList()));
 
         // TODO enable once EclipseLink #29073 is fixed
-        // JPA doesn't allow querying by IdClass. This would need to be interpreted as (c.name=?1 AND c.state=?2)
-        // The current error is confusing: You have attempted to set a value of type class test.jakarta.data.jpa.web.CityId
-        // for parameter 1 with expected type of class java.lang.String from query string SELECT o FROM City o WHERE (o.state=?1)
-        //cities.findById(CityId.of("Rochester", "Minnesota"));
+        // EclipseLink tries to allow querying by IdClass, but generates wrong SQL.
+        // This would need to be interpreted as (c.name=?1 AND c.stateName=?2)
+        //
+        // At one point, this was failing with:
+        // You have attempted to set a value of type class test.jakarta.data.jpa.web.CityId
+        // for parameter 1 with expected type of class java.lang.String from query string
+        // SELECT o FROM City o WHERE (o.stateName=?1)
+        // in which case EclipseLink was wrongly only using one part (stateName) of the id class
+        // in the SQL it generates, but then attempting to send the id class CityId value as
+        // the stateName, which does not match because CityId is not a String.
+        //
+        // However, now it is failing due to no result found
+        // Jakarta Data uses this JPQL: SELECT o FROM City o WHERE (id(o)=?1)
+        // Note that id(o) is a function that obtains the id of the entity,
+        // which in this case is an instance of CityId.
+        // EclipseLink wrongly generates the SQL:
+        // SELECT STATENAME, NAME, AREACODES, CHANGECOUNT, POPULATION FROM City WHERE (NAME = ?)
+        // and invokes toString on the CityId instance, supplying it as the NAME value
+        // rather than generating a query,
+        // ... WHERE (NAME = ? AND STATENAME = ?)
+        // and supplying the name and stateName values from the CityId instance.
+        //
+        //City city = cities.findById(CityId.of("Rochester", "Minnesota"))
+        //                .orElseThrow();
+
+        //assertEquals("Rochester", city.name);
+        //assertEquals("Minnesota", city.stateName);
+        //assertEquals(Set.of(507), city.areaCodes);
+        //assertEquals(121395, city.population);
     }
 
     /**
