@@ -98,10 +98,10 @@ def setProperties = { props ->
     // For automated builds we use the buildLabel as a consistent qualifier.
     // buildLabel is set by the RTC build engines.
     String buildLabel = props.getProperty('buildLabel')
-    String qualifier = (buildLabel != null && isAutomatedBuild) ? buildLabel : timestamp
+    String qualifier = isAutomatedBuild ? buildLabel : timestamp
 
     props.setProperty('version.qualifier', qualifier)
-    props.setProperty('buildLabel', timestamp)
+    props.setProperty('buildLabel', qualifier)
 
     /**
 	 * Properties used for making test outputs available in a commmon location.
