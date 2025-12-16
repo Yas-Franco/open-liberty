@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2012 IBM Corporation and others.
+ * Copyright (c) 2012, 2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -15,6 +15,7 @@ package com.ibm.ws.security.registry.internal;
 import java.rmi.RemoteException;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import com.ibm.websphere.ras.annotation.Sensitive;
@@ -33,11 +34,17 @@ import com.ibm.ws.security.registry.SearchResult;
 /**
  *
  */
-public class UserRegistryWrapper implements com.ibm.websphere.security.UserRegistry {
+public class UserRegistryWrapper implements com.ibm.websphere.security.UserRegistry, com.ibm.websphere.security.AttributeReader {
     private final com.ibm.ws.security.registry.UserRegistry wrappedUr;
+    private final com.ibm.ws.security.registry.AttributeReader wrappedUrAttr;
 
     public UserRegistryWrapper(com.ibm.ws.security.registry.UserRegistry wrappedUr) {
         this.wrappedUr = wrappedUr;
+        if (wrappedUr instanceof com.ibm.ws.security.registry.AttributeReader) {
+            this.wrappedUrAttr = (com.ibm.ws.security.registry.AttributeReader) wrappedUr;
+        } else {
+            this.wrappedUrAttr = null;
+        }
     }
 
     /**
@@ -290,4 +297,39 @@ public class UserRegistryWrapper implements com.ibm.websphere.security.UserRegis
     public WSCredential createCredential(String userSecurityName) throws NotImplementedException, EntryNotFoundException, CustomRegistryException, RemoteException {
         throw new NotImplementedException("The createCredential method is not available");
     }
+
+    @Override
+    public Map<String, Object> getAttributesForUser(String userSecurityName, List<String> attributeNames) throws EntryNotFoundException, CustomRegistryException {
+        if (wrappedUrAttr == null) {
+            throw new UnsupportedOperationException();
+        }
+        try {
+            return wrappedUrAttr.getAttributesForUser(userSecurityName, attributeNames);
+        } catch (RegistryException e) {
+            throw new CustomRegistryException(e.getMessage(), e);
+        } catch (com.ibm.ws.security.registry.EntryNotFoundException e) {
+            throw new EntryNotFoundException(e.getMessage(), e);
+        }
+
+    }
+
+    @Override
+    public Result findUsersByAttribute(String attributeName, String value, int limit) throws CustomRegistryException {
+        if (wrappedUrAttr == null) {
+            throw new UnsupportedOperationException();
+        }
+        try {
+            SearchResult ret = wrappedUrAttr.findUsersByAttribute(attributeName, value, limit);
+            Result result = new Result();
+            result.setList(ret.getList());
+            if (ret.hasMore()) {
+                result.setHasMore();
+            }
+            return result;
+
+        } catch (RegistryException e) {
+            throw new CustomRegistryException(e.getMessage(), e);
+        }
+    }
+
 }
