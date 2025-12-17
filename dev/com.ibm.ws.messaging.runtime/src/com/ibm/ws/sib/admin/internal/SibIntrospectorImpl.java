@@ -28,6 +28,10 @@ import com.ibm.ws.sib.admin.JsMessagingEngine;
 import com.ibm.ws.sib.processor.impl.ConsumerDispatcher;
 import com.ibm.ws.sib.processor.impl.DestinationManager;
 import com.ibm.ws.sib.processor.impl.MessageProcessor;
+import com.ibm.ws.sib.processor.runtime.SIMPIterator;
+import com.ibm.ws.sib.processor.runtime.impl.ControlAdapter;
+import com.ibm.ws.sib.processor.runtime.impl.MessageProcessorControl;
+import com.ibm.ws.sib.processor.runtime.impl.VirtualLinkControl;
 import com.ibm.ws.sib.utils.ras.FormattedWriter;
 import com.ibm.wsspi.logging.Introspector;
 
@@ -100,7 +104,7 @@ public class SibIntrospectorImpl implements Introspector {
 
 			// Next lets add info about the destinations.
 			out.println("=== destinations ===");
-			JsEngineComponent messageProcessor = engine.getMessageProcessor();
+			JsEngineComponent messageProcessor = engine.getMessageProcessor(); //Note that there is one engine, and it has one MessageProcessor
 			if (messageProcessor != null && messageProcessor instanceof MessageProcessor) {
 
 				//As per comments on DM:
@@ -108,11 +112,33 @@ public class SibIntrospectorImpl implements Introspector {
 				//* manager per ME.
 
 				DestinationManager destinationManager = ((MessageProcessor) messageProcessor).getDestinationManager();
-				HashMap<String, ConsumerDispatcher> durableSubscriptions = destinationManager.getDurableSubscriptionsTable();				
+				HashMap<String, ConsumerDispatcher> durableSubscriptions = destinationManager.getDurableSubscriptionsTable();	
+				out.println("=== Durable Subscriptions ===");
 				durableSubscriptions.entrySet().stream().forEach(entry -> out.println(entry.getKey() + " : " + entry.getValue()));
 				
+				out.println("=== Nondurable Subscriptions ===");
 				ConcurrentHashMap<String, ConsumerDispatcher> nonDurableSubscirptions = destinationManager.getNondurableSharedSubscriptions();
 				nonDurableSubscirptions.entrySet().stream().forEach(entry -> out.println(entry.getKey() + " : " + entry.getValue()));
+				
+				
+				//Connectivity
+				
+				//Not needed, part of jsEngine.dump
+				//HashMap<SICoreConnection, SICoreConnection> connections = ((MessageProcessor) messageProcessor).getConnections();
+				
+				out.println("=== Virtual Links ===");
+				ControlAdapter controlAdapter = ((MessageProcessor) messageProcessor).getControlAdapter();
+				if (controlAdapter instanceof MessageProcessorControl) {
+					SIMPIterator virtualLinkIterator = ((MessageProcessorControl) controlAdapter).getVirtualLinkIterator();
+					while (virtualLinkIterator.hasNext()) {
+						Object virtualLink = virtualLinkIterator.next();
+						if (virtualLink instanceof VirtualLinkControl) {
+							VirtualLinkControl virtualLinkControl = (VirtualLinkControl) virtualLink;
+							out.println(virtualLinkControl.getDebugInfo());
+						}
+					}
+				}
+				
 			}
 
 		} finally {

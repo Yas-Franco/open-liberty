@@ -245,4 +245,8 @@ public class VirtualLinkControl extends AbstractRegisteredControlAdapter impleme
     if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) 
       SibTr.exit(tc, "merge"); 
   }
+  
+  public String getDebugInfo() {
+	  return " name: " + _link.getName() + "id: " +  _link.getUuid() + " type: " + _link.getType() + "targetBus: " + _link.getBusName();
+  }
 }
