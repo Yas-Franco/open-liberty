@@ -24,6 +24,7 @@ import jakarta.data.page.Page;
 import jakarta.data.page.PageRequest;
 import jakarta.inject.Inject;
 import jakarta.persistence.CacheRetrieveMode;
+import jakarta.persistence.EntityGraph;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.LockModeType;
@@ -193,6 +194,68 @@ public class DataJPAHibernateServlet extends FATServlet {
 
         assertEquals(List.of(1L, 2L, 3L),
                      entity.getLongList());
+    }
+
+    /**
+     * Reproduces a migration issue (33290) from EclipseLink to Hibernate
+     * where Hibernate does not tolerate multiple ElementCollections
+     * when usinga load graph, which EclipseLink does tolerate.
+     * To reproduce 33290, uncomment ElementCollection on the
+     * EntityWithTwoElementCollections class.
+     */
+    @Test
+    public void testEntityWithTwoElementCollections() throws Exception {
+        EntityManagerFactory emf = InitialContext
+                        .doLookup("java:comp/env/persistence/HibernatePersistenceUnitRef");
+        UserTransaction tx = InitialContext
+                        .doLookup("java:comp/UserTransaction");
+
+        EntityWithTwoElementCollections entity = new EntityWithTwoElementCollections();
+        entity.setId(2);
+        entity.setLazyList1(List.of("elements", "of", "first", "list"));
+        entity.setLazyList2(List.of("the", "second", "list"));
+
+        EntityManager em = null;
+        EntityGraph<EntityWithTwoElementCollections> graph = null;
+
+        tx.begin();
+        try {
+            em = emf.createEntityManager();
+            em.setCacheRetrieveMode(CacheRetrieveMode.BYPASS);
+            assertEquals(true, em.isJoinedToTransaction());
+
+            graph = em.createEntityGraph(EntityWithTwoElementCollections.class);
+            graph.addAttributeNode("lazyList1");
+            graph.addAttributeNode("lazyList2");
+
+            em.persist(entity);
+        } finally {
+            if (tx.getStatus() == Status.STATUS_ACTIVE)
+                tx.commit();
+            else
+                tx.rollback();
+            em.clear();
+            em.close();
+        }
+
+        em = emf.createEntityManager();
+        try {
+            String jpql = "SELECT e FROM EntityWithTwoElementCollections e WHERE e.id=?1";
+            jakarta.persistence.Query query = em.createQuery(jpql);
+            query.setHint("jakarta.persistence.loadgraph", graph);
+            query.setParameter(1, 2);
+            List<?> results = query.getResultList();
+            assertEquals(1, results.size());
+            entity = (EntityWithTwoElementCollections) results.get(0);
+        } finally {
+            em.close();
+        }
+
+        assertEquals(List.of("elements", "of", "first", "list"),
+                     entity.getLazyList1());
+
+        assertEquals(List.of("the", "second", "list"),
+                     entity.getLazyList2());
     }
 
     /**
