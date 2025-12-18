@@ -154,6 +154,15 @@ jsonrpc.missing.arguments=The following arguments were expected by the method bu
 
 # Used for server logging
 # do not translate MCP
+# {0} = The  qualified name of the tool
+# {1} = corresponding argument name
+# {2} = corresponding argument type
+CWMCM0017E.missing.toolarg.defaultvalue.converter=CWMCM0017E: The {1} argument of the {0} MCP tool method does not have a converter to change its default value into an object of type {2}.
+CWMCM0017E.missing.toolarg.defaultvalue.converter.explanation=One or more arguments have default values without a matching converter to convert the default value to the argument's type.
+CWMCM0017E.missing.toolarg.defaultvalue.converter.useraction=Create a custom converter implementation for the tool argument's type.
+
+# Used for server logging
+# do not translate MCP
 # {0} = The qualified name of the tool
 # {1} = Parameter name
 CWMCM0018E.generic.arguments=CWMCM0018E: The {1} argument of the {0} MCP tool method contains unsupported components such as TypeVariable, Wildcard, GenericArrayType.
@@ -167,3 +176,21 @@ CWMCM0018E.generic.arguments.useraction=Provide arguments that do not have gener
 CWMCM0019E.error.encoding.element=CWMCM0019E: The {0} encoder threw an exception while encoding the result of the {1} tool. The exception is {2}
 CWMCM0019E.error.encoding.element.explanation=The encoder threw an exception while encoding the result of the tool. This could be due to a problem with the encoder, or with the tool returning an unexpected result.
 CWMCM0019E.error.encoding.element.useraction=Review the server message.log and FFDC logs to identify the problem.
+
+# Used for server logging
+# do not translate MCP
+# {0} = The  qualified name of the tool
+# {1} = corresponding argument name
+# {2} = corresponding argument type
+# {3} = corresponding default value
+# {4} = ExceptionMessage
+CWMCM0020E.defaultvalue.conversion.error=CWMCM0020E: The default value of the {1} argument of the {0} MCP tool cannot be converted to the {2} type. The value is {3}. The error is {4}.
+CWMCM0020E.defaultvalue.conversion.error.explanation=An argument has a default value that cannot be converted to the argument's type. This may occur if the default value is null, has an invalid format, or is out of range for the target type.
+CWMCM0020E.defaultvalue.conversion.error.useraction=Ensure that the default value is valid for the argument's type. Ensure the default value is not null. For character types, provide exactly one character. For numeric types, provide a valid number within the type's range.
+
+# Used for server logging
+# do not translate MCP
+# {0} = The default value string
+CWMCM0021E.defaultvalue.character.invalid.length=CWMCM0021E: A character default value must be exactly one character, but was {0}
+CWMCM0021E.defaultvalue.character.invalid.length.explanation=A default value for a Character type argument was provided, but it does not contain exactly one character. Character arguments must have a single character string.
+CWMCM0021E.defaultvalue.character.invalid.length.useraction=Ensure that the default value for an argument with a Character type is string with exactly one character.

@@ -9,6 +9,7 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -26,9 +27,12 @@ import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
 import io.openliberty.mcp.internal.ToolMetadata.SpecialArgumentMetadata;
 import io.openliberty.mcp.internal.encoders.EncoderRegistry;
 import io.openliberty.mcp.internal.exceptions.GenericArgumentException;
+import io.openliberty.mcp.internal.requests.BuiltinDefaultValueConverters;
+import io.openliberty.mcp.internal.requests.DefaultValueConverter;
 import io.openliberty.mcp.internal.requests.McpRequestIdDeserializer;
 import io.openliberty.mcp.internal.requests.McpRequestIdSerializer;
 import io.openliberty.mcp.internal.schemas.SchemaRegistry;
+import io.openliberty.mcp.internal.schemas.TypeUtility;
 import io.openliberty.mcp.internal.tools.BeanMethodHandler.MethodMetadata;
 import io.openliberty.mcp.messaging.Encoder;
 import io.openliberty.mcp.tools.ToolResponseEncoder;
@@ -138,24 +142,43 @@ public class McpCdiExtension implements Extension {
         boolean blankArgumentsFound = false;
         boolean duplicateArgumentsFound = false;
         boolean missingArgumentName = false;
+        boolean unsupportedDefaultValueType = false;
+        boolean invalidDefaultValueForType = false;
 
         for (ToolMetadata tool : tools.getAllTools()) {
-            Map<String, ArgumentMetadata> arguments = tool.arguments();
 
-            for (String argName : arguments.keySet()) {
+            for (var argEntry : tool.arguments().entrySet()) {
+                String argName = argEntry.getKey();
+                ArgumentMetadata argMetadata = argEntry.getValue();
                 if (argName.isBlank()) {
                     Tr.error(tc, "CWMCM0001E.blank.arguments", tool.getToolQualifiedName());
                     blankArgumentsFound = true;
-                } else if (arguments.get(argName).isDuplicate()) {
+                } else if (argMetadata.isDuplicate()) {
                     Tr.error(tc, "CWMCM0002E.duplicate.arguments", tool.getToolQualifiedName(), argName);
                     duplicateArgumentsFound = true;
                 } else if (argName.equals(ToolMetadata.MISSING_TOOL_ARG_NAME)) {
                     Tr.error(tc, "CWMCM0003E.missing.tool.argument.name", tool.getToolQualifiedName());
                     missingArgumentName = true;
+                } else if (!argMetadata.defaultValue().isEmpty()) {
+                    Type typeWrapperClass = TypeUtility.box(argMetadata.type());
+                    DefaultValueConverter<?> converter = BuiltinDefaultValueConverters.CONVERTERS.get(typeWrapperClass);
+                    if (converter != null) {
+                        try {
+                            converter.convert(argMetadata.defaultValue());
+                        } catch (Exception e) {
+                            Tr.error(tc, "CWMCM0020E.defaultvalue.conversion.error", tool.getToolQualifiedName(), argMetadata.name(), argMetadata.type(),
+                                     argMetadata.defaultValue(), e);
+                            invalidDefaultValueForType = true;
+                        }
+                    } else {
+                        Tr.error(tc, "CWMCM0017E.missing.toolarg.defaultvalue.converter", tool.getToolQualifiedName(), argName, argMetadata.type());
+                        unsupportedDefaultValueType = true;
+                    }
+
                 }
             }
         }
-        return blankArgumentsFound || duplicateArgumentsFound || missingArgumentName;
+        return blankArgumentsFound || duplicateArgumentsFound || missingArgumentName || unsupportedDefaultValueType || invalidDefaultValueForType;
     }
 
     private boolean reportOnDuplicateTools(AfterDeploymentValidation afterDeploymentValidation) {
