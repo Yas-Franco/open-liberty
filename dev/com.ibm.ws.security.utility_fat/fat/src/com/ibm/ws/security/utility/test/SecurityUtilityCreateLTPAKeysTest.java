@@ -17,7 +17,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
@@ -145,6 +144,15 @@ public class SecurityUtilityCreateLTPAKeysTest {
     @After
     public void tearDown() throws Exception {
         // Delete stray LTPA key files in common locations
+
+        String secureFileName = "Secure_file1.xml";
+        File autoFVTDir = new File(ltpaTestServer.pathToAutoFVTTestFiles);
+        for(File file:autoFVTDir.listFiles()){
+            if(file.getName().contains("Secure_file")){
+                secureFileName = file.getName();
+            }
+        }
+
         String[] filesToCleanup = {
             libertyInstallRoot + "/" + DEFAULT_LTPA_KEY_FILE,
             libertyInstallRoot + "/" + CUSTOM_LTPA_KEY_FILE,
@@ -154,7 +162,7 @@ public class SecurityUtilityCreateLTPAKeysTest {
             ltpaTestServer.pathToAutoFVTTestFiles + "server_ltpa_passwordKey.xml",
             ltpaTestServer.pathToAutoFVTTestFiles + "server_ltpa.xml",
             ltpaTestServer.pathToAutoFVTTestFiles + "overrides.xml",
-            ltpaTestServer.pathToAutoFVTTestFiles + "Secure_file1.xml",
+            ltpaTestServer.pathToAutoFVTTestFiles + secureFileName,
             ltpaTestServer.pathToAutoFVTTestFiles + "temp_aes.xml"
         };
         for (String filePath : filesToCleanup) {
@@ -338,9 +346,9 @@ public class SecurityUtilityCreateLTPAKeysTest {
             ltpaFile.delete();
         }
 
-        // Create a secure key file for testing
-        File outputFile1 = new File(ltpaTestServer.pathToAutoFVTTestFiles, "Secure_file1.xml");
-        
+        // generate file with a random identifier so we are not beholden to windows file locks
+        File outputFile1 = new File(ltpaTestServer.pathToAutoFVTTestFiles, "Secure_file"+ (int)(Math.random() * 101) +".xml");
+
         // Generate secure file
         ProgramOutput firstCommandOutput = testMachine.execute(
             securityUtilityPath,
@@ -613,10 +621,9 @@ public class SecurityUtilityCreateLTPAKeysTest {
         if (ltpaFile.exists()) {
             ltpaFile.delete();
         }
+        // generate file with a random identifier so we are not beholden to windows file locks
+        File outputFile1 = new File(ltpaTestServer.pathToAutoFVTTestFiles, "Secure_file"+ (int)(Math.random() * 101) +".xml");
 
-        // Create a secure key file for testing
-        File outputFile1 = new File(ltpaTestServer.pathToAutoFVTTestFiles, "Secure_file1.xml");
-        
         // Generate secure file
         ProgramOutput firstCommandOutput = testMachine.execute(
             securityUtilityPath,
