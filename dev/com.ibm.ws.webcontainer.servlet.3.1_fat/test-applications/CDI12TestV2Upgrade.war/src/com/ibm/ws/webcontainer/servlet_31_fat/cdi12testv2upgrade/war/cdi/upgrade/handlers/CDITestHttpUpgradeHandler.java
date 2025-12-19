@@ -261,7 +261,6 @@ public class CDITestHttpUpgradeHandler implements HttpUpgradeHandler {
 
         logBeanActivity(methodName, "Exit");
 
-        writeListener.setCloseWriteListener(); //tell WL, which is running on different thread, that this WL is closed/nulled out
         logInfo(methodName, "null out readListener [" + readListener + "] , writeListener [" + writeListener + "]");
         readListener = null;
         writeListener = null;

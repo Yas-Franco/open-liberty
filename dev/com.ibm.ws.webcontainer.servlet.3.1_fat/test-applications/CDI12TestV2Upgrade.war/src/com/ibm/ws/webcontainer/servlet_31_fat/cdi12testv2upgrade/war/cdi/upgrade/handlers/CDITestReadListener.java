@@ -93,7 +93,6 @@ public class CDITestReadListener implements ReadListener {
         logInfo(methodName, "this [" + this + "]");
 
         logBeanActivity(methodName, "Entry");
-        logInfo(methodName, "appendBeanData [RV]");
         appendBeanData("RV"); // 'R' for "ReadListener"; 'V' for "Available"
 
         byte[] buffer = new byte[1024];
@@ -133,8 +132,6 @@ public class CDITestReadListener implements ReadListener {
 
     private int doRead(byte[] buffer) throws IOException {
         String methodName = "doRead";
-        logInfo(methodName, "this [ " + this + "]");
-
         if (!servletInput.isReady()) {
             logInfo(methodName, "Servlet input is not ready; read [ -1 ]");
             return -1;
@@ -151,7 +148,6 @@ public class CDITestReadListener implements ReadListener {
         logEntry(methodName);
 
         logBeanActivity(methodName, "Entry");
-        logInfo(methodName, "appendBeanData [RA], this [" + this + "]");
 
         appendBeanData("RA"); // 'R' for "ReadListener"; 'A' for "AllData"
         logBeanState(methodName);
@@ -169,8 +165,6 @@ public class CDITestReadListener implements ReadListener {
         logEntry(methodName);
 
         logBeanActivity(methodName, "Entry");
-        logInfo(methodName, "appendBeanData [RE] , this [" + this + "]");
-
         appendBeanData("RE"); // 'R' for "ReadListener"; 'E' for "Error"
 
         try {
