@@ -63,19 +63,9 @@ public abstract class BaseTestClass {
             StringBuilder lines = new StringBuilder();
             BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
 
-            int lineNum = 0;
-            while ((line = br.readLine()) != null) {
-                lineNum++;
-                Log.info(c, "requestContainerHttpServlet", String.format("Line %d (length=%d): [%s]", lineNum, line.length(), line));
-                if (line.length() > 0) {
-                    lines.append(line).append(sep);
-                }
+            while ((line = br.readLine()) != null && line.length() > 0) {
+                lines.append(line).append(sep);
             }
-            Log.info(c, "requestContainerHttpServlet", String.format("Total lines read: %d, StringBuilder length: %d", lineNum, lines.length()));
-
-            // while ((line = br.readLine()) != null && line.length() > 0) {
-            //     lines.append(line).append(sep);
-            // }
             return lines.toString();
         } catch (IOException e) {
             Log.info(c, "requestContainerHttpServlet", "Encountered IO exception " + e);
