@@ -28,19 +28,20 @@ import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
 import io.openliberty.mcp.internal.fat.tool.securityApps.DenyAllTools;
 import io.openliberty.mcp.internal.fat.utils.McpClient;
+import io.openliberty.mcp.internal.fat.utils.McpClient.StateMode;
 
 /**
  *
  */
 @RunWith(FATRunner.class)
-public class DenyAllTests extends AbstractDenyAll {
+public class DenyAllTestsStateless extends AbstractDenyAll {
 
-    @Server("mcp-server-auth")
+    @Server("mcp-stateless-server-auth")
     public static LibertyServer server;
-    Logger logger = Logger.getLogger(DenyAllTests.class.getName());
+    Logger logger = Logger.getLogger(DenyAllTestsStateless.class.getName());
 
     @Rule
-    public McpClient client = new McpClient(server, "/denyAllTools");
+    public McpClient client = new McpClient(server, "/denyAllToolStateless", StateMode.STATELESS);
 
     /** {@inheritDoc} */
     @Override
@@ -50,7 +51,7 @@ public class DenyAllTests extends AbstractDenyAll {
 
     @BeforeClass
     public static void setup() throws Exception {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "denyAllTools.war").addClass(DenyAllTools.class);
+        WebArchive war = ShrinkWrap.create(WebArchive.class, "denyAllToolStateless.war").addClass(DenyAllTools.class);
         ShrinkHelper.exportDropinAppToServer(server, war, SERVER_ONLY);
         server.startServer();
         assertNotNull(server.findStringsInLogs("MCP server endpoint: .*/mcp$")); // regex matches string that ends with /mcp e.g. "MCP server endpoint: http://macbookpro.home:8010/toolTest/mcp"

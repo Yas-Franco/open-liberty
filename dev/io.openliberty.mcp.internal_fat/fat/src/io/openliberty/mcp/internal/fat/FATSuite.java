@@ -25,9 +25,17 @@ import io.openliberty.mcp.internal.fat.lifecycle.tests.LifecycleTest;
 import io.openliberty.mcp.internal.fat.protocol.HttpTest;
 import io.openliberty.mcp.internal.fat.protocol.ProtocolVersionTest;
 import io.openliberty.mcp.internal.fat.security.AdminsRoleAllowedTests;
+import io.openliberty.mcp.internal.fat.security.AdminsRoleAllowedTestsStateless;
+import io.openliberty.mcp.internal.fat.security.AsyncAdminsRoleAllowedTests;
+import io.openliberty.mcp.internal.fat.security.AsyncDenyAllTests;
+import io.openliberty.mcp.internal.fat.security.AsyncNoClassAnnotationTests;
+import io.openliberty.mcp.internal.fat.security.AsyncPermitAllTests;
 import io.openliberty.mcp.internal.fat.security.DenyAllTests;
+import io.openliberty.mcp.internal.fat.security.DenyAllTestsStateless;
 import io.openliberty.mcp.internal.fat.security.NoClassAnnotationTests;
+import io.openliberty.mcp.internal.fat.security.NoClassAnnotationTestsStateless;
 import io.openliberty.mcp.internal.fat.security.PermitAllTests;
+import io.openliberty.mcp.internal.fat.security.PermitAllTestsStateless;
 import io.openliberty.mcp.internal.fat.statelessMode.StatefulModeTest;
 import io.openliberty.mcp.internal.fat.statelessMode.StatelessModeTest;
 import io.openliberty.mcp.internal.fat.tool.AsyncToolCancellationTest;
@@ -35,8 +43,8 @@ import io.openliberty.mcp.internal.fat.tool.AsyncToolsErrorHandlingTest;
 import io.openliberty.mcp.internal.fat.tool.AsyncToolsTest;
 import io.openliberty.mcp.internal.fat.tool.CancellationTest;
 import io.openliberty.mcp.internal.fat.tool.DeploymentProblemTest;
-import io.openliberty.mcp.internal.fat.tool.InactiveCdiTest;
 import io.openliberty.mcp.internal.fat.tool.EncoderTest;
+import io.openliberty.mcp.internal.fat.tool.InactiveCdiTest;
 import io.openliberty.mcp.internal.fat.tool.McpUrlPathTest;
 import io.openliberty.mcp.internal.fat.tool.NoParamNameTest;
 import io.openliberty.mcp.internal.fat.tool.ToolErrorHandlingTest;
@@ -65,12 +73,23 @@ import io.openliberty.mcp.internal.fat.tool.ToolTest;
                 StatelessModeTest.class,
                 ToolErrorHandlingTest.class,
                 ToolTest.class,
-                //Authorisation Tests
+                // Authorisation Tests
                 AdminsRoleAllowedTests.class,
                 DenyAllTests.class,
                 NoClassAnnotationTests.class,
-                PermitAllTests.class
+                PermitAllTests.class,
+                // Async Authorisation Tests
+                AsyncAdminsRoleAllowedTests.class,
+                AsyncDenyAllTests.class,
+                AsyncNoClassAnnotationTests.class,
+                AsyncPermitAllTests.class,
+                // Stateless Authorisation Tests
+                PermitAllTestsStateless.class,
+                DenyAllTestsStateless.class,
+                NoClassAnnotationTestsStateless.class,
+                AdminsRoleAllowedTestsStateless.class
 })
+
 public class FATSuite {
 
     @ClassRule

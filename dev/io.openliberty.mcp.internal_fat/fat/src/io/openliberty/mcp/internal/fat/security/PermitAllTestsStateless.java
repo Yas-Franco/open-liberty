@@ -1,11 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License 2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-2.0/
+ Copyright (c) 2025 IBM Corporation and others.
+ All rights reserved. This program and the accompanying materials
+ are made available under the terms of the Eclipse Public License 2.0
+ which accompanies this distribution, and is available at
+ http://www.eclipse.org/legal/epl-2.0/
  *
- * SPDX-License-Identifier: EPL-2.0
+ SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package io.openliberty.mcp.internal.fat.security;
 
@@ -26,21 +26,22 @@ import com.ibm.websphere.simplicity.ShrinkHelper;
 import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
-import io.openliberty.mcp.internal.fat.tool.securityApps.DenyAllTools;
+import io.openliberty.mcp.internal.fat.tool.securityApps.PermitAllTools;
 import io.openliberty.mcp.internal.fat.utils.McpClient;
+import io.openliberty.mcp.internal.fat.utils.McpClient.StateMode;
 
 /**
  *
  */
 @RunWith(FATRunner.class)
-public class DenyAllTests extends AbstractDenyAll {
+public class PermitAllTestsStateless extends AbstractPermitAll {
 
-    @Server("mcp-server-auth")
+    @Server("mcp-stateless-server-auth")
     public static LibertyServer server;
-    Logger logger = Logger.getLogger(DenyAllTests.class.getName());
+    Logger logger = Logger.getLogger(PermitAllTestsStateless.class.getName());
 
     @Rule
-    public McpClient client = new McpClient(server, "/denyAllTools");
+    public McpClient client = new McpClient(server, "/permitAllToolsStateless", StateMode.STATELESS);
 
     /** {@inheritDoc} */
     @Override
@@ -50,7 +51,7 @@ public class DenyAllTests extends AbstractDenyAll {
 
     @BeforeClass
     public static void setup() throws Exception {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "denyAllTools.war").addClass(DenyAllTools.class);
+        WebArchive war = ShrinkWrap.create(WebArchive.class, "permitAllToolsStateless.war").addClass(PermitAllTools.class);
         ShrinkHelper.exportDropinAppToServer(server, war, SERVER_ONLY);
         server.startServer();
         assertNotNull(server.findStringsInLogs("MCP server endpoint: .*/mcp$")); // regex matches string that ends with /mcp e.g. "MCP server endpoint: http://macbookpro.home:8010/toolTest/mcp"

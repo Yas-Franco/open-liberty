@@ -48,10 +48,17 @@ import componenttest.topology.utils.HttpRequest;
 public class McpClient extends ExternalResource {
 
     private boolean sessionDeleted = false;
-
     private String sessionId;
     private LibertyServer server;
     private String path;
+    private StateMode mode = StateMode.STATEFUL;
+
+    public static enum StateMode {
+        // STATEFUL - Uses sessions and session IDs to maintain state across requests
+        STATEFUL,
+        // STATELESS - Each request is independent with no session information e.g. authentication will be required for each request
+        STATELESS
+    }
 
     /**
      * @param server the {@link LibertyServer} instance used to send requests
@@ -61,6 +68,13 @@ public class McpClient extends ExternalResource {
         super();
         this.server = server;
         this.path = path;
+    }
+
+    public McpClient(LibertyServer server, String path, StateMode mode) {
+        super();
+        this.server = server;
+        this.path = path;
+        this.mode = mode;
     }
 
     /** {@inheritDoc} */
@@ -107,8 +121,10 @@ public class McpClient extends ExternalResource {
                         """;
         JSONAssert.assertEquals(expectedResponse, response, JSONCompareMode.LENIENT);
 
-        sessionId = httpRequest.getResponseHeader(MCP_SESSION_ID);
-        assertNotNull(sessionId);
+        if (mode.equals(StateMode.STATEFUL)) {
+            sessionId = httpRequest.getResponseHeader(MCP_SESSION_ID);
+            assertNotNull(sessionId);
+        }
 
         String contentType = httpRequest.getResponseHeader("Content-Type");
         assertThat(contentType, containsString(VALUE_APPLICATION_JSON));
@@ -126,16 +142,17 @@ public class McpClient extends ExternalResource {
 
     @Override
     protected void after() {
-
-        if (sessionDeleted) {
-            return;
-        }
-        try {
-            new HttpRequest(server, path + "/mcp").requestProp(MCP_SESSION_ID, sessionId)
-                                                  .method("DELETE")
-                                                  .run(String.class);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (mode.equals(StateMode.STATEFUL)) {
+            if (sessionDeleted) {
+                return;
+            }
+            try {
+                new HttpRequest(server, path + "/mcp").requestProp(MCP_SESSION_ID, sessionId)
+                                                      .method("DELETE")
+                                                      .run(String.class);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -144,16 +161,40 @@ public class McpClient extends ExternalResource {
     }
 
     public void deleteSession() {
-        try {
-            new HttpRequest(server, path + "/mcp")
-                                                  .requestProp(MCP_SESSION_ID, sessionId)
-                                                  .method("DELETE")
-                                                  .run(String.class);
+        if (mode.equals(StateMode.STATEFUL)) {
+            try {
+                new HttpRequest(server, path + "/mcp")
+                                                      .requestProp(MCP_SESSION_ID, sessionId)
+                                                      .method("DELETE")
+                                                      .run(String.class);
 
-            this.sessionDeleted = true;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+                this.sessionDeleted = true;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
+    }
+
+    /**
+     *
+     * Sets up and runs a HTTP request
+     * Only requests a sessionId if Stateful mode is enabled
+     *
+     * @param request
+     * @param jsonRequestBody
+     * @return
+     */
+    private String setupAndRunRequest(final HttpRequest request, String jsonRequestBody) throws Exception {
+        request.requestProp(ACCEPT, VALUE_ACCEPT_DEFAULT)
+               .requestProp(MCP_PROTOCOL_VERSION, VALUE_MCP_PROTOCOL_VERSION)
+               .jsonBody(jsonRequestBody)
+               .method("POST");
+
+        if (mode.equals(StateMode.STATEFUL)) {
+            request.requestProp(MCP_SESSION_ID, sessionId);
+        }
+
+        return request.run(String.class);
     }
 
     /**
@@ -162,61 +203,32 @@ public class McpClient extends ExternalResource {
      * This method expects a successful response (200 OK) with a response body.
      */
     public String callMCP(String jsonRequestBody) throws Exception {
-        return new HttpRequest(server, path + "/mcp")
-                                                     .requestProp(ACCEPT, VALUE_ACCEPT_DEFAULT)
-                                                     .requestProp(MCP_PROTOCOL_VERSION, VALUE_MCP_PROTOCOL_VERSION)
-                                                     .requestProp(MCP_SESSION_ID, sessionId)
-                                                     .jsonBody(jsonRequestBody)
-                                                     .method("POST")
-                                                     .run(String.class);
+        final HttpRequest request = new HttpRequest(server, path + "/mcp");
+        return setupAndRunRequest(request, jsonRequestBody);
     }
 
     public String callMCPwithBasicAuth(String jsonRequestBody, String user, String password) throws Exception {
-        return new HttpRequest(server, path + "/mcp")
-                                                     .requestProp(ACCEPT, VALUE_ACCEPT_DEFAULT)
-                                                     .requestProp(MCP_PROTOCOL_VERSION, VALUE_MCP_PROTOCOL_VERSION)
-                                                     .requestProp("Mcp-Session-Id", sessionId)
-                                                     .jsonBody(jsonRequestBody)
-                                                     .method("POST")
-                                                     .basicAuth(user, password)
-                                                     .run(String.class);
+        final HttpRequest request = new HttpRequest(server, path + "/mcp").basicAuth(user, password);
+        return setupAndRunRequest(request, jsonRequestBody);
     }
 
     public String callMCPAuthorisationErrorExpected(String jsonRequestBody) throws Exception {
-        return new HttpRequest(server, path + "/mcp")
-                                                     .requestProp(ACCEPT, VALUE_ACCEPT_DEFAULT)
-                                                     .requestProp(MCP_PROTOCOL_VERSION, VALUE_MCP_PROTOCOL_VERSION)
-                                                     .requestProp("Mcp-Session-Id", sessionId)
-                                                     .jsonBody(jsonRequestBody)
-                                                     .method("POST")
-                                                     .expectCode(403)
-                                                     .run(String.class);
+        final HttpRequest request = new HttpRequest(server, path + "/mcp").expectCode(403);
+        return setupAndRunRequest(request, jsonRequestBody);
     }
 
     public String callMCPwithBasicAuth_AuthorisationErrorExpected(String jsonRequestBody, String user, String password) throws Exception {
-        return new HttpRequest(server, path + "/mcp")
-                                                     .requestProp(ACCEPT, VALUE_ACCEPT_DEFAULT)
-                                                     .requestProp(MCP_PROTOCOL_VERSION, VALUE_MCP_PROTOCOL_VERSION)
-                                                     .requestProp("Mcp-Session-Id", sessionId)
-                                                     .jsonBody(jsonRequestBody)
-                                                     .method("POST")
-                                                     .expectCode(403)
-                                                     .basicAuth(user, password)
-                                                     .run(String.class);
+        final HttpRequest request = new HttpRequest(server, path + "/mcp").expectCode(403)
+                                                                          .basicAuth(user, password);
+        return setupAndRunRequest(request, jsonRequestBody);
     }
 
     /**
      * Call MCP server with a custom endpoint, and an expected response code
      */
     public String callMCPCustomized(String jsonRequestBody, String appendPath, int expectedCode) throws Exception {
-        return new HttpRequest(server, path + appendPath)
-                                                         .requestProp(ACCEPT, VALUE_ACCEPT_DEFAULT)
-                                                         .requestProp(MCP_PROTOCOL_VERSION, VALUE_MCP_PROTOCOL_VERSION)
-                                                         .requestProp(MCP_SESSION_ID, sessionId)
-                                                         .jsonBody(jsonRequestBody)
-                                                         .method("POST")
-                                                         .expectCode(expectedCode)
-                                                         .run(String.class);
+        final HttpRequest request = new HttpRequest(server, path + appendPath).expectCode(expectedCode);
+        return setupAndRunRequest(request, jsonRequestBody);
     }
 
     /**
@@ -228,15 +240,8 @@ public class McpClient extends ExternalResource {
                                     String jsonRequestBody)
                     throws Exception {
 
-        String response = new HttpRequest(server, path + "/mcp")
-                                                                .requestProp(ACCEPT, VALUE_ACCEPT_DEFAULT)
-                                                                .requestProp(MCP_PROTOCOL_VERSION, VALUE_MCP_PROTOCOL_VERSION)
-                                                                .requestProp(MCP_SESSION_ID, sessionId)
-                                                                .jsonBody(jsonRequestBody)
-                                                                .method("POST")
-                                                                .expectCode(202)
-                                                                .run(String.class);
-
+        final HttpRequest request = new HttpRequest(server, path + "/mcp").expectCode(202);
+        String response = setupAndRunRequest(request, jsonRequestBody);
         assertNull("Notification request received a response", response);
     }
 }
