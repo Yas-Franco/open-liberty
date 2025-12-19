@@ -9,6 +9,7 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal.test.schema;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -330,8 +331,9 @@ public class SchemaTest {
     @Test
     public void testToolOutputSchema() throws NoSuchMethodException, SecurityException {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "updateWidget");
+        Type returnType = toolMethod.getJavaMember().getGenericReturnType();
 
-        String toolInputSchema = registry.getToolOutputSchema(toolMethod).toString();
+        String toolInputSchema = registry.getToolOutputSchema(toolMethod, returnType).toString();
         String expectedSchema = """
                         {
                             "type": "object",
@@ -414,7 +416,9 @@ public class SchemaTest {
     @Test
     public void testToolOutputRecursive() {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "combineWidgets");
-        String toolInputSchema = registry.getToolOutputSchema(toolMethod).toString();
+        Type returnType = toolMethod.getJavaMember().getGenericReturnType();
+
+        String toolInputSchema = registry.getToolOutputSchema(toolMethod, returnType).toString();
         String expectedSchema = """
                         {
                             "$defs": {
@@ -999,7 +1003,9 @@ public class SchemaTest {
     @Test
     public void testPersonAddtoListToolOutputSchema() throws NoSuchMethodException, SecurityException {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "addPersonToList");
-        String response = registry.getToolOutputSchema(toolMethod).toString();
+        Type returnType = toolMethod.getJavaMember().getGenericReturnType();
+
+        String response = registry.getToolOutputSchema(toolMethod, returnType).toString();
         String expectedResponseString = """
                             {
                             "$defs": {
@@ -2258,9 +2264,10 @@ public class SchemaTest {
     @Test
     public void testPrimitiveArray() {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "primitiveArrayTest");
-        String response = registry.getToolOutputSchema(toolMethod).toString();
+        Type returnType = toolMethod.getJavaMember().getGenericReturnType();
+        String response = registry.getToolOutputSchema(toolMethod, returnType).toString();
         String expectedResponseString = """
-                                    {"type":"array","items":{"type":"integer"}}
+                            {"type":"array","items":{"type":"integer"}}
                         """;
         JSONAssert.assertEquals(expectedResponseString, response, true);
     }

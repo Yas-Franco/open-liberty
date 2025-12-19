@@ -132,23 +132,22 @@ public class SchemaGenerator {
     /**
      * Generate the output schema for a tool
      *
-     * @param tool the tool to generate the schema for
+     * @param toolMethod the tool method to generate a schema for
+     * @param toolOutputType the output type of the tool, same as {@code toolMethod} for sync tools, unwrapped for async tools
      * @param blueprintRegistry the blueprint registry to use
      * @return the schema as a json object
      */
-    public static JsonObject generateToolOutputSchema(AnnotatedMethod<?> toolMethod, SchemaCreationBlueprintRegistry blueprintRegistry) {
-
-        Type returnType = toolMethod.getJavaMember().getGenericReturnType();
+    public static JsonObject generateToolOutputSchema(AnnotatedMethod<?> toolMethod, Type toolOutputType, SchemaCreationBlueprintRegistry blueprintRegistry) {
 
         Method method = toolMethod.getJavaMember();
         SchemaAnnotation schemaAnnotation = SchemaAnnotation.read(method);
 
         SchemaGenerationContext ctx = new SchemaGenerationContext(blueprintRegistry, OUTPUT);
         if (!method.getReturnType().isAssignableFrom(ToolResponse.class)) {
-            calculateClassFrequency(returnType, SchemaDirection.OUTPUT, ctx);
+            calculateClassFrequency(toolOutputType, SchemaDirection.OUTPUT, ctx);
         }
 
-        JsonObjectBuilder outputSchema = generateSubSchema(returnType, ctx, schemaAnnotation);
+        JsonObjectBuilder outputSchema = generateSubSchema(toolOutputType, ctx, schemaAnnotation);
         addDefs(outputSchema, ctx);
 
         return outputSchema.build();

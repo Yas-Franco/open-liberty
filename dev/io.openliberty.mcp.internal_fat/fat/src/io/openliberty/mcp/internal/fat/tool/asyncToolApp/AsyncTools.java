@@ -53,6 +53,11 @@ public class AsyncTools {
         return CompletableFuture.completedStage(input + ": (async)");
     }
 
+    @Tool(name = "asyncObjectToolWithoutStructuredContent", title = "Async Object Tool No Schema", description = "Returns a city object but no structuredContent")
+    public CompletionStage<City> asyncObjectToolWithoutStructuredContent() {
+        return executor.supplyAsync(() -> new City("Leeds", "England", 7000, false));
+    }
+
     @Tool(name = "asyncDelayedEcho", title = "Async Echo", description = "Echoes input asynchronously")
     public CompletionStage<String> asyncDelayedEcho(@ToolArg(name = "input", description = "input to echo") String input) {
         return executor.supplyAsync(() -> {

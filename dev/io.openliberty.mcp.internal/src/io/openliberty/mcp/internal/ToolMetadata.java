@@ -105,6 +105,9 @@ public record ToolMetadata(String name,
         Type returnType = method.getJavaMember().getGenericReturnType();
         Class<?> returnTypeClass = method.getJavaMember().getReturnType();
 
+        Type unwrappedOutputType = unwrapOutputType(returnType);
+        Class<?> unwrappedOutputClass = getRawClass(unwrappedOutputType);
+
         WrapBusinessError wrapAnnotation = method.getAnnotation(WrapBusinessError.class);
         List<Class<? extends Throwable>> businessExceptions = (wrapAnnotation != null) ? List.of(wrapAnnotation.value()) : Collections.emptyList();
         boolean returnsCompletionStage = CompletionStage.class.isAssignableFrom(returnTypeClass);
@@ -112,19 +115,25 @@ public record ToolMetadata(String name,
 
         JsonObject inputSchema = sr.getToolInputSchema(method);
 
-        boolean hasContentListReturn = (returnType instanceof ParameterizedType pt && ((Class<?>) pt.getRawType()).isAssignableFrom(List.class)
-                                        && (pt.getActualTypeArguments()[0] instanceof Class<?>) && ((Class<?>) pt.getActualTypeArguments()[0]).isAssignableFrom(Content.class));
-        boolean hasOutputSchema = (!returnTypeClass.isAssignableFrom(ToolResponse.class) && !hasContentListReturn && !returnTypeClass.isAssignableFrom(Content.class)
-                                   && !returnTypeClass.isAssignableFrom(String.class) && annotation.structuredContent());
+        boolean hasContentListReturn = unwrappedOutputType instanceof ParameterizedType pt
+                                       && (List.class.isAssignableFrom((Class<?>) pt.getRawType())
+                                           && pt.getActualTypeArguments()[0] instanceof Class<?>)
+                                       && Content.class.isAssignableFrom((Class<?>) pt.getActualTypeArguments()[0]);
 
-        if (!hasOutputSchema && returnTypeClass.isAssignableFrom(ToolResponse.class) && annotation.structuredContent()
+        boolean hasOutputSchema = annotation.structuredContent()
+                                  && !hasContentListReturn
+                                  && !ToolResponse.class.isAssignableFrom(unwrappedOutputClass)
+                                  && !Content.class.isAssignableFrom(unwrappedOutputClass)
+                                  && !String.class.isAssignableFrom(unwrappedOutputClass);
+
+        if (!hasOutputSchema && ToolResponse.class.isAssignableFrom(unwrappedOutputClass) && annotation.structuredContent()
             && method.isAnnotationPresent(Schema.class)
             && method.getAnnotation(Schema.class).value() != Schema.UNSET) {
 
             hasOutputSchema = true;
-
         }
-        JsonObject outputSchema = hasOutputSchema ? sr.getToolOutputSchema(method) : null;
+
+        JsonObject outputSchema = hasOutputSchema ? sr.getToolOutputSchema(method, unwrappedOutputType) : null;
 
         outputSchema = (outputSchema == null || outputSchema.isEmpty()) ? null : outputSchema;
 
@@ -160,7 +169,6 @@ public record ToolMetadata(String name,
                                 asyncHandler,
                                 Optional.of(methodMetadata),
                                 SecurityRequirement.createFrom(method));
-
     }
 
     private static String[] getArgNameArray(AnnotatedMethod<?> method, Map<String, ArgumentMetadata> argumentMap) {
@@ -252,4 +260,42 @@ public record ToolMetadata(String name,
     public static String getToolQualifiedName(Bean<?> bean, AnnotatedMethod<?> method) {
         return bean.getBeanClass() + "." + method.getJavaMember().getName();
     }
+
+    /**
+     * Unwraps the type inside CompletionStage if applicable.
+     *
+     * @param type the type to be unwrapped
+     * @return the inner type or the original type if {@code returnType} is not a {@code CompletionStage}
+     */
+    public static Type unwrapOutputType(Type type) {
+        if (type instanceof ParameterizedType pt) {
+            Type raw = pt.getRawType();
+            if (raw instanceof Class<?> rawClass &&
+                CompletionStage.class.isAssignableFrom(rawClass)) {
+                return pt.getActualTypeArguments()[0];
+            }
+        }
+        return type;
+    }
+
+    /**
+     * Convert a parameterized type to its raw type.
+     * <p>
+     * If {@code type} is a class, return it.
+     * If {@code type} is a parameterized type, return the raw type.
+     * Otherwise, return {@code Object}
+     *
+     * @param type the type to extract the raw type from
+     * @return the raw type
+     */
+    public static Class<?> getRawClass(Type type) {
+        if (type instanceof Class clazz) {
+            return clazz;
+        } else if (type instanceof ParameterizedType pt) {
+            return (Class<?>) pt.getRawType();
+        } else {
+            return Object.class;
+        }
+    }
+
 }

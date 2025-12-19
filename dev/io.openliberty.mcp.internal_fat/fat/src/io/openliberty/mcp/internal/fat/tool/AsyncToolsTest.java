@@ -10,16 +10,22 @@
 package io.openliberty.mcp.internal.fat.tool;
 
 import static com.ibm.websphere.simplicity.ShrinkHelper.DeployOptions.SERVER_ONLY;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+
+import java.util.List;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONParser;
 
 import com.ibm.websphere.simplicity.ShrinkHelper;
 
@@ -38,7 +44,6 @@ import io.openliberty.mcp.internal.fat.utils.ToolStatusClient;
 public class AsyncToolsTest extends FATServletClient {
 
     private static final String EXPECTED_ERROR = "Method call caused runtime exception. This is expected if the input was 'throw error'";
-
     @Server("mcp-server-async")
     public static LibertyServer server;
 
@@ -375,4 +380,124 @@ public class AsyncToolsTest extends FATServletClient {
                         """;
         JSONAssert.assertEquals(expectedResponseString, response, true);
     }
+
+    @Test
+    public void testAsyncObjectToolHasExpectedOutputSchema() throws Exception {
+        String response = client.callMCP("""
+                            {
+                              "jsonrpc": "2.0",
+                              "id": 1,
+                              "method": "tools/list"
+                            }
+                        """);
+
+        JSONObject root = (JSONObject) JSONParser.parseJSON(response);
+        JSONArray tools = root.getJSONObject("result").getJSONArray("tools");
+
+        JSONObject asyncObjectTool = null;
+
+        for (int i = 0; i < tools.length(); i++) {
+            JSONObject tool = tools.getJSONObject(i);
+            if ("asyncObjectTool".equals(tool.getString("name"))) {
+                asyncObjectTool = tool;
+                break;
+            }
+        }
+
+        assertNotNull("Tool 'asyncObjectTool' should be present in tool list", asyncObjectTool);
+
+        String actualToolJson = asyncObjectTool.toString();
+
+        String expectedToolJson = """
+                                                    {
+                          "name": "asyncObjectTool",
+                          "title": "Async asyncObjectTool",
+                          "description": "A tool to return an object of cities asynchronously",
+                          "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "name of your city"
+                              }
+                            },
+                            "required": ["name"]
+                          },
+                          "outputSchema": {
+                            "type": "object",
+                            "properties": {
+                              "country": {"type": "string"},
+                              "isCapital": {"type": "boolean"},
+                              "name": {"type": "string"},
+                              "population": {"type": "integer"}
+                            },
+                            "required": ["name", "country", "population", "isCapital"]
+                          }
+                        }
+                         """;
+
+        JSONAssert.assertEquals(expectedToolJson, actualToolJson, true);
+    }
+
+    @Test
+    public void testAsyncToolsWithoutStructuredContentHaveNoOutputSchema() throws Exception {
+        String response = client.callMCP("""
+                            {
+                              "jsonrpc": "2.0",
+                              "id": 1,
+                              "method": "tools/list"
+                            }
+                        """);
+
+        JSONObject root = (JSONObject) JSONParser.parseJSON(response);
+        JSONArray tools = root.getJSONObject("result").getJSONArray("tools");
+
+        List<String> toolsThatShouldNotHaveOutputSchema = List.of(
+                                                                  "asyncStringTool",
+                                                                  "asyncContentTool",
+                                                                  "asyncListContentTool",
+                                                                  "asyncObjectToolWithoutStructuredContent");
+
+        for (int i = 0; i < tools.length(); i++) {
+            JSONObject tool = tools.getJSONObject(i);
+            String name = tool.getString("name");
+
+            if (toolsThatShouldNotHaveOutputSchema.contains(name)) {
+                assertFalse("Tool '" + name + "' should NOT have an output schema", tool.has("outputSchema"));
+            }
+        }
+    }
+
+    @Test
+    public void testAsyncToolsWithBasicOutputTypesShouldNotHaveOutputSchema() throws Exception {
+        String response = client.callMCP("""
+                            {
+                              "jsonrpc": "2.0",
+                              "id": 1,
+                              "method": "tools/list"
+                            }
+                        """);
+
+        JSONObject root = (JSONObject) JSONParser.parseJSON(response);
+        JSONArray tools = root.getJSONObject("result").getJSONArray("tools");
+
+        // Tools that SHOULD NOT have an output schema
+        List<String> toolsWithoutSchema = List.of(
+                                                  "asyncEcho",
+                                                  "asyncDelayedEcho",
+                                                  "asyncCancellationTool",
+                                                  "asyncToolThatNeverCompletes");
+
+        for (int i = 0; i < tools.length(); i++) {
+            JSONObject tool = tools.getJSONObject(i);
+            String name = tool.getString("name");
+
+            if (toolsWithoutSchema.contains(name)) {
+                assertFalse(
+                            "Tool '" + name + "' should NOT have an output schema",
+                            tool.has("outputSchema"));
+            }
+        }
+    }
+
 }

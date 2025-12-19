@@ -488,9 +488,10 @@ public class BasicTools {
     }
 
     @Tool(name = "addPersonToList", title = "adds person to people list", description = "adds person to people list", structuredContent = true)
-    public @Schema(description = "Returns list of person object") List<Person> addPersonToList(@ToolArg(name = "employeeList",
-                                                                                                        description = "List of people") List<Person> employeeList,
-                                                                                               @ToolArg(name = "person", description = "Person object") Optional<Person> person) {
+    @Schema(description = "Returns list of person object")
+    public List<Person> addPersonToList(
+                                        @ToolArg(name = "employeeList", description = "List of people") List<Person> employeeList,
+                                        @ToolArg(name = "person", description = "Person object") Optional<Person> person) {
         employeeList.add(person.get());
         return employeeList;
     }
@@ -509,6 +510,7 @@ public class BasicTools {
         _meta.put(MetaKey.from("api.ibmtest.org/location"), "Hursley");
         _meta.put(MetaKey.from("api.libertytest.org/person"), personInstance);
         return new ToolResponse(false, List.of(new TextContent(jsonb.toJson(employeeList))), employeeList, _meta);
+
     }
 
     @Tool(name = "addPersonToListToolResponseWithMetaRequest", title = "adds person to people list", description = "adds person to people list", structuredContent = true)

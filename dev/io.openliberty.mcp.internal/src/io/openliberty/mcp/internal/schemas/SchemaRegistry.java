@@ -9,6 +9,7 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal.schemas;
 
+import java.lang.reflect.Type;
 import java.util.HashMap;
 
 import io.openliberty.mcp.internal.McpCdiExtension;
@@ -78,9 +79,9 @@ public class SchemaRegistry {
      * @param toolMetadata the tool to get the schema for
      * @return the json schema
      */
-    public JsonObject getToolOutputSchema(AnnotatedMethod<?> toolMethod) {
+    public JsonObject getToolOutputSchema(AnnotatedMethod<?> toolMethod, Type toolOutputType) {
         ToolKey key = new ToolKey(toolMethod, SchemaDirection.OUTPUT);
-        return schemaCache.computeIfAbsent(key, k -> SchemaGenerator.generateToolOutputSchema(toolMethod, blueprintRegistry));
+        return schemaCache.computeIfAbsent(key, k -> SchemaGenerator.generateToolOutputSchema(toolMethod, toolOutputType, blueprintRegistry));
     }
 
     /**
