@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022, 2025 IBM Corporation and others.
+ * Copyright (c) 2022, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -222,7 +222,7 @@ public class NettyJMSServerHandler extends SimpleChannelInboundHandler<WsByteBuf
 	}
 
     /* 
-     * Inactive channel means it's closed.  (No need)
+     * Inactive channel means it's closed. Just invaliate the connection.
      */
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
