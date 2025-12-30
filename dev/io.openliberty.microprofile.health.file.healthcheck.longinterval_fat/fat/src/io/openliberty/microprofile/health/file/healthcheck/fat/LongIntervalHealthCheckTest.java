@@ -14,7 +14,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
@@ -135,30 +135,43 @@ public class LongIntervalHealthCheckTest {
         Assert.assertFalse(Constants.READY_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getReadyFile(serverRootDirFile).exists());
         Assert.assertFalse(Constants.LIVE_SHOULD_NOT_HAVE_CREATED, HealthFileUtils.getLiveFile(serverRootDirFile).exists());
 
-        //Finding fist entry trace for StartedFileCreateProcess which checks for started health check. This is when the scheduler invokes it, the timer is based on this execution time.
+        /*
+         * Finding fist entry trace for StartedFileCreateProcess which checks for started health check.
+         * This is when the scheduler invokes it, the timer is based on this execution
+         * time.
+         */
         String traceEntryStartofFirstStartCheck = serverLongStart.waitForStringInTraceUsingMark(".*HealthCheck40ServiceImpl\\$StartedFileCreateProcess > run Entry.*");
         serverLongStart.setMarkToEndOfLog(serverLongStart.getMostRecentTraceFile());
 
         Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "First `run` entry trace: " + traceEntryStartofFirstStartCheck);
 
-        //Example: 12/22/2025 14:36:51:302 EST
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd, HH:mm:ss:SSS z");
-        String dateString = traceEntryStartofFirstStartCheck.split("]")[0].substring(1);
-        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "Debug: first `run` trace timestamp : " + dateString);
+        //We only care about time
+        DateTimeFormatter justTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss:SSS");
 
-        ZonedDateTime zDateTimeFirstQuery = ZonedDateTime.parse(dateString, dateTimeFormatter);
+        String dateTimeString = traceEntryStartofFirstStartCheck.split("]")[0].substring(1);
+        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "Debug: first `run` trace's timestamp : " + dateTimeString);
 
-        serverLongStart.waitForStringInLogUsingMark(dateString, 0);
+        String time = resolveTime(dateTimeString);
 
-        //Find the second `run` entry trace
-        String traceEntryBegingofSecondStartCheck = serverLongStart.waitForStringInTraceUsingMark(".*HealthCheck40ServiceImpl\\$StartedFileCreateProcess > run Entry.*", 35000);
-        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "Second `run` entry trace: " + traceEntryBegingofSecondStartCheck);
-        dateString = traceEntryBegingofSecondStartCheck.split("]")[0].substring(1);
-        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "Debug: second `run` trace timestamp : " + dateString);
+        LocalTime timeOfFirstQuery = LocalTime.parse(time, justTimeFormatter);
 
-        ZonedDateTime zDateTimeSecondQuery = ZonedDateTime.parse(dateString, dateTimeFormatter);
+        /*
+         * Find the second `run` entry trace
+         */
+        String traceEntryStartofSecondStartCheck = serverLongStart.waitForStringInTraceUsingMark(".*HealthCheck40ServiceImpl\\$StartedFileCreateProcess > run Entry.*", 35000);
+        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "Second `run` entry trace: " + traceEntryStartofSecondStartCheck);
 
-        long diff = Duration.between(zDateTimeFirstQuery, zDateTimeSecondQuery).getSeconds();
+        dateTimeString = traceEntryStartofSecondStartCheck.split("]")[0].substring(1);
+        Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "Debug: second `run` trace timestamp : " + dateTimeString);
+
+        String time2 = resolveTime(dateTimeString);
+
+        LocalTime timeOfSecondQuery = LocalTime.parse(time2, justTimeFormatter);
+
+        /*
+         * Time to calculate the difference.
+         */
+        long diff = Duration.between(timeOfFirstQuery, timeOfSecondQuery).getSeconds();
         Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "The differencce in time between the two timestamps is (in seconds) : " + diff);
 
         assertTrue("The difference expected should be 30s or greater (but no more than 32). We offer extra 2 seconds for potential slowness", (diff >= 30 && diff <= 32));
@@ -176,6 +189,25 @@ public class LongIntervalHealthCheckTest {
         Assert.assertTrue(Constants.READY_SHOULD_HAVE_CREATED, HealthFileUtils.getReadyFile(serverRootDirFile).exists());
         Assert.assertTrue(Constants.LIVE_SHOULD_HAVE_CREATED, HealthFileUtils.getLiveFile(serverRootDirFile).exists());
 
+    }
+
+    String resolveTime(String traceEntryDateTimeStamp) {
+        String split[] = traceEntryDateTimeStamp.split(" ");
+        String time = null;
+
+        if (split.length == 3) {
+            time = split[1];
+        } else {
+            for (String s : split) {
+                if (s.matches("\\d{2}:\\d{2}:\\d{2}:\\d{3}")) {
+                    time = s;
+                }
+            }
+        }
+        //time can't be null;
+        assertNotNull("Unable to resolve time, the time stamp is: " + traceEntryDateTimeStamp, time);
+        Log.info(getClass(), "resolveTime", "Debug: the resolved time is: " + time);
+        return time;
     }
 
     @Test
