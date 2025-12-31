@@ -174,7 +174,12 @@ public class LongIntervalHealthCheckTest {
         long diff = Duration.between(timeOfFirstQuery, timeOfSecondQuery).getSeconds();
         Log.info(getClass(), "StartedHealthCheckTestLongStartupInterval", "The differencce in time between the two timestamps is (in seconds) : " + diff);
 
-        assertTrue("The difference expected should be 30s or greater (but no more than 32). We offer extra 2 seconds for potential slowness", (diff >= 30 && diff <= 32));
+        /*
+         * We start with 29 seconds because the tracing the first trace and second trace may have a difference of 29s999ms.
+         * That is because potential slowness may have caused the first trace to be emitted x ms after the timer actually was invoked.
+         * The traces are not "truly" exact on timing. And when we Convert the difference in duration into seconds, we get 29 seconds difference.
+         */
+        assertTrue("The difference expected should be 29s or greater (but no more than 32). We offer extra 2 seconds for potential slowness", (diff >= 29 && diff <= 32));
 
         assertNotNull(serverLongStart.waitForStringInTraceUsingMark(".*Startup phase for local health check functionality completed.*"));
 
