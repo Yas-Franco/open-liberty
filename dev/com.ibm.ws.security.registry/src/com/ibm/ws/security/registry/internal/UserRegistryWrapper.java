@@ -314,12 +314,12 @@ public class UserRegistryWrapper implements com.ibm.websphere.security.UserRegis
     }
 
     @Override
-    public Result findUsersByAttribute(String attributeName, String value, int limit) throws CustomRegistryException {
+    public Result getUsersByAttribute(String attributeName, String value, int limit) throws CustomRegistryException {
         if (wrappedUrAttr == null) {
             throw new UnsupportedOperationException();
         }
         try {
-            SearchResult ret = wrappedUrAttr.findUsersByAttribute(attributeName, value, limit);
+            SearchResult ret = wrappedUrAttr.getUsersByAttribute(attributeName, value, limit);
             Result result = new Result();
             result.setList(ret.getList());
             if (ret.hasMore()) {

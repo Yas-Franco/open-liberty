@@ -496,8 +496,8 @@ public class UserRegistryServletConnection implements UserRegistry, AttributeRea
 
     /** {@inheritDoc} */
     @Override
-    public SearchResult findUsersByAttribute(String attributeName, String value, int limit) throws RegistryException {
-        String methodName = "findUsersByAttribute";
+    public SearchResult getUsersByAttribute(String attributeName, String value, int limit) throws RegistryException {
+        String methodName = "getUsersByAttribute";
         String servletRequest = "?method=" + methodName +
                 "&attributeName=" + encodeForURI(attributeName) + "&value=" + value + "&limit=" + limit;
         String servletResponse = makeServletMethodCallWithException(methodName, servletRequest);

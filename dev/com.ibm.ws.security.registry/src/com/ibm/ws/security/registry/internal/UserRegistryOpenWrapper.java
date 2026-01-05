@@ -49,9 +49,9 @@ public class UserRegistryOpenWrapper extends UserRegistryWrapper implements com.
     }
 
     @Override
-    public Result findUsersByAttribute(String attributeName, String value, int limit) throws CustomRegistryException {
+    public Result getUsersByAttribute(String attributeName, String value, int limit) throws CustomRegistryException {
         try {
-            SearchResult ret = wrappedUrAttr.findUsersByAttribute(attributeName, value, limit);
+            SearchResult ret = wrappedUrAttr.getUsersByAttribute(attributeName, value, limit);
             Result result = new Result();
             result.setList(ret.getList());
             if (ret.hasMore()) {

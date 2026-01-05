@@ -52,6 +52,6 @@ public interface AttributeReader {
      *         <code>null</code> is not returned.
      * @exception CustomRegistryException if there is any UserRegistry specific problem
      **/
-    Result findUsersByAttribute(String attributeName, String value, int limit) throws CustomRegistryException;
+    Result getUsersByAttribute(String attributeName, String value, int limit) throws CustomRegistryException;
 
 }

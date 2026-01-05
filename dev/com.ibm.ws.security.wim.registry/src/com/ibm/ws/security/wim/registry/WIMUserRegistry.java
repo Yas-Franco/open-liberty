@@ -570,9 +570,9 @@ public class WIMUserRegistry implements FederationRegistry, UserRegistry, Attrib
 
     /** {@inheritDoc} */
     @Override
-    public SearchResult findUsersByAttribute(String attributeName, String value, int limit) throws RegistryException {
+    public SearchResult getUsersByAttribute(String attributeName, String value, int limit) throws RegistryException {
         try {
-            SearchResult returnValue = searchBridge.findUsersByAttribute(attributeName, value, limit);
+            SearchResult returnValue = searchBridge.getUsersByAttribute(attributeName, value, limit);
             return returnValue;
         } catch (Exception excp) {
             if (excp instanceof RegistryException)
