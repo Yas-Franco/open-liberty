@@ -1165,7 +1165,7 @@ public class BeanDeploymentArchiveImpl implements WebSphereBeanDeploymentArchive
             out.println("++++ isExtension:" + isExtension + "++++");
             out.println("++++ extensionCanSeeApplicationBDAs:" + extensionCanSeeApplicationBDAs + "++++");
 
-            out.println(introsepectorHelperBeansXMLToString(beansXml));
+            introsepectorHelperBeansXMLToString(beansXml, out);
             out.println("++++ beanDiscoveryMode:" + beanDiscoveryMode + "++++");
 
             out.println("++++ archiveClassNames ++++");
@@ -1272,52 +1272,42 @@ public class BeanDeploymentArchiveImpl implements WebSphereBeanDeploymentArchive
         return sb.toString();
     }
 
-    private String introsepectorHelperBeansXMLToString(BeansXml beansXml) {
+    private void introsepectorHelperBeansXMLToString(BeansXml beansXml, PrintWriter out) {
+
+        out.println("++++ beans.xml ++++");
 
         if (beansXml == null) {
-            return "beans xml file was null";
+            out.println("beans xml file was null");
+            return;
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("++++ beans.xml ++++");
-        sb.append(System.lineSeparator());
-        sb.append("bean discovery mode: " + beansXml.getBeanDiscoveryMode());
-        sb.append(System.lineSeparator());
+        out.println("bean discovery mode: " + beansXml.getBeanDiscoveryMode());
 
-        sb.append("enabled alternatives: " + beansXml.getEnabledAlternativeClasses().stream().filter(Objects::nonNull)
+        out.println("enabled alternatives: " + beansXml.getEnabledAlternativeClasses().stream().filter(Objects::nonNull)
+                                                       .map(m -> m.getValue())
+                                                       .collect(Collectors.joining(", ")));
+
+        out.println("enabled alternative sterotypes: " + beansXml.getEnabledAlternativeStereotypes().stream().filter(Objects::nonNull)
+                                                                 .map(m -> m.getValue())
+                                                                 .collect(Collectors.joining(", ")));
+
+        out.println("enabled decorators: " + beansXml.getEnabledDecorators().stream().filter(Objects::nonNull)
                                                      .map(m -> m.getValue())
                                                      .collect(Collectors.joining(", ")));
-        sb.append(System.lineSeparator());
 
-        sb.append("enabled alternative sterotypes: " + beansXml.getEnabledAlternativeStereotypes().stream().filter(Objects::nonNull)
-                                                               .map(m -> m.getValue())
-                                                               .collect(Collectors.joining(", ")));
-        sb.append(System.lineSeparator());
-
-        sb.append("enabled decorators: " + beansXml.getEnabledDecorators().stream().filter(Objects::nonNull)
-                                                   .map(m -> m.getValue())
-                                                   .collect(Collectors.joining(", ")));
-        sb.append(System.lineSeparator());
-
-        sb.append("enabled interceptors: " + beansXml.getEnabledInterceptors().stream().filter(Objects::nonNull)
-                                                     .map(m -> m.getValue())
-                                                     .collect(Collectors.joining(", ")));
-        sb.append(System.lineSeparator());
+        out.println("enabled interceptors: " + beansXml.getEnabledInterceptors().stream().filter(Objects::nonNull)
+                                                       .map(m -> m.getValue())
+                                                       .collect(Collectors.joining(", ")));
 
         //We have a useful toString on the filters here: https://github.com/weld/core/blob/master/impl/src/main/java/org/jboss/weld/metadata/WeldFilterImpl.java
-        sb.append("scanning excludes: " + beansXml.getScanning().getExcludes().stream().filter(Objects::nonNull)
-                                                  .map(m -> m.getValue()).map(f -> f.toString()).collect(Collectors.joining(", ")));
-        sb.append(System.lineSeparator());
+        out.println("scanning excludes: " + beansXml.getScanning().getExcludes().stream().filter(Objects::nonNull)
+                                                    .map(m -> m.getValue()).map(f -> f.toString()).collect(Collectors.joining(", ")));
 
-        sb.append("scanning includes: " + beansXml.getScanning().getIncludes().stream().filter(Objects::nonNull)
-                                                  .map(m -> m.getValue()).map(f -> f.toString()).collect(Collectors.joining(", ")));
-        sb.append(System.lineSeparator());
+        out.println("scanning includes: " + beansXml.getScanning().getIncludes().stream().filter(Objects::nonNull)
+                                                    .map(m -> m.getValue()).map(f -> f.toString()).collect(Collectors.joining(", ")));
 
-        String url = beansXml.getUrl() != null ? beansXml.getUrl().toString() : "null";
-        sb.append("beansXML URL: " + url);
-        sb.append(System.lineSeparator());
+        out.println("beansXML URL: " + beansXml.getUrl());
 
-        return sb.toString();
     }
 
 }
