@@ -226,12 +226,12 @@ public class UserRegistryServlet extends HttpServlet {
                 String userSecurityName = req.getParameter("userSecurityName");
                 String attributeNames = req.getParameter("attributeNames");
                 response = convertFromMap(((AttributeReader) ur).getAttributesForUser(userSecurityName, Arrays.asList(attributeNames.split(",")))).replaceAll("\n", "");
-            } else if ("findUsersByAttribute".equals(method)) {
+            } else if ("getUsersByAttribute".equals(method)) {
                 String attributeName = req.getParameter("attributeName");
                 String value = req.getParameter("value");
                 int limit = Integer.parseInt(req.getParameter("limit"));
                 if (ur instanceof AttributeReader)
-                    response = convertFromSR(((AttributeReader) ur).findUsersByAttribute(attributeName, value, limit));
+                    response = convertFromSR(((AttributeReader) ur).getUsersByAttribute(attributeName, value, limit));
             } else {
                 pw.println("Usage: url?method=name&paramName=paramValue&...");
             }

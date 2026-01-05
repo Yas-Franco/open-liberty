@@ -310,9 +310,9 @@ public class SearchBridge {
     }
 
     @FFDCIgnore(WIMException.class)
-    public SearchResult findUsersByAttribute(String attributeName, String value, int inputLimit) throws RegistryException {
+    public SearchResult getUsersByAttribute(String attributeName, String value, int inputLimit) throws RegistryException {
         // initialize the method name
-        String methodName = "findUsersByAttribute";
+        String methodName = "getUsersByAttribute";
         // initialize the return value
         SearchResult returnValue = new SearchResult();
         try {

@@ -107,7 +107,7 @@ public class URAPIs_ADLDAPTest {
      */
     @Test
     public void getAttributesForUserWithValidAttributes() throws Exception {
-        Log.info(c, "getAttributesForUser", "Get ['kerberosId', 'uid'] attribute from User: vmmtestuser");
+        Log.info(c, "getAttributesForUserWithValidAttributes", "Get ['kerberosId', 'uid'] attribute from User: vmmtestuser");
 
         List<String> attributeNames = new ArrayList<>(Arrays.asList("kerberosId", "uid"));
         Map<String, Object> result = servlet.getAttributesForUser("vmmtestuser", attributeNames);
@@ -120,7 +120,7 @@ public class URAPIs_ADLDAPTest {
     @Test
     @ExpectedFFDC(value = { "com.ibm.ws.security.registry.EntryNotFoundException" })
     public void getAttributesForUserWithInvalidUserSecurityName() throws Exception {
-        Log.info(c, "getAttributesForUser", "Get ['*'] attribute from User: someBogusUser");
+        Log.info(c, "getAttributesForUserWithInvalidUserSecurityName", "Get ['*'] attribute from User: someBogusUser");
 
         expectedException.expect(EntryNotFoundException.class);
 
@@ -130,7 +130,7 @@ public class URAPIs_ADLDAPTest {
 
     @Test
     public void getAttributesForUserWithInvalidAttributes() throws Exception {
-        Log.info(c, "getAttributesForUser", "Get ['invalidAttributeNames'] attribute from User: vmmtestuser");
+        Log.info(c, "getAttributesForUserWithInvalidAttributes", "Get ['invalidAttributeNames'] attribute from User: vmmtestuser");
 
         List<String> attributeNames = new ArrayList<>(Collections.singletonList("invalidAttributeNames"));
         Map<String, Object> result = servlet.getAttributesForUser("vmmtestuser", attributeNames);
@@ -140,17 +140,72 @@ public class URAPIs_ADLDAPTest {
 
     @Test
     public void getAttributesForUserWithAsteriskWildcardAttribute() throws Exception {
-//        assertTrue(!isOpenJDK11());
-        Log.info(c, "getAttributesForUser", "Get ['*'] attribute from User: vmmtestuser");
+        Log.info(c, "getAttributesForUserWithAsteriskWildcardAttribute", "Get ['*'] attribute from User: vmmtestuser");
 
 
         List<String> attributeNames = new ArrayList<>(Collections.singletonList("*"));
         Map<String, Object> result = servlet.getAttributesForUser("vmmtestuser", attributeNames);
-        if (result == null) {
-            System.out.println("DEBUG KAREL getAttributesForUser result is null this is correct for now... update convertToMap() -> null");
-            return;
-        }
+
         assertEquals(10, result.size());
+    }
+
+    @Test
+    public void getUsersWithAttributeOneUserFound() throws Exception {
+        Log.info(c, "getUsersWithAttributeOneUserFound", "Get users from Attribute: { kerberosId: *@secfvt2.austin.ibm.com }");
+
+        String attributeName = "kerberosId";
+        String value = "vmmtestuser@secfvt2.austin.ibm.com";
+        int limit = 0;
+
+        SearchResult result = servlet.getUsersByAttribute(attributeName, value, limit);
+        List<String> list = result.getList();
+
+        assertTrue(list.contains("vmmtestuser"));
+    }
+
+    @Test
+    public void getUsersWithAttributeNoUserFound() throws Exception {
+        Log.info(c, "getUsersWithAttributeNoUserFound", "Get users from Attribute: { kerberosId: someBogusAttributeValue }");
+
+        String attributeName = "kerberosId";
+        String value = "someBogusAttributeValue";
+        int limit = 0;
+
+        SearchResult result = servlet.getUsersByAttribute(attributeName, value, limit);
+        List<String> list = result.getList();
+
+        assertTrue(list.isEmpty());
+    }
+
+    @Test
+    public void getUsersWithAttributeWithAsteriskWildcardAttributeNoLimit() throws Exception {
+        Log.info(c, "getUsersWithAttributeWithAsteriskWildcardAttributeNoLimit", "Get users from Attribute: { kerberosId: vmmuser*@secfvt2.austin.ibm.com }");
+
+        String attributeName = "kerberosId";
+        String value = "vmmuser*@secfvt2.austin.ibm.com";
+        int limit = 0;
+
+        SearchResult result = servlet.getUsersByAttribute(attributeName, value, limit);
+        List<String> list = result.getList();
+
+        assertTrue(list.size() > 3);
+        assertTrue(list.contains("vmmuser1"));
+        assertTrue(list.contains("vmmuser2"));
+        assertTrue(list.contains("vmmuser3"));
+    }
+
+    @Test
+    public void getUsersWithAttributeWithAsteriskWildcardAttributeWithLimit() throws Exception {
+        Log.info(c, "getUsersWithAttributeWithAsteriskWildcardAttributeWithLimit", "Get users from Attribute: { kerberosId: vmmuser*@secfvt2.austin.ibm.com }");
+
+        String attributeName = "kerberosId";
+        String value = "vmmuser*@secfvt2.austin.ibm.com";
+        int limit = 2;
+
+        SearchResult result = servlet.getUsersByAttribute(attributeName, value, limit);
+        List<String> list = result.getList();
+
+        assertEquals(2, list.size());
     }
 
     /**

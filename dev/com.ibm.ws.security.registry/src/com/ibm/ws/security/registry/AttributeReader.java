@@ -55,6 +55,6 @@ public interface AttributeReader {
      * @exception IllegalArgumentException if attributeName is <code>null</code> or empty
      * @exception IllegalArgumentException if value is <code>null</code> or empty
      **/
-    SearchResult findUsersByAttribute(String attributeName, String value, int limit) throws RegistryException;
+    SearchResult getUsersByAttribute(String attributeName, String value, int limit) throws RegistryException;
 
 }

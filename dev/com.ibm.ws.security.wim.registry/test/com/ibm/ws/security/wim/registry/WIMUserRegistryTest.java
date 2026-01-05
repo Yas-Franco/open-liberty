@@ -745,7 +745,7 @@ public class WIMUserRegistryTest {
         UR = newWIMUR(urProps);
         WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
 
-        SearchResult result = WIMUR.findUsersByAttribute("uid", "user1", 10);
+        SearchResult result = WIMUR.getUsersByAttribute("uid", "user1", 10);
         List<String> resultList = result.getList();
 
         int i = resultList.size();
@@ -761,7 +761,7 @@ public class WIMUserRegistryTest {
             UR = newWIMUR(urProps);
             WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
 
-            WIMUR.findUsersByAttribute(null, "test", 10);
+            WIMUR.getUsersByAttribute(null, "test", 10);
             fail("expected fail");
         } catch (Exception e) {
             String errorMessage = e.getMessage();
@@ -777,7 +777,7 @@ public class WIMUserRegistryTest {
             UR = newWIMUR(urProps);
             WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
 
-            WIMUR.findUsersByAttribute("uid", null, 10);
+            WIMUR.getUsersByAttribute("uid", null, 10);
             fail("expected fail");
         } catch (Exception e) {
             String errorMessage = e.getMessage();
