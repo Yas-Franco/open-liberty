@@ -89,12 +89,10 @@ public class NettyNetworkConnection implements NetworkConnection{
 		if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) SibTr.entry(this, tc, "<init>" ,new Object[] {bootstrap, chainName});
 
 		this.chainName = chainName;
-		// TODO: Check if this is the best way to do this for SSL options https://github.com/OpenLiberty/open-liberty/issues/24813
 		this.sslOptions = sslOptions == null ? null : new HashMap<String, Object>((Map)sslOptions);
 		this.isInbound = isInbound;
 		this.tlsProvider = tlsProvider;
 		this.nettyBundle = nettyBundle;
-		// TODO Check if we need to clone this https://github.com/OpenLiberty/open-liberty/issues/24813
 		this.bootstrap = bootstrap;
 
 		if (TraceComponent.isAnyTracingEnabled() && tc.isEntryEnabled()) SibTr.exit(tc, "<init>", new Object[] {bootstrap, chainName});
