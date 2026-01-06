@@ -25,7 +25,9 @@ import jakarta.persistence.Table;
 public class Participant {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    //TODO enable strategy once #33744 is fixed
+    @GeneratedValue
+    
     private Integer id;
 
     @Embedded
