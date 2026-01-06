@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024,2025 IBM Corporation and others.
+ * Copyright (c) 2024,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -2318,6 +2318,42 @@ public class DataErrPathsTestServlet extends FATServlet {
             if (x.getMessage() == null ||
                 !x.getMessage().startsWith("CWWKD1015E") ||
                 !x.getMessage().contains("addOrUpdate"))
+                throw x;
+        }
+    }
+
+    /**
+     * Verify an appropriate error is raised upon attempt to access totals from
+     * a Page that was requested without totals.
+     */
+    @Test
+    public void testTotalsWhenRequestedWithoutTotals() {
+        Order<Voter> order = Order.by(_Voter.birthday.asc(),
+                                      _Voter.name.asc());
+        PageRequest pageReq = PageRequest.ofSize(12).withoutTotal();
+        String address = "4051 E River Rd NE, Rochester, MN 55906";
+
+        Page<Voter> page = voters.atAddress(address, pageReq, order);
+
+        try {
+            long total = page.totalElements();
+            fail("Should not be able to retrieve totalElements when the page is" +
+                 " requested without totals. Found: " + total);
+        } catch (IllegalStateException x) {
+            if (x.getMessage() == null ||
+                !x.getMessage().startsWith("CWWKD1042E:") ||
+                !x.getMessage().contains("requestTotal"))
+                throw x;
+        }
+
+        try {
+            long total = page.totalPages();
+            fail("Should not be able to retrieve totalPages when the page is" +
+                 " requested without totals. Found: " + total);
+        } catch (IllegalStateException x) {
+            if (x.getMessage() == null ||
+                !x.getMessage().startsWith("CWWKD1042E:") ||
+                !x.getMessage().contains("requestTotal"))
                 throw x;
         }
     }
