@@ -24,6 +24,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -192,9 +193,10 @@ public class EmbeddedServerDriver implements ServerEventListener {
         }
     }
 
-    public void testBootstrapAccess() {
+    public void testBootstrapAccessPlatform() {
         PrintStream originalSysOut = System.out;
         try {
+            System.setProperty("com.ibm.ws.beta.edition", "true");
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             System.setOut(new PrintStream(baos, true, "UTF-8"));
             coldStartServer(Collections.singletonMap("io.openliberty.classloading.app.parent", "PLATFORM"));
@@ -211,13 +213,49 @@ public class EmbeddedServerDriver implements ServerEventListener {
                 Log.error(c, CURRENT_METHOD_NAME, t);
             }
 
-            checkBootstrapAccess(this.getClass().getName(), true);
+            checkBootstrapAccess("com.ibm.wsspi.kernel.embeddable.ServerBuilder", true);
             checkBootstrapAccess(String.class.getName(), false);
 
             stopRunningServer();
         } catch (IOException e) {
             Assert.assertEquals("Unexpected exception", null, e);
         } finally {
+            System.getProperties().remove("com.ibm.ws.beta.edition");
+            System.setOut(originalSysOut);
+        }
+    }
+
+    public void testBootstrapAccessSystem() {
+        PrintStream originalSysOut = System.out;
+        try {
+            System.setProperty("com.ibm.ws.beta.edition", "true");
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            System.setOut(new PrintStream(baos, true, "UTF-8"));
+            Map<String, String> bootProps = new HashMap<>();
+            bootProps.put("io.openliberty.classloading.app.parent", "SYSTEM");
+            bootProps.put("io.openliberty.classloading.app.parent.packages", "");
+            coldStartServer(bootProps);
+            verifyServerEvent("\"STARTING\" ServerEvent should have fired", startingEventOccurred);
+            verifyServerEvent("\"STARTED\" ServerEvent should have fired", startedEventOccurred);
+
+            String serverConsoleOutput = new String(baos.toByteArray(), "UTF-8");
+            Log.info(c, "testStartingAStoppedServer", "consoleOutput = " + serverConsoleOutput);
+            try {
+                Pattern p = Pattern.compile(".*CWWKZ0001I:.*simpleApp.*", Pattern.DOTALL);
+                Assert.assertTrue("No indication that application started", p.matcher(serverConsoleOutput).matches());
+            } catch (Throwable t) {
+                failures.add(new AssertionFailedError("Exception occurred while searching for app started message in logs - " + t));
+                Log.error(c, CURRENT_METHOD_NAME, t);
+            }
+
+            checkBootstrapAccess("com.ibm.wsspi.kernel.embeddable.ServerBuilder", true);
+            checkBootstrapAccess(String.class.getName(), false);
+
+            stopRunningServer();
+        } catch (IOException e) {
+            Assert.assertEquals("Unexpected exception", null, e);
+        } finally {
+            System.getProperties().remove("com.ibm.ws.beta.edition");
             System.setOut(originalSysOut);
         }
     }

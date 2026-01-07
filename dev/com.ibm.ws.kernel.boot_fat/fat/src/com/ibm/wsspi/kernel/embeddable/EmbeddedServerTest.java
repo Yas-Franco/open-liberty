@@ -83,7 +83,7 @@ public class EmbeddedServerTest {
                 }
 
                 private Object[] getArgs(String testName) {
-                    if (testName.equals("testBootstrapAccess")) {
+                    if (testName.equals("testBootstrapAccessSystem") || testName.equals("testBootstrapAccessPlatform")) {
                         return new Object[] { ls.getHostname(), ls.getHttpDefaultPort() };
                     }
                     return new Object[0];
@@ -143,7 +143,7 @@ public class EmbeddedServerTest {
 
                 result = findLoadedClass(name);
 
-                if (result == null && name != null && !name.startsWith("com.ibm.ws.kernel.testapp.")) {
+                if (result == null && name != null) {
                     try {
                         // Try to load the class from the child classpath first...
                         result = findClass(name);
@@ -220,7 +220,11 @@ public class EmbeddedServerTest {
     }
 
     @Test
-    public void testBootstrapAccess() throws Throwable {
+    public void testBootstrapAccessPlatform() throws Throwable {
+    }
+
+    @Test
+    public void testBootstrapAccessSystem() throws Throwable {
     }
 
     private static void embeddedServerTestHelper(final String REMOTE_METHOD_NAME, Object... args) throws Throwable {
