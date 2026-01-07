@@ -12,9 +12,9 @@
  *******************************************************************************/
 
 /**
- * @version 1.0
+ * @version 1.1.0
  */
-@org.osgi.annotation.versioning.Version("1.0")
+@org.osgi.annotation.versioning.Version("1.1.0")
 @TraceOptions(traceGroup = TraceConstants.TRACE_GROUP, messageBundle = TraceConstants.MESSAGE_BUNDLE)
 package com.ibm.ws.security.registry.internal;
 

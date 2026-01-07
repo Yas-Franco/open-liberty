@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2024 IBM Corporation and others.
+ * Copyright (c) 2017, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -740,7 +740,7 @@ public class WIMUserRegistryTest {
     }
 
     @Test
-    public void testFindUsersByAttribute() throws Exception {
+    public void testGetUsersByAttribute() throws Exception {
         Map<String, Object> urProps = new HashMap<String, Object>();
         UR = newWIMUR(urProps);
         WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
@@ -755,7 +755,7 @@ public class WIMUserRegistryTest {
     }
 
     @Test
-    public void testFindUsersByAttributeNameNull() {
+    public void testGetUsersByAttributeNameNull() {
         try {
             Map<String, Object> urProps = new HashMap<String, Object>();
             UR = newWIMUR(urProps);
@@ -771,7 +771,7 @@ public class WIMUserRegistryTest {
     }
 
     @Test
-    public void testFindUsersByAttributeValueNull() {
+    public void testGetUsersByAttributeValueNull() {
         try {
             Map<String, Object> urProps = new HashMap<String, Object>();
             UR = newWIMUR(urProps);
