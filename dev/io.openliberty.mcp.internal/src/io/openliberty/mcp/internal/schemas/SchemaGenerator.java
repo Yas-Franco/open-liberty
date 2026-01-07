@@ -34,7 +34,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
+import io.openliberty.mcp.internal.ToolMetadata.ToolMethodArgument;
 import io.openliberty.mcp.internal.schemas.SchemaCreationBlueprintGenerator.FieldInfo;
 import io.openliberty.mcp.internal.schemas.blueprints.ClassSchemaCreationBlueprint;
 import io.openliberty.mcp.internal.schemas.blueprints.ListSchemaCreationBlueprint;
@@ -84,37 +84,35 @@ public class SchemaGenerator {
     /**
      * Generate the input schema for a tool
      *
-     * @param tool the tool to generate the schema for
-     * @param argumentMap resolved arguments for tool
+     * @param arguments the tool method arguments
      * @param blueprintRegistry the blueprint registry to use
      * @return the schema as a json object
      */
-    public static JsonObject generateToolInputSchema(AnnotatedMethod<?> toolMethod, SchemaCreationBlueprintRegistry blueprintRegistry, Map<String, ArgumentMetadata> argumentMap) {
+    public static JsonObject generateToolInputSchema(List<ToolMethodArgument> arguments, SchemaCreationBlueprintRegistry blueprintRegistry) {
         // create base schema components
         JsonObjectBuilder properties = Json.createObjectBuilder();
         JsonArrayBuilder required = Json.createArrayBuilder();
-        Parameter[] parameters = toolMethod.getJavaMember().getParameters();
         SchemaGenerationContext ctx = new SchemaGenerationContext(blueprintRegistry, INPUT);
         // for each parameter
-        for (ArgumentMetadata argument : argumentMap.values()) {
-            calculateClassFrequency(argument.type(), SchemaDirection.INPUT, ctx);
+        for (ToolMethodArgument argument : arguments) {
+            calculateClassFrequency(argument.argument().type(), SchemaDirection.INPUT, ctx);
         }
 
-        for (var entry : argumentMap.entrySet()) {
-            String argumentName = entry.getKey();
-            ArgumentMetadata argument = entry.getValue();
-            Parameter parameter = parameters[argument.index()];
+        for (ToolMethodArgument argument : arguments) {
+            String argumentName = argument.argument().name();
+            Parameter parameter = argument.parameter().getJavaParameter();
             SchemaAnnotation annotation = SchemaAnnotation.read(parameter);
 
-            JsonObjectBuilder parameterSchemaBuilder = generateSubSchema(argument.type(), ctx, annotation);
+            JsonObjectBuilder parameterSchemaBuilder = generateSubSchema(argument.argument().type(), ctx, annotation);
 
-            if (argument.description() != null && !argument.description().equals("")) {
-                parameterSchemaBuilder.add(DESCRIPTION, argument.description());
+            String description = argument.argument().description();
+            if (description != null && !description.isEmpty()) {
+                parameterSchemaBuilder.add(DESCRIPTION, description);
             }
             // - add it as a property
             properties.add(argumentName, parameterSchemaBuilder.build());
             // - add it as required (if it is)
-            if (argument.required()) {
+            if (argument.argument().required()) {
                 required.add(argumentName);
             }
         }

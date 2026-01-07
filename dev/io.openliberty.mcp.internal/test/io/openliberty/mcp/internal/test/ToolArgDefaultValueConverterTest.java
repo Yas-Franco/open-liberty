@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -16,19 +16,20 @@ import static org.hamcrest.Matchers.equalTo;
 
 import java.io.StringReader;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.openliberty.mcp.annotations.Tool;
 import io.openliberty.mcp.internal.Literals;
-import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
 import io.openliberty.mcp.internal.ToolRegistry;
 import io.openliberty.mcp.internal.requests.McpRequest;
 import io.openliberty.mcp.internal.requests.McpRequestIdDeserializer;
 import io.openliberty.mcp.internal.requests.McpRequestIdSerializer;
 import io.openliberty.mcp.internal.requests.McpToolCallParams;
+import io.openliberty.mcp.internal.tools.ToolManager.ToolArgument;
+import io.openliberty.mcp.internal.tools.ToolManager.ToolInfo;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.JsonbConfig;
@@ -47,31 +48,31 @@ public class ToolArgDefaultValueConverterTest {
         ToolRegistry.set(registry);
 
         Tool defaultValueIntArgTestTool = Literals.tool("defaultValueInt", "Default Value Int", "ToolArg with a default value of a integer type");
-        Map<String, ArgumentMetadata> defaultValIntToolArgs = Map.of("year", new ArgumentMetadata("year", Integer.class, 0, "Integer value", false, "2025", false));
+        List<ToolArgument> defaultValIntToolArgs = List.of(new ToolArgument("year", "Integer value", false, Integer.class, "2025"));
         registry.addTool(ToolMetadataTestUtility.createFrom(defaultValueIntArgTestTool, defaultValIntToolArgs, Collections.emptyList()));
 
         Tool defaultValueStringArgTestTool = Literals.tool("defaultValueString", "Default Value String", "ToolArg with a default value of a String type");
-        Map<String, ArgumentMetadata> defaultValStringToolArgs = Map.of("planet", new ArgumentMetadata("planet", String.class, 0, "String value", false, "Jupiter", false));
+        List<ToolArgument> defaultValStringToolArgs = List.of(new ToolArgument("planet", "String value", false, String.class, "Jupiter"));
         registry.addTool(ToolMetadataTestUtility.createFrom(defaultValueStringArgTestTool, defaultValStringToolArgs, Collections.emptyList()));
 
         Tool defaultValueCharArgTestTool = Literals.tool("defaultValueChar", "Default Value Char", "ToolArg with a default value of a Char type");
-        Map<String, ArgumentMetadata> defaultValCharToolArgs = Map.of("initial", new ArgumentMetadata("initial", Character.class, 0, "Char value", false, "H", false));
+        List<ToolArgument> defaultValCharToolArgs = List.of(new ToolArgument("initial", "Char value", false, Character.class, "H"));
         registry.addTool(ToolMetadataTestUtility.createFrom(defaultValueCharArgTestTool, defaultValCharToolArgs, Collections.emptyList()));
 
         Tool defaultValueInvalidArgTestTool = Literals.tool("defaultValueInvalidChar", "Default Value Invalid Char", "ToolArg with an invalid default value of a Char type");
-        Map<String, ArgumentMetadata> defaultValInvalidToolArgs = Map.of("initial", new ArgumentMetadata("initial", Character.class, 0, "Char value", false, "HH", false));
+        List<ToolArgument> defaultValInvalidToolArgs = List.of(new ToolArgument("initial", "Char value", false, Character.class, "HH"));
         registry.addTool(ToolMetadataTestUtility.createFrom(defaultValueInvalidArgTestTool, defaultValInvalidToolArgs, Collections.emptyList()));
 
         Tool defaultValueInvalidLongArgTestTool = Literals.tool("defaultValueInvalidLong", "Default Value Invalid Long", "ToolArg with an invalid default value of a Long type");
-        Map<String, ArgumentMetadata> defaultValInvalidLongToolArgs = Map.of("count", new ArgumentMetadata("count", Long.class, 0, "Long value", false, "notANumber", false));
+        List<ToolArgument> defaultValInvalidLongToolArgs = List.of(new ToolArgument("count", "Long value", false, Long.class, "notANumber"));
         registry.addTool(ToolMetadataTestUtility.createFrom(defaultValueInvalidLongArgTestTool, defaultValInvalidLongToolArgs, Collections.emptyList()));
 
         Tool defaultValueBoolArgTestTool = Literals.tool("defaultValueBool", "Default Value Bool", "ToolArg with a default value of a Bool type");
-        Map<String, ArgumentMetadata> defaultValBoolToolArgs = Map.of("bool", new ArgumentMetadata("bool", Boolean.class, 0, "Bool value", false, "true", false));
+        List<ToolArgument> defaultValBoolToolArgs = List.of(new ToolArgument("bool", "Bool value", false, Boolean.class, "true"));
         registry.addTool(ToolMetadataTestUtility.createFrom(defaultValueBoolArgTestTool, defaultValBoolToolArgs, Collections.emptyList()));
 
         Tool defaultValueObjArgTestTool = Literals.tool("defaultValueObj", "Default Value Obj", "ToolArg with a default value of a Obj type");
-        Map<String, ArgumentMetadata> defaultValObjToolArgs = Map.of("city", new ArgumentMetadata("city", City.class, 0, "City value", false, "true", false));
+        List<ToolArgument> defaultValObjToolArgs = List.of(new ToolArgument("city", "City value", false, City.class, "true"));
         registry.addTool(ToolMetadataTestUtility.createFrom(defaultValueObjArgTestTool, defaultValObjToolArgs, Collections.emptyList()));
     }
 
@@ -91,7 +92,7 @@ public class ToolArgDefaultValueConverterTest {
                         """);
         McpRequest request = jsonb.fromJson(reader, McpRequest.class);
         McpToolCallParams toolCallRequest = request.getParams(McpToolCallParams.class, jsonb);
-        ArgumentMetadata argMetadata = toolCallRequest.getMetadata().arguments().get("year");
+        ToolArgument argMetadata = getArgument(toolCallRequest.getMetadata(), "year");
         assertThat(McpToolCallParams.convertDefaultValueToArgType(toolCallRequest.getMetadata(), argMetadata), equalTo(2025));
     }
 
@@ -110,7 +111,7 @@ public class ToolArgDefaultValueConverterTest {
                         """);
         McpRequest request = jsonb.fromJson(reader, McpRequest.class);
         McpToolCallParams toolCallRequest = request.getParams(McpToolCallParams.class, jsonb);
-        ArgumentMetadata argMetadata = toolCallRequest.getMetadata().arguments().get("planet");
+        ToolArgument argMetadata = getArgument(toolCallRequest.getMetadata(), "planet");
         assertThat(McpToolCallParams.convertDefaultValueToArgType(toolCallRequest.getMetadata(), argMetadata), equalTo("Jupiter"));
     }
 
@@ -129,7 +130,7 @@ public class ToolArgDefaultValueConverterTest {
                         """);
         McpRequest request = jsonb.fromJson(reader, McpRequest.class);
         McpToolCallParams toolCallRequest = request.getParams(McpToolCallParams.class, jsonb);
-        ArgumentMetadata argMetadata = toolCallRequest.getMetadata().arguments().get("initial");
+        ToolArgument argMetadata = getArgument(toolCallRequest.getMetadata(), "initial");
         assertThat(McpToolCallParams.convertDefaultValueToArgType(toolCallRequest.getMetadata(), argMetadata), equalTo('H'));
     }
 
@@ -148,7 +149,7 @@ public class ToolArgDefaultValueConverterTest {
                         """);
         McpRequest request = jsonb.fromJson(reader, McpRequest.class);
         McpToolCallParams toolCallRequest = request.getParams(McpToolCallParams.class, jsonb);
-        ArgumentMetadata argMetadata = toolCallRequest.getMetadata().arguments().get("initial");
+        ToolArgument argMetadata = getArgument(toolCallRequest.getMetadata(), "initial");
         assertThrows(() -> McpToolCallParams.convertDefaultValueToArgType(toolCallRequest.getMetadata(), argMetadata),
                      exception()
                                 .ofType(IllegalArgumentException.class)
@@ -170,7 +171,7 @@ public class ToolArgDefaultValueConverterTest {
                         """);
         McpRequest request = jsonb.fromJson(reader, McpRequest.class);
         McpToolCallParams toolCallRequest = request.getParams(McpToolCallParams.class, jsonb);
-        ArgumentMetadata argMetadata = toolCallRequest.getMetadata().arguments().get("count");
+        ToolArgument argMetadata = getArgument(toolCallRequest.getMetadata(), "count");
         assertThrows(() -> McpToolCallParams.convertDefaultValueToArgType(toolCallRequest.getMetadata(), argMetadata),
                      exception()
                                 .ofType(IllegalArgumentException.class)
@@ -192,7 +193,7 @@ public class ToolArgDefaultValueConverterTest {
                         """);
         McpRequest request = jsonb.fromJson(reader, McpRequest.class);
         McpToolCallParams toolCallRequest = request.getParams(McpToolCallParams.class, jsonb);
-        ArgumentMetadata argMetadata = toolCallRequest.getMetadata().arguments().get("bool");
+        ToolArgument argMetadata = getArgument(toolCallRequest.getMetadata(), "bool");
         assertThat(McpToolCallParams.convertDefaultValueToArgType(toolCallRequest.getMetadata(), argMetadata), equalTo(true));
     }
 
@@ -211,10 +212,18 @@ public class ToolArgDefaultValueConverterTest {
                         """);
         McpRequest request = jsonb.fromJson(reader, McpRequest.class);
         McpToolCallParams toolCallRequest = request.getParams(McpToolCallParams.class, jsonb);
-        ArgumentMetadata argMetadata = toolCallRequest.getMetadata().arguments().get("city");
+        ToolArgument argMetadata = getArgument(toolCallRequest.getMetadata(), "city");
         assertThrows(() -> McpToolCallParams.convertDefaultValueToArgType(toolCallRequest.getMetadata(), argMetadata),
                      exception()
                                 .ofType(IllegalArgumentException.class));
+    }
+
+    private static ToolArgument getArgument(ToolInfo toolInfo, String argName) {
+        return toolInfo.arguments()
+                       .stream()
+                       .filter(arg -> arg.name().equals(argName))
+                       .findAny()
+                       .orElseThrow(() -> new IllegalArgumentException("No argument named " + argName));
     }
 
 }

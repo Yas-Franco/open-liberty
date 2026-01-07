@@ -11,10 +11,10 @@ package io.openliberty.mcp.internal.schemas;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 import io.openliberty.mcp.internal.McpCdiExtension;
-import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
+import io.openliberty.mcp.internal.ToolMetadata.ToolMethodArgument;
 import jakarta.enterprise.inject.spi.AnnotatedMethod;
 import jakarta.enterprise.inject.spi.CDI;
 import jakarta.json.JsonObject;
@@ -67,12 +67,12 @@ public class SchemaRegistry {
     /**
      * Gets the input JSON schema for a tool
      *
-     * @param toolMethod the tool to get the schema for
+     * @param arguments the tool method arguments
      * @return the json schema
      */
-    public JsonObject getToolInputSchema(AnnotatedMethod<?> toolMethod, Map<String, ArgumentMetadata> argumentMap) {
-        SchemaKey key = new ToolInputKey(toolMethod, argumentMap, SchemaDirection.INPUT);
-        return schemaCache.computeIfAbsent(key, k -> SchemaGenerator.generateToolInputSchema(toolMethod, blueprintRegistry, argumentMap));
+    public JsonObject getToolInputSchema(List<ToolMethodArgument> arguments) {
+        SchemaKey key = new ToolInputKey(arguments);
+        return schemaCache.computeIfAbsent(key, k -> SchemaGenerator.generateToolInputSchema(arguments, blueprintRegistry));
     }
 
     /**
@@ -83,7 +83,7 @@ public class SchemaRegistry {
      * @return the json schema
      */
     public JsonObject getToolOutputSchema(AnnotatedMethod<?> toolMethod, Type toolOutputType) {
-        SchemaKey key = new ToolOutputKey(toolMethod, toolOutputType, SchemaDirection.OUTPUT);
+        SchemaKey key = new ToolOutputKey(toolMethod, toolOutputType);
         return schemaCache.computeIfAbsent(key, k -> SchemaGenerator.generateToolOutputSchema(toolMethod, toolOutputType, blueprintRegistry));
     }
 
@@ -94,8 +94,8 @@ public class SchemaRegistry {
 
     public record ClassKey(Class<?> cls, SchemaDirection direction) implements SchemaKey {};
 
-    public record ToolInputKey(AnnotatedMethod<?> tool, Map<String, ArgumentMetadata> argumentMap, SchemaDirection direction) implements SchemaKey {};
+    public record ToolInputKey(List<ToolMethodArgument> arguments) implements SchemaKey {};
 
-    public record ToolOutputKey(AnnotatedMethod<?> tool, Type toolOutputType, SchemaDirection direction) implements SchemaKey {};
+    public record ToolOutputKey(AnnotatedMethod<?> tool, Type toolOutputType) implements SchemaKey {};
 
 }

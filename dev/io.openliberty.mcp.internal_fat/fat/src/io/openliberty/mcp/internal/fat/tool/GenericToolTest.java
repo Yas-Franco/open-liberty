@@ -21,6 +21,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 import com.ibm.websphere.simplicity.ShrinkHelper;
 
@@ -133,7 +134,7 @@ public class GenericToolTest extends FATServletClient {
                             }
                         }
                             """;
-        JSONAssert.assertEquals(expectedString, response, true);
+        JSONAssert.assertEquals(expectedString, response, JSONCompareMode.NON_EXTENSIBLE);
 
     }
 

@@ -17,8 +17,8 @@ import java.util.Optional;
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 
-import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
 import io.openliberty.mcp.internal.schemas.TypeUtility;
+import io.openliberty.mcp.internal.tools.ToolManager.ToolArgument;
 
 /**
  * Resolves an argument default value for a tool method parameter
@@ -44,9 +44,11 @@ public class DefaultValueResolver {
      * If type is primitive, return primitive default
      * Otherwise return null
      *
+     * @param argMetadata the tool argument metadata
+     * @return the default value, converted to the argument type
      * @throws IllegalArgumentException if default value conversion fails
      */
-    public static Object resolveDefaultValue(ArgumentMetadata argMetadata) {
+    public static Object resolveDefaultValue(ToolArgument argMetadata) {
         if (!argMetadata.defaultValue().isEmpty()) {
             try {
                 return convertDefaultValue(argMetadata.defaultValue(), argMetadata.name(), argMetadata.type());

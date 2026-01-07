@@ -9,13 +9,15 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal;
 
+import static java.util.stream.Collectors.toUnmodifiableList;
+
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,7 +37,9 @@ import io.openliberty.mcp.internal.security.SecurityRequirement;
 import io.openliberty.mcp.internal.tools.AsyncBeanMethodHandler;
 import io.openliberty.mcp.internal.tools.BeanMethodHandler.MethodMetadata;
 import io.openliberty.mcp.internal.tools.SyncBeanMethodHandler;
+import io.openliberty.mcp.internal.tools.ToolManager;
 import io.openliberty.mcp.internal.tools.ToolManager.ToolAnnotations;
+import io.openliberty.mcp.internal.tools.ToolManager.ToolArgument;
 import io.openliberty.mcp.internal.tools.ToolManager.ToolArguments;
 import io.openliberty.mcp.tools.ToolResponse;
 import jakarta.enterprise.inject.spi.AnnotatedMethod;
@@ -51,8 +55,8 @@ import jakarta.json.bind.Jsonb;
  * @param name the tool name
  * @param title the tool title, may be {@code null}
  * @param description the tool description, may be {@code null}
- * @param arguments a map of argument name to argument metadata
- * @param annotations the MCP annotations applied to the tool
+ * @param arguments the list of tool argument metadata
+ * @param annotations the MCP annotations applied to the tool, if supplied
  * @param returnsCompletionStage whether the tool is asynchronous
  * @param inputSchema the input schema for the tool, usually an object containing all of the named parameters
  * @param outputSchema the output schema, {@code null} if the tool does not return structured content
@@ -60,28 +64,30 @@ import jakarta.json.bind.Jsonb;
  * @param asyncHandler the async handler, {@code null} if this is not an async tool
  * @param methodMetadata data about the method if this tool was discovered by annotating a method with {@link Tool}. Should not be used in most circumstances.
  * @param securityRequirement stores authorization requirements needed to authorize access to a MCP tool
+ * @param createdAt when the tool was created
  */
 public record ToolMetadata(String name,
                            String title,
                            String description,
-                           Map<String, ArgumentMetadata> arguments,
-                           ToolAnnotations annotations,
+                           List<ToolArgument> arguments,
+                           Optional<ToolAnnotations> annotations,
                            boolean returnsCompletionStage,
                            JsonObject inputSchema,
                            JsonObject outputSchema,
                            Function<ToolArguments, ToolResponse> handler,
                            Function<ToolArguments, CompletionStage<ToolResponse>> asyncHandler,
                            Optional<MethodMetadata> methodMetadata,
-                           SecurityRequirement securityRequirement) {
+                           SecurityRequirement securityRequirement,
+                           Instant createdAt) implements ToolManager.ToolInfo {
 
     public static final String MISSING_TOOL_ARG_NAME = "<<<MISSING TOOL_ARG NAME>>>";
 
-    public record ArgumentMetadata(String name, Type type, int index, String description, boolean required, String defaultValue, boolean isDuplicate) {}
+    public record ToolMethodArgument(AnnotatedParameter<?> parameter, ToolArgument argument) {}
 
     public record SpecialArgumentMetadata(SpecialArgumentType.Resolution typeResolution, int index) {}
 
     public ToolMetadata {
-        arguments = ((arguments == null) ? Collections.emptyMap() : arguments);
+        arguments = ((arguments == null) ? Collections.emptyList() : arguments);
 
         if (handler == null && asyncHandler == null) {
             throw new IllegalArgumentException("Either handler or asyncHandler must be set");
@@ -116,14 +122,14 @@ public record ToolMetadata(String name,
             Type javaType = bean.getBeanClass();
             genericMap = TypeUtility.generateGenericMap(javaType);
         }
-        Map<String, ArgumentMetadata> argumentMap = getArgumentMap(method, genericMap);
+        List<ToolMethodArgument> methodArguments = getArguments(method, genericMap);
 
         WrapBusinessError wrapAnnotation = method.getAnnotation(WrapBusinessError.class);
         List<Class<? extends Throwable>> businessExceptions = (wrapAnnotation != null) ? List.of(wrapAnnotation.value()) : Collections.emptyList();
         boolean returnsCompletionStage = CompletionStage.class.isAssignableFrom(returnTypeClass);
         SchemaRegistry sr = SchemaRegistry.get();
 
-        JsonObject inputSchema = sr.getToolInputSchema(method, argumentMap);
+        JsonObject inputSchema = sr.getToolInputSchema(methodArguments);
 
         boolean hasContentListReturn = unwrappedOutputType instanceof ParameterizedType pt
                                        && (List.class.isAssignableFrom((Class<?>) pt.getRawType())
@@ -149,7 +155,7 @@ public record ToolMetadata(String name,
 
         outputSchema = (outputSchema == null || outputSchema.isEmpty()) ? null : outputSchema;
 
-        ToolAnnotations annotations = readAnnotations(annotation.annotations());
+        Optional<ToolAnnotations> annotations = readAnnotations(annotation.annotations());
 
         MethodMetadata methodMetadata = new MethodMetadata(name,
                                                            bean,
@@ -157,7 +163,7 @@ public record ToolMetadata(String name,
                                                            hasOutputSchema,
                                                            businessExceptions,
                                                            getSpecialArgumentList(method),
-                                                           getArgNameArray(method, argumentMap),
+                                                           getArgNameArray(method, methodArguments),
                                                            genericMap);
 
         SyncBeanMethodHandler handler = null;
@@ -171,7 +177,7 @@ public record ToolMetadata(String name,
         return new ToolMetadata(name,
                                 title,
                                 description,
-                                argumentMap,
+                                methodArguments.stream().map(ToolMethodArgument::argument).collect(toUnmodifiableList()),
                                 annotations,
                                 returnsCompletionStage,
                                 inputSchema,
@@ -179,19 +185,20 @@ public record ToolMetadata(String name,
                                 handler,
                                 asyncHandler,
                                 Optional.of(methodMetadata),
-                                SecurityRequirement.createFrom(method));
+                                SecurityRequirement.createFrom(method),
+                                Instant.now());
     }
 
-    private static String[] getArgNameArray(AnnotatedMethod<?> method, Map<String, ArgumentMetadata> argumentMap) {
+    private static String[] getArgNameArray(AnnotatedMethod<?> method, List<ToolMethodArgument> toolMethodArgs) {
         String[] nameArray = new String[method.getJavaMember().getParameterCount()];
-        for (var entry : argumentMap.entrySet()) {
-            nameArray[entry.getValue().index] = entry.getKey();
+        for (ToolMethodArgument arg : toolMethodArgs) {
+            nameArray[arg.parameter().getPosition()] = arg.argument().name();
         }
         return nameArray;
     }
 
-    public static Map<String, ArgumentMetadata> getArgumentMap(AnnotatedMethod<?> method, Map<TypeVariable<?>, Type> genericMap) {
-        Map<String, ArgumentMetadata> result = new HashMap<>();
+    public static List<ToolMethodArgument> getArguments(AnnotatedMethod<?> method, Map<TypeVariable<?>, Type> genericMap) {
+        List<ToolMethodArgument> result = new ArrayList<>();
         ArrayList<String> genericParams = new ArrayList<>();
         for (AnnotatedParameter<?> param : method.getParameters()) {
             if (TypeUtility.hasGenericParams(param.getBaseType())) {
@@ -210,7 +217,7 @@ public record ToolMetadata(String name,
         if (!genericParams.isEmpty()) {
             throw new GenericArgumentException(genericParams);
         }
-        return result.isEmpty() ? Collections.emptyMap() : result;
+        return result.isEmpty() ? Collections.emptyList() : result;
     }
 
     /**
@@ -231,21 +238,18 @@ public record ToolMetadata(String name,
 
     }
 
-    private static void addArgumentMetadata(AnnotatedParameter<?> param, Type argumentType, Map<String, ArgumentMetadata> result) {
+    private static void addArgumentMetadata(AnnotatedParameter<?> param, Type argumentType, List<ToolMethodArgument> result) {
         ToolArg argAnnotation = param.getAnnotation(ToolArg.class);
 
         if (argAnnotation != null) {
             String argName = resolveArgumentName(param, argAnnotation);
-            boolean isDuplicateArg = result.containsKey(argName);
-
             boolean required = isArgumentRequired(argAnnotation.required(), argAnnotation.defaultValue(), param.getBaseType());
-
-            result.put(argName, new ArgumentMetadata(argName, argumentType,
-                                                     param.getPosition(),
-                                                     argAnnotation.description(),
-                                                     required,
-                                                     argAnnotation.defaultValue(),
-                                                     isDuplicateArg));
+            result.add(new ToolMethodArgument(param,
+                                              new ToolArgument(argName,
+                                                               argAnnotation.description(),
+                                                               required,
+                                                               argumentType,
+                                                               argAnnotation.defaultValue())));
         }
 
     }
@@ -312,12 +316,25 @@ public record ToolMetadata(String name,
         return Collections.unmodifiableList(result);
     }
 
-    public static ToolAnnotations readAnnotations(Tool.Annotations annotations) {
-        return new ToolAnnotations(annotations.title(),
-                                   annotations.readOnlyHint(),
-                                   annotations.destructiveHint(),
-                                   annotations.idempotentHint(),
-                                   annotations.openWorldHint());
+    public static Optional<ToolAnnotations> readAnnotations(Tool.Annotations annotations) {
+
+        if (isDefaultAnnotation(annotations)) {
+            return Optional.empty();
+        } else {
+            return Optional.of(new ToolAnnotations(annotations.title(),
+                                                   annotations.readOnlyHint(),
+                                                   annotations.destructiveHint(),
+                                                   annotations.idempotentHint(),
+                                                   annotations.openWorldHint()));
+        }
+    }
+
+    private static boolean isDefaultAnnotation(Tool.Annotations ann) {
+        return ann.readOnlyHint() == false
+               && ann.destructiveHint() == true
+               && ann.idempotentHint() == false
+               && ann.openWorldHint() == true
+               && ann.title().isEmpty();
     }
 
     /**
@@ -370,6 +387,12 @@ public record ToolMetadata(String name,
         } else {
             return Object.class;
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean isMethod() {
+        return methodMetadata.isPresent();
     }
 
 }

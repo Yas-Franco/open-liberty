@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -12,9 +12,11 @@ package io.openliberty.mcp.internal;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -23,7 +25,6 @@ import com.ibm.websphere.ras.TraceComponent;
 
 import io.openliberty.mcp.annotations.Tool;
 import io.openliberty.mcp.content.ContentEncoder;
-import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
 import io.openliberty.mcp.internal.ToolMetadata.SpecialArgumentMetadata;
 import io.openliberty.mcp.internal.encoders.EncoderRegistry;
 import io.openliberty.mcp.internal.exceptions.GenericArgumentException;
@@ -34,6 +35,7 @@ import io.openliberty.mcp.internal.requests.McpRequestIdSerializer;
 import io.openliberty.mcp.internal.schemas.SchemaRegistry;
 import io.openliberty.mcp.internal.schemas.TypeUtility;
 import io.openliberty.mcp.internal.tools.BeanMethodHandler.MethodMetadata;
+import io.openliberty.mcp.internal.tools.ToolManager.ToolArgument;
 import io.openliberty.mcp.messaging.Encoder;
 import io.openliberty.mcp.tools.ToolResponseEncoder;
 import jakarta.enterprise.context.spi.CreationalContext;
@@ -147,19 +149,23 @@ public class McpCdiExtension implements Extension {
 
         for (ToolMetadata tool : tools.getAllTools()) {
 
-            for (var argEntry : tool.arguments().entrySet()) {
-                String argName = argEntry.getKey();
-                ArgumentMetadata argMetadata = argEntry.getValue();
-                if (argName.isBlank()) {
+            Set<String> names = new HashSet<>();
+            for (ToolArgument argMetadata : tool.arguments()) {
+
+                // Check name
+                if (argMetadata.name().isBlank()) {
                     Tr.error(tc, "CWMCM0001E.blank.arguments", tool.getToolQualifiedName());
                     blankArgumentsFound = true;
-                } else if (argMetadata.isDuplicate()) {
-                    Tr.error(tc, "CWMCM0002E.duplicate.arguments", tool.getToolQualifiedName(), argName);
-                    duplicateArgumentsFound = true;
-                } else if (argName.equals(ToolMetadata.MISSING_TOOL_ARG_NAME)) {
+                } else if (argMetadata.name().equals(ToolMetadata.MISSING_TOOL_ARG_NAME)) {
                     Tr.error(tc, "CWMCM0003E.missing.tool.argument.name", tool.getToolQualifiedName());
                     missingArgumentName = true;
-                } else if (!argMetadata.defaultValue().isEmpty()) {
+                } else if (!names.add(argMetadata.name())) {
+                    Tr.error(tc, "CWMCM0002E.duplicate.arguments", tool.getToolQualifiedName(), argMetadata.name());
+                    duplicateArgumentsFound = true;
+                }
+
+                // Check default value
+                if (!argMetadata.defaultValue().isEmpty()) {
                     Type typeWrapperClass = TypeUtility.box(argMetadata.type());
                     DefaultValueConverter<?> converter = BuiltinDefaultValueConverters.CONVERTERS.get(typeWrapperClass);
                     if (converter != null) {
@@ -171,10 +177,9 @@ public class McpCdiExtension implements Extension {
                             invalidDefaultValueForType = true;
                         }
                     } else {
-                        Tr.error(tc, "CWMCM0017E.missing.toolarg.defaultvalue.converter", tool.getToolQualifiedName(), argName, argMetadata.type());
+                        Tr.error(tc, "CWMCM0017E.missing.toolarg.defaultvalue.converter", tool.getToolQualifiedName(), argMetadata.name(), argMetadata.type());
                         unsupportedDefaultValueType = true;
                     }
-
                 }
             }
         }

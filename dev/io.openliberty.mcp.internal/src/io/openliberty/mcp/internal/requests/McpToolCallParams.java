@@ -23,11 +23,11 @@ import com.ibm.websphere.ras.TraceComponent;
 
 import io.openliberty.mcp.annotations.ToolArg;
 import io.openliberty.mcp.internal.ToolMetadata;
-import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
 import io.openliberty.mcp.internal.ToolRegistry;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCErrorCode;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCException;
 import io.openliberty.mcp.internal.schemas.TypeUtility;
+import io.openliberty.mcp.internal.tools.ToolManager.ToolArgument;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import jakarta.json.bind.Jsonb;
@@ -92,15 +92,14 @@ public class McpToolCallParams {
     }
 
     private Map<String, Object> parseArguments(JsonObject requestArguments, Jsonb jsonb) {
-        Map<String, ArgumentMetadata> metadatas = metadata.arguments();
+        List<ToolArgument> metadatas = metadata.arguments();
         Map<String, Object> result = new HashMap<>();
 
         boolean hasMissingArgs = false;
         int requestArgumentsProcessed = 0;
 
-        for (var argEntry : metadatas.entrySet()) {
-            String argName = argEntry.getKey();
-            ArgumentMetadata argMetadata = argEntry.getValue();
+        for (ToolArgument argMetadata : metadatas) {
+            String argName = argMetadata.name();
             JsonValue argValue = requestArguments.get(argName);
             if (argValue != null) {
                 String argValueJson = jsonb.toJson(argValue);
@@ -117,11 +116,14 @@ public class McpToolCallParams {
         }
 
         if (hasMissingArgs || requestArgumentsProcessed != requestArguments.size()) {
-            Set<String> requiredArgs = metadatas.values().stream()
+            Set<String> requiredArgs = metadatas.stream()
                                                 .filter(arg -> arg.required())
                                                 .map(arg -> arg.name())
                                                 .collect(Collectors.toSet());
-            List<String> data = generateArgumentMismatchData(requestArguments.keySet(), metadatas.keySet(), requiredArgs);
+            Set<String> allowedArgs = metadatas.stream()
+                                               .map(arg -> arg.name())
+                                               .collect(Collectors.toSet());
+            List<String> data = generateArgumentMismatchData(requestArguments.keySet(), allowedArgs, requiredArgs);
             throw new JSONRPCException(JSONRPCErrorCode.INVALID_PARAMS, data);
         }
         return result;
@@ -136,7 +138,7 @@ public class McpToolCallParams {
      * @throws IllegalArgumentException if the default value cannot be converted to the target type or there is no converter for the target type.
      */
     @SuppressWarnings("unchecked")
-    public static Object convertDefaultValueToArgType(ToolMetadata toolMetadata, ArgumentMetadata argMetadata) {
+    public static Object convertDefaultValueToArgType(ToolMetadata toolMetadata, ToolArgument argMetadata) {
         String defaultValue = argMetadata.defaultValue();
         Type type = TypeUtility.box(argMetadata.type());
         DefaultValueConverter<?> converter = BuiltinDefaultValueConverters.CONVERTERS.get(type);

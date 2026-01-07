@@ -26,7 +26,7 @@ import io.openliberty.mcp.annotations.Schema;
 import io.openliberty.mcp.annotations.Tool;
 import io.openliberty.mcp.annotations.ToolArg;
 import io.openliberty.mcp.internal.ToolMetadata;
-import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
+import io.openliberty.mcp.internal.ToolMetadata.ToolMethodArgument;
 import io.openliberty.mcp.internal.exceptions.GenericArgumentException;
 import io.openliberty.mcp.internal.schemas.SchemaDirection;
 import io.openliberty.mcp.internal.schemas.SchemaRegistry;
@@ -285,7 +285,7 @@ public class SchemaTest {
                             "$ref": "#/$defs/Person"
                         }
                             """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     public record Widget(String name, int flangeCount) {};
@@ -299,8 +299,8 @@ public class SchemaTest {
     @Test
     public void testToolInputSchema() throws NoSuchMethodException, SecurityException {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "updateWidget");
-        Map<String, ArgumentMetadata> argumentMap = ToolMetadata.getArgumentMap(toolMethod, Collections.emptyMap());
-        String toolInputSchema = registry.getToolInputSchema(toolMethod, argumentMap).toString();
+        List<ToolMethodArgument> arguments = ToolMetadata.getArguments(toolMethod, Collections.emptyMap());
+        String toolInputSchema = registry.getToolInputSchema(arguments).toString();
         String expectedSchema = """
                         {
                         "type" : "object",
@@ -332,7 +332,7 @@ public class SchemaTest {
                         ]
                         }
                         """;
-        JSONAssert.assertEquals(expectedSchema, toolInputSchema, true);
+        JSONAssert.assertEquals(expectedSchema, toolInputSchema, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -358,7 +358,7 @@ public class SchemaTest {
                             ]
                         }
                         """;
-        JSONAssert.assertEquals(expectedSchema, response, true);
+        JSONAssert.assertEquals(expectedSchema, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     public record CompositeWidget(String name, int flangeCount, List<CompositeWidget> subwidgets) {}
@@ -372,8 +372,8 @@ public class SchemaTest {
     @Test
     public void testToolInputRecursive() {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "combineWidgets");
-        Map<String, ArgumentMetadata> argumentMap = ToolMetadata.getArgumentMap(toolMethod, Collections.emptyMap());
-        String toolInputSchema = registry.getToolInputSchema(toolMethod, argumentMap).toString();
+        List<ToolMethodArgument> arguments = ToolMetadata.getArguments(toolMethod, Collections.emptyMap());
+        String toolInputSchema = registry.getToolInputSchema(arguments).toString();
 
         String expectedSchema = """
                         {
@@ -418,7 +418,7 @@ public class SchemaTest {
                             ]
                         }
                         """;
-        JSONAssert.assertEquals(expectedSchema, toolInputSchema, true);
+        JSONAssert.assertEquals(expectedSchema, toolInputSchema, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -456,15 +456,15 @@ public class SchemaTest {
                             "$ref": "#/$defs/CompositeWidget",
                         }
                         """;
-        JSONAssert.assertEquals(expectedSchema, response, true);
+        JSONAssert.assertEquals(expectedSchema, response, JSONCompareMode.NON_EXTENSIBLE);
 
     }
 
     @Test
     public void testPersonCheckToolSchema() throws NoSuchMethodException, SecurityException {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "checkPerson");
-        Map<String, ArgumentMetadata> argumentMap = ToolMetadata.getArgumentMap(toolMethod, Collections.emptyMap());
-        String toolInputSchema = registry.getToolInputSchema(toolMethod, argumentMap).toString();
+        List<ToolMethodArgument> arguments = ToolMetadata.getArguments(toolMethod, Collections.emptyMap());
+        String toolInputSchema = registry.getToolInputSchema(arguments).toString();
         String expectedResponseString = """
                         {
                             "$defs": {
@@ -573,7 +573,7 @@ public class SchemaTest {
                             "type": "object"
                         }
                                                     """;
-        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, true);
+        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -612,7 +612,7 @@ public class SchemaTest {
                             "type": "object"
                         }
                             """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -634,7 +634,7 @@ public class SchemaTest {
                           "type": "object"
                         }
                         """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -734,7 +734,7 @@ public class SchemaTest {
                             "$ref": "#/$defs/Company"
                         }
                                 """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -897,8 +897,8 @@ public class SchemaTest {
     @Test
     public void testPersonAddtoListToolInputSchema() throws NoSuchMethodException, SecurityException {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "addPersonToList");
-        Map<String, ArgumentMetadata> argumentMap = ToolMetadata.getArgumentMap(toolMethod, Collections.emptyMap());
-        String toolInputSchema = registry.getToolInputSchema(toolMethod, argumentMap).toString();
+        List<ToolMethodArgument> arguments = ToolMetadata.getArguments(toolMethod, Collections.emptyMap());
+        String toolInputSchema = registry.getToolInputSchema(arguments).toString();
         String expectedResponseString = """
                                                 {
                                                 "$defs": {
@@ -1007,7 +1007,7 @@ public class SchemaTest {
                                                 "type": "object"
                                             }
                         """;
-        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, true);
+        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -1111,7 +1111,7 @@ public class SchemaTest {
                             "type": "array"
                         }
                                                     """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     public enum TestEnum {
@@ -1141,7 +1141,7 @@ public class SchemaTest {
                             "required": ["testEnum"]
                         }""";
 
-        JSONAssert.assertEquals(expectedSchema, schema, true);
+        JSONAssert.assertEquals(expectedSchema, schema, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     public record EnumMapHolder(Map<TestEnum, String> map) {};
@@ -1170,7 +1170,7 @@ public class SchemaTest {
                             },
                             "required": ["map"]
                         }""";
-        JSONAssert.assertEquals(expectedSchema, schema, true);
+        JSONAssert.assertEquals(expectedSchema, schema, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -1242,7 +1242,7 @@ public class SchemaTest {
                             "$ref": "#/$defs/PartialPerson"
                         }
                             """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     public static class BoxMap<K, V, T> {
@@ -1345,7 +1345,7 @@ public class SchemaTest {
                             ]
                         }
                             """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     public static class BoxMapTwo<K, V, T> {
@@ -1577,7 +1577,7 @@ public class SchemaTest {
                                             }
                                         }
                         """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     public static class MyClass<U> {
@@ -1639,7 +1639,7 @@ public class SchemaTest {
                                 }
                             }
                         """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     static class TestGenericReuse {
@@ -1751,7 +1751,7 @@ public class SchemaTest {
                                 }
                             }
                         """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
 
     }
 
@@ -1866,7 +1866,7 @@ public class SchemaTest {
                                 }
                             }
                         """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
 
     }
 
@@ -1922,7 +1922,7 @@ public class SchemaTest {
                             ]
                         }
                             """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Tool(name = "addGenericToList", title = "adds generic to generic list", description = "adds person to employee list, returns nothing")
@@ -1934,12 +1934,12 @@ public class SchemaTest {
         //comment
     }
 
+    @SuppressWarnings("unused")
     @Test(expected = GenericArgumentException.class)
     public void testGenericToolArg() {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "addGenericToList");
-        Map<String, ArgumentMetadata> argumentMap = ToolMetadata.getArgumentMap(toolMethod, Collections.emptyMap());
-        String toolInputSchema = registry.getToolInputSchema(toolMethod, argumentMap).toString();
-
+        List<ToolMethodArgument> arguments = ToolMetadata.getArguments(toolMethod, Collections.emptyMap());
+        String toolInputSchema = registry.getToolInputSchema(arguments).toString();
     }
 
     @Tool(name = "addGenericSingleBoundToList", title = "adds generic to generic list", description = "adds person to employee list, returns nothing")
@@ -1952,11 +1952,12 @@ public class SchemaTest {
         //comment
     }
 
+    @SuppressWarnings("unused")
     @Test(expected = GenericArgumentException.class)
     public void testGenericSingleBoundToolArg() {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "addGenericSingleBoundToList");
-        Map<String, ArgumentMetadata> argumentMap = ToolMetadata.getArgumentMap(toolMethod, Collections.emptyMap());
-        String toolInputSchema = registry.getToolInputSchema(toolMethod, argumentMap).toString();
+        List<ToolMethodArgument> arguments = ToolMetadata.getArguments(toolMethod, Collections.emptyMap());
+        String toolInputSchema = registry.getToolInputSchema(arguments).toString();
     }
 
     public static interface NumberRestrictor {
@@ -2021,7 +2022,7 @@ public class SchemaTest {
                             }
                         }
                             """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Tool(name = "addWildcardToList", title = "adds wildcard to wildcard list", description = "adds person to employee list, returns nothing")
@@ -2035,8 +2036,8 @@ public class SchemaTest {
     @Test
     public void testWildcardToolArg() {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "addWildcardToList");
-        Map<String, ArgumentMetadata> argumentMap = ToolMetadata.getArgumentMap(toolMethod, Collections.emptyMap());
-        String toolInputSchema = registry.getToolInputSchema(toolMethod, argumentMap).toString();
+        List<ToolMethodArgument> arguments = ToolMetadata.getArguments(toolMethod, Collections.emptyMap());
+        String toolInputSchema = registry.getToolInputSchema(arguments).toString();
         String expectedResponseString = """
                         {
                             "type": "object",
@@ -2059,7 +2060,7 @@ public class SchemaTest {
                             ]
                         }
                         """;
-        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, true);
+        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Tool(name = "addWildcardExtendBoundToList", title = "adds wildcard to wildcard list", description = "adds person to employee list, returns nothing")
@@ -2074,8 +2075,8 @@ public class SchemaTest {
     @Test
     public void testGenericExtendBoundToolArg() {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "addWildcardExtendBoundToList");
-        Map<String, ArgumentMetadata> argumentMap = ToolMetadata.getArgumentMap(toolMethod, Collections.emptyMap());
-        String toolInputSchema = registry.getToolInputSchema(toolMethod, argumentMap).toString();
+        List<ToolMethodArgument> arguments = ToolMetadata.getArguments(toolMethod, Collections.emptyMap());
+        String toolInputSchema = registry.getToolInputSchema(arguments).toString();
         String expectedResponseString = """
                                     {
                                         "type": "object",
@@ -2110,7 +2111,7 @@ public class SchemaTest {
                                         ]
                                     }
                         """;
-        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, true);
+        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Tool(name = "addWildcardSuperBoundsToList", title = "adds wildcard to wildcard list", description = "adds person to employee list, returns nothing")
@@ -2125,8 +2126,8 @@ public class SchemaTest {
     @Test
     public void testWildcardSuperBoundsToolArg() {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "addWildcardSuperBoundsToList");
-        Map<String, ArgumentMetadata> argumentMap = ToolMetadata.getArgumentMap(toolMethod, Collections.emptyMap());
-        String toolInputSchema = registry.getToolInputSchema(toolMethod, argumentMap).toString();
+        List<ToolMethodArgument> arguments = ToolMetadata.getArguments(toolMethod, Collections.emptyMap());
+        String toolInputSchema = registry.getToolInputSchema(arguments).toString();
         String expectedResponseString = """
                                     {
                                         "type": "object",
@@ -2149,7 +2150,7 @@ public class SchemaTest {
                                         ]
                                     }
                         """;
-        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, true);
+        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Tool(name = "primitiveArrayTest", title = "Test Content Response", description = "tests Content Response")
@@ -2168,7 +2169,7 @@ public class SchemaTest {
         String expectedResponseString = """
                             {"type":"array","items":{"type":"integer"}}
                         """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Tool(name = "addGenericToGenericArrayGenericConcrete", title = "adds generic to generic Array", description = "adds person to Generic Array, returns nothing")
@@ -2186,8 +2187,8 @@ public class SchemaTest {
         MockAnnotatedMethod<Object> toolMethod = TestUtils.findMethod(SchemaTest.class, "addGenericToGenericArrayGenericConcrete");
         Map<TypeVariable<?>, Type> genericMap = new HashMap<>();
         genericMap.put((TypeVariable<?>) toolMethod.getJavaMember().getParameters()[2].getParameterizedType(), String.class);
-        Map<String, ArgumentMetadata> argumentMap = ToolMetadata.getArgumentMap(toolMethod, genericMap);
-        String toolInputSchema = registry.getToolInputSchema(toolMethod, argumentMap).toString();
+        List<ToolMethodArgument> arguments = ToolMetadata.getArguments(toolMethod, genericMap);
+        String toolInputSchema = registry.getToolInputSchema(arguments).toString();
         String expectedResponseString = """
                                             {
                                                 "type": "object",
@@ -2221,7 +2222,7 @@ public class SchemaTest {
                                                 ]
                                             }
                         """;
-        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, true);
+        JSONAssert.assertEquals(expectedResponseString, toolInputSchema, JSONCompareMode.NON_EXTENSIBLE);
     }
 
     @Test
@@ -2247,7 +2248,7 @@ public class SchemaTest {
                                         }
 
                         """;
-        JSONAssert.assertEquals(expectedResponseString, response, true);
+        JSONAssert.assertEquals(expectedResponseString, response, JSONCompareMode.NON_EXTENSIBLE);
     }
 
 }

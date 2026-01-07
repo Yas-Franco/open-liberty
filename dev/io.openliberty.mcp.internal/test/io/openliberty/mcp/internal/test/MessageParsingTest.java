@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -16,6 +16,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.BeforeClass;
@@ -28,7 +29,6 @@ import io.openliberty.mcp.internal.Capabilities.Roots;
 import io.openliberty.mcp.internal.Capabilities.Sampling;
 import io.openliberty.mcp.internal.Literals;
 import io.openliberty.mcp.internal.RequestMethod;
-import io.openliberty.mcp.internal.ToolMetadata.ArgumentMetadata;
 import io.openliberty.mcp.internal.ToolRegistry;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCException;
 import io.openliberty.mcp.internal.requests.McpInitializeParams;
@@ -38,6 +38,7 @@ import io.openliberty.mcp.internal.requests.McpRequest;
 import io.openliberty.mcp.internal.requests.McpRequestIdDeserializer;
 import io.openliberty.mcp.internal.requests.McpRequestIdSerializer;
 import io.openliberty.mcp.internal.requests.McpToolCallParams;
+import io.openliberty.mcp.internal.tools.ToolManager.ToolArgument;
 import jakarta.json.JsonException;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -59,16 +60,16 @@ public class MessageParsingTest {
         ToolRegistry.set(registry);
 
         Tool testTool = Literals.tool("echo", "Echo", "Echos the input");
-        Map<String, ArgumentMetadata> arguments = Map.of("input", new ArgumentMetadata("input", String.class, 0, "", true, "", false));
+        List<ToolArgument> arguments = List.of(new ToolArgument("input", "", true, String.class, ""));
         registry.addTool(ToolMetadataTestUtility.createFrom(testTool, arguments, Collections.emptyList()));
 
         Tool addTestTool = Literals.tool("add", "Add", "Addition calculator");
-        Map<String, ArgumentMetadata> additionArgs = Map.of("num1", new ArgumentMetadata("num1", Integer.class, 0, "", true, "", false),
-                                                            "num2", new ArgumentMetadata("num2", Integer.class, 1, "", true, "", false));
+        List<ToolArgument> additionArgs = List.of(new ToolArgument("num1", "", true, Integer.class, ""),
+                                                  new ToolArgument("num2", "", true, Integer.class, ""));
         registry.addTool(ToolMetadataTestUtility.createFrom(addTestTool, additionArgs, Collections.emptyList()));
 
         Tool toogleTestTool = Literals.tool("toggle", "Toggle", "Toggle a boolean");
-        Map<String, ArgumentMetadata> booleanArgs = Map.of("input", new ArgumentMetadata("input", Boolean.class, 0, "boolean value", true, "", false));
+        List<ToolArgument> booleanArgs = List.of(new ToolArgument("input", "boolean value", true, Boolean.class, ""));
         registry.addTool(ToolMetadataTestUtility.createFrom(toogleTestTool, booleanArgs, Collections.emptyList()));
     }
 
