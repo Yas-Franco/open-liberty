@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022, 2025 IBM Corporation and others.
+ * Copyright (c) 2022, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -2222,6 +2222,34 @@ public class DataTestServlet extends FATServlet {
         idAndName = all.get(8);
         assertEquals(23L, idAndName[0]);
         assertEquals("twenty-three", idAndName[1]);
+    }
+
+    /**
+     * Repository method with a float literal in a query.
+     */
+    @Test
+    public void testFloatLiteral() {
+        products.clear();
+
+        Product prod1 = new Product();
+        prod1.pk = UUID.nameUUIDFromBytes("TestFloatLiteral-1".getBytes());
+        prod1.name = "TestFloatLiteral-Product-1";
+        prod1.price = 18.49f;
+        products.save(prod1);
+
+        Product prod2 = new Product();
+        prod2.pk = UUID.nameUUIDFromBytes("TestFloatLiteral-2".getBytes());
+        prod2.name = "TestFloatLiteral-Product-2";
+        prod2.price = 18.52f;
+        products.save(prod2);
+
+        assertEquals(List.of("TestFloatLiteral-Product-1"),
+                     products.pricedBelowWithTax(20.0f)
+                                     .stream()
+                                     .map(p -> p.name)
+                                     .collect(Collectors.toList()));
+
+        products.clear();
     }
 
     /**
