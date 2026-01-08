@@ -21,17 +21,16 @@ import jakarta.persistence.Version;
 public class County {
 
     @Id
-    //TODO enable strategy once #33744 is fixed
-    @GeneratedValue//(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
 
     @Version
     private LocalDateTime lastUpdated;
-    
+
     public County() {
-        
+
     }
 
     public County(String name) {
