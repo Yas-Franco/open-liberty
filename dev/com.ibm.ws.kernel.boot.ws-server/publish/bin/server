@@ -1433,7 +1433,13 @@ restoreServer()
   # Use the log dir settings from checkpoint
   # The exception is for the CUR_X_LOG_DIR which gets used for the checkpoint restore log
   CUR_X_LOG_DIR=${X_LOG_DIR}
-  readServerEnv "${SERVER_OUTPUT_DIR}/workarea/checkpoint/.logdir.properties"
+  if [ -f "${SERVER_OUTPUT_DIR}/workarea/checkpoint/.logdir.properties" ]; then
+    eval ". ${SERVER_OUTPUT_DIR}/workarea/checkpoint/.logdir.properties"
+    export REAL_X_LOG_DIR
+    export LOG_DIR
+    export X_LOG_DIR
+    export X_LOG_FILE
+  fi
 
   # no good way to check for criu support since fast startup is imperative
   #   just let criu invocation fail with a hopefully informative error message.
