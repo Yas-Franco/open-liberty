@@ -334,7 +334,7 @@ jakarta.jws:jakarta.jws-api:3.0.0
 jakarta.mail:jakarta.mail-api:1.6.8
 jakarta.mail:jakarta.mail-api:2.0.2
 jakarta.mail:jakarta.mail-api:2.1.1
-jakarta.nosql:jakarta.nosql-api:1.0.0-M1
+jakarta.nosql:jakarta.nosql-api:1.0.1
 jakarta.persistence:jakarta.persistence-api:3.0.0
 jakarta.persistence:jakarta.persistence-api:3.1.0
 jakarta.persistence:jakarta.persistence-api:3.2.0
