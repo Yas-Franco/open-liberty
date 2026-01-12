@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024,2025 IBM Corporation and others.
+ * Copyright (c) 2024,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -66,6 +66,8 @@ import jakarta.data.constraint.NotIn;
 import jakarta.data.constraint.NotLike;
 import jakarta.data.constraint.NotNull;
 import jakarta.data.constraint.Null;
+import jakarta.data.expression.Expression;
+import jakarta.data.metamodel.Attribute;
 import jakarta.data.page.PageRequest;
 import jakarta.data.repository.By;
 import jakarta.data.repository.Delete;
@@ -76,6 +78,9 @@ import jakarta.data.repository.Query;
 import jakarta.data.repository.Save;
 import jakarta.data.repository.Select;
 import jakarta.data.repository.Update;
+import jakarta.data.restrict.BasicRestriction;
+import jakarta.data.restrict.CompositeRestriction;
+import jakarta.data.restrict.Restriction;
 import jakarta.data.spi.expression.literal.Literal;
 import jakarta.persistence.EntityManager;
 
@@ -169,8 +174,24 @@ public class Data_1_1 implements DataVersionCompatibility {
     private static final Set<Class<?>> SPECIAL_PARAM_TYPES = //
                     Set.of(Limit.class, Order.class,
                            Sort.class, Sort[].class,
-                           PageRequest.class // TODO , Restriction.class
-                    );
+                           PageRequest.class,
+                           Restriction.class);
+
+    /**
+     * Generate the name of a named parameter that supplies a Restriction value.
+     *
+     * @param jpqlParamCount parameter number to include in the generated name.
+     * @param jpqlParamNames list of named parameter names to which to add the
+     *                           generated name, which must not already be in the list.
+     * @return
+     */
+    @Trivial
+    private String addRestrictParam(int jpqlParamCount, Set<String> jpqlParamNames) {
+        String paramName = "restrict" + jpqlParamCount;
+        while (!jpqlParamNames.add(paramName))
+            paramName += '_';
+        return paramName;
+    }
 
     @Override
     @Trivial
@@ -320,6 +341,126 @@ public class Data_1_1 implements DataVersionCompatibility {
         return major == 1 && minor <= 1;
     }
 
+    /**
+     * Appends JPQL to the partially built query to implement a Restriction
+     * parameter of a repository method.
+     *
+     * @param q              partially built query ending with the WHERE clause.
+     * @param entityVar_     entity identifier variable name and . character.
+     * @param restriction    value of Restriction parameter. Otherwise null.
+     * @param jpqlParamCount number of named or positional parameters in the
+     *                           partially built query.
+     * @param jpqlParamNames names of named parameters in the partially bulit
+     *                           query. Empty if the query uses positional
+     *                           parameeters or has none. If using named parameters,
+     *                           this method should add any that are generated for
+     *                           the restriction part of the query.
+     * @param qrParams       initially empty list for this method to populate
+     *                           with the name of named parameters or index of
+     *                           positional parameters, mapped to value, for each
+     *                           value obtained from the processed Restriction(s).
+     * @return the new count of named or positional parameters, including any that
+     *         were generated for the Restriction(s).
+     */
+    @Override
+    // TODO @Trivial // avoid tracing values found in Restriction.toString()
+    public int generateRestrictions(StringBuilder q,
+                                    String entityVar_,
+                                    Object restriction,
+                                    int jpqlParamCount,
+                                    Set<String> jpqlParamNames,
+                                    Map<Object, Object> qrParams) {
+
+        if (restriction instanceof BasicRestriction<?, ?> r) {
+            Expression<?, ?> exp = r.expression();
+            Constraint<?> constraint = r.constraint();
+            AttributeConstraint c;
+            // TODO replace the following shortcut:
+            if (constraint instanceof Like)
+                c = AttributeConstraint.LikeEscaped;
+            else if (constraint instanceof NotLike)
+                c = AttributeConstraint.NotLikeEscaped;
+            else
+                c = toAttributeConstraint(null, constraint.getClass().getInterfaces()[0]);
+
+            int numQueryParamsToAdd = c.numMethodParams();
+            boolean positionalParams = jpqlParamNames.isEmpty();
+
+            if (exp instanceof Attribute attr)
+                q.append(entityVar_).append(attr.name());
+            else
+                throw new UnsupportedOperationException(exp.getClass().getName()); // TODO other types of Expression
+
+            q.append(c.operator());
+
+            // TODO first determine if we should even write a value here, or if it is an expression
+            if (numQueryParamsToAdd == 1) {
+                jpqlParamCount++;
+                if (positionalParams) {
+                    q.append('?').append(jpqlParamCount);
+                    qrParams.put(jpqlParamCount, toConstraintValues(constraint)[0]);
+                } else {
+                    String paramName = addRestrictParam(jpqlParamCount, jpqlParamNames);
+                    q.append(':').append(paramName);
+                    qrParams.put(paramName, toConstraintValues(constraint)[0]);
+                }
+            } else if (numQueryParamsToAdd == 2) {
+                Object[] values = toConstraintValues(constraint);
+
+                jpqlParamCount++;
+                if (positionalParams) {
+                    q.append('?').append(jpqlParamCount);
+                    qrParams.put(jpqlParamCount, values[0]);
+                } else {
+                    String paramName = addRestrictParam(jpqlParamCount, jpqlParamNames);
+                    q.append(':').append(paramName);
+                    qrParams.put(paramName, values[0]);
+                }
+
+                if (c == AttributeConstraint.LikeEscaped ||
+                    c == AttributeConstraint.NotLikeEscaped)
+                    q.append(" ESCAPE "); // [NOT] LIKE ?1 ESCAPE ?2
+                else
+                    q.append(" AND "); // [NOT] BETWEEN ?1 AND ?2
+
+                jpqlParamCount++;
+                if (positionalParams) {
+                    q.append('?').append(jpqlParamCount);
+                    qrParams.put(jpqlParamCount, values[1]);
+                } else {
+                    String paramName = addRestrictParam(jpqlParamCount, jpqlParamNames);
+                    q.append(':').append(paramName);
+                    qrParams.put(paramName, values[1]);
+                }
+            }
+        } else if (restriction instanceof CompositeRestriction<?> r) {
+            q.append(r.isNegated() ? "NOT (" : "(");
+            boolean all = r.type() == CompositeRestriction.Type.ALL;
+            List<?> rr = r.restrictions();
+            int count = rr.size();
+            if (count == 0)
+                q.append(all ? "TRUE" : "FALSE");
+            else // one or more
+                for (int i = 0; i < count; i++) {
+                    if (i > 0)
+                        q.append(all ? " AND " : " OR ");
+
+                    jpqlParamCount = generateRestrictions(q,
+                                                          entityVar_,
+                                                          rr.get(i),
+                                                          jpqlParamCount,
+                                                          jpqlParamNames,
+                                                          qrParams);
+                }
+            q.append(')');
+        } else {
+            throw new IllegalArgumentException("Unsupported Restriction type: " +
+                                               restriction.getClass().getName());
+        }
+
+        return jpqlParamCount;
+    }
+
     @Override
     @Trivial
     public Annotation getCountAnnotation(Method method) {
@@ -446,16 +587,23 @@ public class Data_1_1 implements DataVersionCompatibility {
 
     @Override
     @Trivial
+    public boolean isRestriction(Object param) {
+        return param instanceof Restriction;
+    }
+
+    @Override
+    @Trivial
     public boolean isSpecialParamValid(Class<?> paramType,
                                        QueryType queryType) {
         return switch (queryType) {
             case FIND -> true;
             case FIND_AND_DELETE -> !PageRequest.class.equals(paramType);
             case COUNT, EXISTS -> Order.class.equals(paramType) ||
-                // TODO 1.1 Restriction.class.equals(paramType) ||
+                                  Restriction.class.equals(paramType) ||
                                   Sort.class.equals(paramType) ||
                                   Sort[].class.equals(paramType);
-            case QM_DELETE, QM_UPDATE -> false; // TODO 1.1 Restriction.class.equals(paramType)
+            case QM_DELETE -> Restriction.class.equals(paramType);
+            case QM_UPDATE -> false; // TODO FUTURE same as QM_DELETE
             default -> false;
         };
     }

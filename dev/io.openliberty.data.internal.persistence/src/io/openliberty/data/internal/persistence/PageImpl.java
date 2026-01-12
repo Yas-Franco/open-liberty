@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022,2025 IBM Corporation and others.
+ * Copyright (c) 2022,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -103,7 +103,7 @@ public class PageImpl<T> implements Page<T> {
         @SuppressWarnings("unchecked")
         TypedQuery<T> query = (TypedQuery<T>) em.createQuery(queryInfo.jpql,
                                                              Object.class);
-        queryInfo.setParameters(query, args);
+        queryInfo.setParameters(query, args, null);
 
         int maxPageSize = pageRequest.size();
         query.setFirstResult(queryInfo.computeOffset(pageRequest));
@@ -148,7 +148,7 @@ public class PageImpl<T> implements Page<T> {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
                 Tr.debug(this, tc, "query for count: " + queryInfo.jpqlCount);
             TypedQuery<Long> query = em.createQuery(queryInfo.jpqlCount, Long.class);
-            queryInfo.setParameters(query, args);
+            queryInfo.setParameters(query, args, null);
 
             return query.getSingleResult();
         } catch (Exception x) {

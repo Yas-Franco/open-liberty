@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022,2025 IBM Corporation and others.
+ * Copyright (c) 2022,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -432,18 +433,30 @@ public class QueryInfo {
     /**
      * Construct a copy of a source QueryInfo, but with different JPQL and sorts.
      *
-     * @param source QueryInfo from which to copy.
-     * @param jpql   JPQL to use instead of the JPQL from source.
-     * @param sorts  Sorts to use instead of the sorts from source.
+     * @param source      QueryInfo from which to copy.
+     * @param restriction Restriction value that was supplied to the repository method.
+     *                        Otherwise null.
+     * @param qrParams    Map to be populated with JPQL parameter names and values
+     *                        for Restrictions. Map keys are the named parameter name
+     *                        or positional parameter index. Map values are obtained
+     *                        from the Restriction(s). The first positional parameter
+     *                        index starts at jpqlParamCount, which is updated by
+     *                        this method as JPQL parameters for the Restriction(s)
+     *                        are added.
+     * @param jpql        JPQL to use instead of the JPQL from source.
+     * @param sorts       Sorts to use instead of the sorts from source.
      */
-    private QueryInfo(QueryInfo source, String jpql, List<Sort<Object>> sorts) {
+    private QueryInfo(QueryInfo source,
+                      Object restriction,
+                      Map<Object, Object> qrParams,
+                      PageRequest pageReq,
+                      List<Sort<Object>> sorts) {
         entityInfo = source.entityInfo;
         entityParamType = source.entityParamType;
         entityVar = source.entityVar;
         entityVar_ = source.entityVar_;
         hasWhere = source.hasWhere;
         isOptional = source.isOptional;
-        this.jpql = jpql;
         jpqlAfterCursor = source.jpqlAfterCursor;
         jpqlBeforeCursor = source.jpqlBeforeCursor;
         jpqlCount = source.jpqlCount;
@@ -461,6 +474,43 @@ public class QueryInfo {
         this.sorts = sorts;
         type = source.type;
         validateParams = source.validateParams;
+
+        StringBuilder q = new StringBuilder(source.jpql);
+
+        if (restriction != null) {
+            q.append(" AND ");
+            jpqlParamCount = entityInfo.builder.provider.compat //
+                            .generateRestrictions(q,
+                                                  entityVar_,
+                                                  restriction,
+                                                  jpqlParamCount,
+                                                  jpqlParamNames,
+                                                  qrParams);
+        }
+
+        boolean forward = pageReq == null ||
+                          pageReq.mode() != PageRequest.Mode.CURSOR_PREVIOUS;
+        StringBuilder order = null; // ORDER BY clause based on Sorts
+        for (Sort<?> sort : sorts) {
+            validateSort(sort);
+            order = order == null //
+                            ? new StringBuilder(100).append(" ORDER BY ") //
+                            : order.append(", ");
+            generateSort(order, sort, forward);
+        }
+
+        if (pageReq == null ||
+            pageReq.mode() == PageRequest.Mode.OFFSET) {
+            // offset pagination can be a starting point for cursor pagination
+            if (order != null)
+                q.append(order);
+            this.jpql = q.toString();
+        } else { // CURSOR_NEXT or CURSOR_PREVIOUS
+            this.jpql = null;
+            generateCursorQueries(q,
+                                  forward ? order : null,
+                                  forward ? null : order);
+        }
     }
 
     /**
@@ -909,7 +959,7 @@ public class QueryInfo {
                      "to be returned as " + singleType.getName());
 
         TypedQuery<Long> query = em.createQuery(jpql, Long.class);
-        setParameters(query, args);
+        setParameters(query, args, null);
 
         Long count = query.getSingleResult();
 
@@ -1658,7 +1708,7 @@ public class QueryInfo {
             Tr.entry(this, tc, "execute", type); // DELETE or UPDATE
 
         jakarta.persistence.Query update = em.createQuery(jpql);
-        setParameters(update, args);
+        setParameters(update, args, null);
 
         int updateCount = update.executeUpdate();
 
@@ -1692,7 +1742,7 @@ public class QueryInfo {
 
         TypedQuery<?> query = em.createQuery(jpql, Object.class);
         query.setMaxResults(1);
-        setParameters(query, args);
+        setParameters(query, args, null);
 
         List<?> results = query.getResultList();
         boolean found = !results.isEmpty();
@@ -1735,6 +1785,7 @@ public class QueryInfo {
         Limit limit = null;
         int max = maxResults;
         PageRequest pageReq = null;
+        Object restriction = null;
         List<Sort<Object>> sortList = null;
 
         // The first method parameters are used as query parameters.
@@ -1764,6 +1815,15 @@ public class QueryInfo {
                 @SuppressWarnings("unchecked")
                 List<Sort<Object>> newList = supplySorts(sortList, (Sort<Object>[]) param);
                 sortList = newList;
+            } else if (entityInfo.builder.provider.compat.isRestriction(param)) {
+                if (restriction == null)
+                    restriction = param;
+                else
+                    throw exc(UnsupportedOperationException.class,
+                              "CWWKD1017.dup.special.param",
+                              method.getName(),
+                              repositoryInterface.getName(),
+                              "Restriction");
             } else if (param == null) {
                 // ignore null for empty Sort...
                 boolean isSort = false;
@@ -1789,38 +1849,37 @@ public class QueryInfo {
             }
         }
 
+        // Map of named parameter name or positional parameter index to value
+        // for values obtained from Restrictions.
+        // The first positional parameter index starts at jpqlParamCount.
+        Map<Object, Object> queryRestrictionParams;
+        boolean requiresNewQuery;
+
+        if (restriction == null) {
+            queryRestrictionParams = Collections.emptyMap();
+            requiresNewQuery = false;
+        } else { // repository method has a Restriction
+            queryRestrictionParams = new LinkedHashMap<>();
+            requiresNewQuery = true;
+        }
+
         if (sortList == null && sortPositions.length > 0)
             sortList = sorts;
 
-        QueryInfo queryInfo = this;
         if (sortList == null || sortList.isEmpty()) {
             if (pageReq != null)
                 requireOrderedPagination(args);
         } else {
-            boolean forward = pageReq == null ||
-                              pageReq.mode() != PageRequest.Mode.CURSOR_PREVIOUS;
-            StringBuilder q = new StringBuilder(jpql);
-            StringBuilder order = null; // ORDER BY clause based on Sorts
-            for (Sort<?> sort : sortList) {
-                validateSort(sort);
-                order = order == null //
-                                ? new StringBuilder(100).append(" ORDER BY ") //
-                                : order.append(", ");
-                generateSort(order, sort, forward);
-            }
-
-            if (pageReq == null ||
-                pageReq.mode() == PageRequest.Mode.OFFSET) {
-                // offset pagination can be a starting point for cursor pagination
-                String jpqlOrdered = q.append(order).toString();
-                queryInfo = new QueryInfo(this, jpqlOrdered, sortList);
-            } else { // CURSOR_NEXT or CURSOR_PREVIOUS
-                queryInfo = new QueryInfo(this, null, sortList);
-                queryInfo.generateCursorQueries(q,
-                                                forward ? order : null,
-                                                forward ? null : order);
-            }
+            requiresNewQuery = true;
         }
+
+        QueryInfo queryInfo = requiresNewQuery //
+                        ? new QueryInfo(this, //
+                                        restriction, //
+                                        queryRestrictionParams, //
+                                        pageReq, //
+                                        sortList) //
+                        : this;
 
         Object returnValue = queryInfo.find(limit,
                                             max,
@@ -1828,7 +1887,8 @@ public class QueryInfo {
                                             sortList,
                                             em,
                                             txStatus,
-                                            args);
+                                            args,
+                                            queryRestrictionParams);
 
         if (isOptional) {
             returnValue = returnValue == null
@@ -1862,6 +1922,7 @@ public class QueryInfo {
      * @param em       entity manager.
      * @param txStatus transaction status.
      * @param args     method parameters.
+     * @param qrParams map of parameter names/indices and values for Restrictions.
      * @return results, before wrapping in an Optional or CompletionStage.
      * @throws Exception if an error occurs.
      */
@@ -1872,14 +1933,16 @@ public class QueryInfo {
                         List<Sort<Object>> sortList,
                         EntityManager em,
                         int txStatus,
-                        Object... args) throws Exception {
+                        Object[] args,
+                        Map<Object, Object> qrParams) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "find",
                      "Limit: " + limit,
                      "max results: " + max,
                      "PageRequest: " + pageReq,
-                     "Sorts: " + sortList);
+                     "Sorts: " + sortList,
+                     "count of Restriction values: " + qrParams.size());
 
         Object returnValue;
 
@@ -1904,7 +1967,7 @@ public class QueryInfo {
                          entityInfo.entityClass.getName());
 
             TypedQuery<?> query = em.createQuery(jpql, Object.class);
-            setParameters(query, args);
+            setParameters(query, args, qrParams);
 
             if (type == FIND_AND_DELETE)
                 query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
@@ -3150,16 +3213,15 @@ public class QueryInfo {
     }
 
     /**
-     * Generates and appends JQPL to sort based on the specified entity attribute.
+     * Generates and appends JPQL to sort based on the specified entity attribute.
      * For most attributes, this will be of a form such as o.name or LOWER(o.name) DESC or ...
      *
      * @param q             builder for the JPQL query.
-     * @param Sort          sort criteria for a single attribute (name must already
+     * @param sort          sort criteria for a single attribute (name must already
      *                          be converted to a valid entity attribute name).
      * @param sameDirection indicate to append the Sort in the normal direction.
      *                          Otherwise reverses it (for cursor pagination in the
      *                          previous page direction).
-     * @return the same builder for the JPQL query.
      */
     @Trivial
     private void generateSort(StringBuilder q, Sort<?> sort, boolean sameDirection) {
@@ -5370,16 +5432,22 @@ public class QueryInfo {
     /**
      * Sets query parameters from repository method arguments.
      *
-     * @param query the query
-     * @param args  repository method arguments
+     * @param query    the query
+     * @param args     repository method arguments
+     * @param qrParams map of parameter names/indices and values for Restrictions.
      */
     @Trivial // avoid logging customer data
-    void setParameters(jakarta.persistence.Query query, Object... args) {
+    void setParameters(jakarta.persistence.Query query,
+                       Object[] args,
+                       Map<Object, Object> qrParams) {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
 
         DataVersionCompatibility compat = producer.compat();
+        int restrictionParamCount = qrParams == null ? 0 : qrParams.size();
+        int predefinedParamCount = jpqlParamCount - restrictionParamCount;
+
         Iterator<String> namedParams = jpqlParamNames.iterator();
-        for (int i = 0, p = 0; i < jpqlParamCount; i++) {
+        for (int i = 0, p = 0; i < predefinedParamCount; i++) {
             Object[] values = compat.toConstraintValues(args[i]);
             if (values == null) {
                 // normal value, not a Constraint
@@ -5404,6 +5472,24 @@ public class QueryInfo {
                 }
             }
         }
+
+        // JPQL parameters for Restriction(s)
+        if (restrictionParamCount > 0)
+            for (Entry<Object, Object> entry : qrParams.entrySet()) {
+                Object key = entry.getKey();
+                Object value = entry.getValue();
+                if (key instanceof String paramName) {
+                    if (trace && tc.isDebugEnabled())
+                        Tr.debug(this, tc, "[Restriction] set :" + paramName + ' ' + loggable(value));
+                    query.setParameter(paramName, value);
+                } else if (key instanceof Integer p) {
+                    if (trace && tc.isDebugEnabled())
+                        Tr.debug(this, tc, "[Restriction] set ?" + p + " " + loggable(value));
+                    query.setParameter(p, value);
+                } else { // should be unreachable
+                    throw new IllegalStateException(key.toString());
+                }
+            }
     }
 
     /**

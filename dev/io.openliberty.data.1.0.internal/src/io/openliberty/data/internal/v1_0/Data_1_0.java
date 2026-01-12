@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024,2025 IBM Corporation and others.
+ * Copyright (c) 2024,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -16,6 +16,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.sql.Connection;
+import java.util.Map;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -134,6 +135,17 @@ public class Data_1_0 implements DataVersionCompatibility {
 
     @Override
     @Trivial
+    public int generateRestrictions(StringBuilder q,
+                                    String entityVar_,
+                                    Object restriction,
+                                    int jpqlParamCount,
+                                    Set<String> jpqlParamNames,
+                                    Map<Object, Object> qrParams) {
+        throw new UnsupportedOperationException("jakarta.data.restrict.Restriction");
+    }
+
+    @Override
+    @Trivial
     public Annotation getCountAnnotation(Method method) {
         return null;
     }
@@ -174,6 +186,12 @@ public class Data_1_0 implements DataVersionCompatibility {
         // In Data 1.0, all constraints are the equality condition
         constraints[p] = AttributeConstraint.Equal;
         return qpNext + 1;
+    }
+
+    @Override
+    @Trivial
+    public boolean isRestriction(Object param) {
+        return false;
     }
 
     @Override

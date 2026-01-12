@@ -38,6 +38,8 @@ import jakarta.data.page.CursoredPage;
 import jakarta.data.page.Page;
 import jakarta.data.page.PageRequest;
 import jakarta.data.page.PageRequest.Cursor;
+import jakarta.data.restrict.Restrict;
+import jakarta.data.restrict.Restriction;
 import jakarta.inject.Inject;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
@@ -95,6 +97,73 @@ public class Data_1_1_Servlet extends FATServlet {
                       "Thirteen",
                       NotBetween.bounds(5, 10),
                       true)
+                                     .map(f -> f.name)
+                                     .collect(Collectors.toList()));
+    }
+
+    /**
+     * Use a repository method that has the Is annotation on one method
+     * argument and another method argument is a composite All restriction.
+     */
+    @Test
+    public void testCompositeAllRestrictionAndIsAnno() {
+
+        assertEquals(List.of("Three Twelfths",
+                             "Five Twelfths",
+                             "Six Twelfths",
+                             "Ten Twelfths"),
+                     fractions.withNameLike("% Twelfths",
+                                            Restrict.all(_Fraction.numerator.greaterThan(2),
+                                                         _Fraction.name.notBetween("Four",
+                                                                                   "Several"),
+                                                         _Fraction.name.notStartsWith("E")),
+                                            Order.by(_Fraction.numerator.asc())) //
+                                     .map(f -> f.name)
+                                     .collect(Collectors.toList()));
+    }
+
+    /**
+     * Use a repository method that has the Is annotation on one method
+     * argument and another method argument is a composite Any restriction.
+     */
+    @Test
+    public void testCompositeAnyRestrictionAndIsAnno() {
+
+        assertEquals(List.of("Five Elevenths",
+                             "Five Sevenths",
+                             "Nine Elevenths",
+                             "Ten Elevenths",
+                             "Two Elevenths",
+                             "Two Sevenths"),
+                     fractions.withNameLike("%evenths",
+                                            Restrict.any(_Fraction.name.like("T__ %"),
+                                                         _Fraction.name.like("_i_e %")),
+                                            Order.by(_Fraction.name.asc())) //
+                                     .map(f -> f.name)
+                                     .collect(Collectors.toList()));
+    }
+
+    /**
+     * Use a repository method that has the Is annotation on one method
+     * argument and another method argument is a composite restriction
+     * that has another composite restriction within it.
+     */
+    @Test
+    public void testCompositeRestrictionsDepth2() {
+
+        Restriction<Fraction> restriction = //
+                        Restrict.all(_Fraction.numerator.notEqualTo(6),
+                                     Restrict.any(_Fraction.numerator.lessThan(4),
+                                                  _Fraction.numerator.greaterThanEqual(5)));
+
+        assertEquals(List.of("Eight Ninths",
+                             "Seven Ninths",
+                             "Five Ninths",
+                             "Three Ninths",
+                             "Two Ninths"),
+                     fractions.withNameLike("% Ninths",
+                                            restriction,
+                                            Order.by(_Fraction.numerator.desc())) //
                                      .map(f -> f.name)
                                      .collect(Collectors.toList()));
     }
@@ -484,22 +553,6 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
-     * Tests that a Constraint parameter and Is annotation parameter can be
-     * intermixed on a single repository method.
-     */
-    @Test
-    public void testMixConstraintAndIsAnno() {
-        Sort<Fraction> alphabetizedByName = Sort.asc(_Fraction.NAME);
-
-        assertEquals(List.of("Eight Ninths",
-                             "Five Ninths",
-                             "Three Ninths"),
-                     fractions.withNumeratorsAndDenominator(In.values(3, 5, 8, -12),
-                                                            9,
-                                                            alphabetizedByName));
-    }
-
-    /**
      * Attempt to use the static metamodel to create an expression for a
      * negative length prefix of an entity attribute value. Verify that
      * IllegalArgumentException is raised for the negative length and that
@@ -522,6 +575,75 @@ public class Data_1_1_Servlet extends FATServlet {
             else
                 throw x;
         }
+    }
+
+    /**
+     * Use a repository method that has the Is annotation on one method
+     * argument and another method argument is a Between restriction.
+     */
+    @Test
+    public void testMixBetweenRestrictionAndIsAnno() {
+
+        assertEquals(List.of("Three Tenths",
+                             "Four Tenths",
+                             "Five Tenths",
+                             "Six Tenths"),
+                     fractions.withNameLike("% Tenths",
+                                            _Fraction.numerator.between(3, 6),
+                                            Order.by(_Fraction.numerator.asc())) //
+                                     .map(f -> f.name)
+                                     .collect(Collectors.toList()));
+    }
+
+    /**
+     * Tests that a Constraint parameter and Is annotation parameter can be
+     * intermixed on a single repository method.
+     */
+    @Test
+    public void testMixConstraintAndIsAnno() {
+        Sort<Fraction> alphabetizedByName = Sort.asc(_Fraction.NAME);
+
+        assertEquals(List.of("Eight Ninths",
+                             "Five Ninths",
+                             "Three Ninths"),
+                     fractions.withNumeratorsAndDenominator(In.values(3, 5, 8, -12),
+                                                            9,
+                                                            alphabetizedByName));
+    }
+
+    /**
+     * Use a repository method that has the Is annotation on one method
+     * argument and another method argument is a lessThanEqual restriction.
+     */
+    @Test
+    public void testMixLTERestrictionAndIsAnno() {
+
+        assertEquals(List.of("Five Eighths",
+                             "Four Eighths",
+                             "Three Eighths",
+                             "Two Eighths"),
+                     fractions.withNameLike("% Eighths",
+                                            _Fraction.numerator.lessThanEqual(5),
+                                            Order.by(_Fraction.numerator.desc())) //
+                                     .map(f -> f.name)
+                                     .collect(Collectors.toList()));
+    }
+
+    /**
+     * Use a repository method that has the Is annotation on one method
+     * argument and another method argument is a notLike restriction.
+     */
+    @Test
+    public void testMixNotLikeRestrictionAndIsAnno() {
+
+        assertEquals(List.of("Five Sevenths",
+                             "Four Sevenths",
+                             "Three Sevenths"),
+                     fractions.withNameLike("% Sevenths",
+                                            _Fraction.name.notLike("--- *", '-', '*', '!'),
+                                            Order.by(_Fraction.numerator.desc())) //
+                                     .map(f -> f.name)
+                                     .collect(Collectors.toList()));
     }
 
     /**

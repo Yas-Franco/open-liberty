@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -41,6 +41,7 @@ import jakarta.data.repository.OrderBy;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.Repository;
 import jakarta.data.repository.Select;
+import jakarta.data.restrict.Restriction;
 
 /**
  * Repository for the Fraction entity
@@ -101,6 +102,12 @@ public interface Fractions {
     Stream<Fraction> withDenominatorButNotNumerator //
     (@By(_Fraction.DENOMINATOR) @Is(EqualTo.class) long denominator,
      @By(_Fraction.NUMERATOR) @Is(NotEqualTo.class) long excludeNumerator,
+     Order<Fraction> order);
+
+    @Find
+    Stream<Fraction> withNameLike //
+    (@By(_Fraction.NAME) @Is(Like.class) String pattern,
+     Restriction<Fraction> filter,
      Order<Fraction> order);
 
     @Find
