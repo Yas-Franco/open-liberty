@@ -559,8 +559,12 @@ public class WIMUserRegistry implements FederationRegistry, UserRegistry, Attrib
         try {
             returnValue = searchBridge.getAttributesForUser(userSecurityName, attributeNames);
         } catch (Exception excp) {
-            if (excp instanceof RegistryException)
+            if (excp instanceof EntryNotFoundException)
+                throw (EntryNotFoundException) excp;
+
+            else if (excp instanceof RegistryException)
                 throw (RegistryException) excp;
+
             else
                 throw new RegistryException(excp.getMessage(), excp);
         }
