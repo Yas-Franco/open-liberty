@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2009, 2025 IBM Corporation and others.
+ * Copyright (c) 2009, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -29,6 +29,7 @@ import com.ibm.wsspi.bytebuffer.WsByteBuffer;
 import com.ibm.wsspi.bytebuffer.WsByteBufferPoolManager;
 import com.ibm.wsspi.channelfw.VirtualConnection;
 import com.ibm.wsspi.genericbnf.exception.MessageSentException;
+import com.ibm.wsspi.http.channel.HttpResponseMessage;
 import com.ibm.wsspi.http.channel.exception.WriteBeyondContentLengthException;
 import com.ibm.wsspi.http.channel.inbound.HttpInboundServiceContext;
 import com.ibm.ws.http.channel.internal.HttpChannelConfig;
@@ -79,6 +80,11 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
      */
     protected HttpOutputStreamObserver obs = null;
     protected boolean WCheadersWritten = false;
+   
+    private boolean isBufferFlushed= false;
+    private int allocatedWsByteBufferTotal = 0; //just a counter; no decision on this
+    private boolean isBodySent = false;
+    private boolean wcFinishCommitResponse = false;
 
     /**
      * Constructor of an output stream for a given service context.
@@ -86,7 +92,15 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
      * @param context
      */
     public HttpOutputStreamImpl(HttpInboundServiceContext context) {
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "HttpOutputStreamImpl constructor , context " + context );
+        }
         this.isc = context;
+
+        isBufferFlushed= false;
+        allocatedWsByteBufferTotal = 0;
+        isBodySent = false;
+        wcFinishCommitResponse = false;
     }
 
     /*
@@ -154,7 +168,7 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
         }
         this.output = new WsByteBuffer[numBuffers];
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-            Tr.debug(tc, "setBufferSize=" + size + "; " + this);
+            Tr.debug(tc, "setBufferSize , amountToBuffer =  " + size );
         }
     }
 
@@ -274,6 +288,7 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
             buffer = this.output[this.outputIndex];
             buffer.clear();
         }
+        
         return buffer;
     }
 
@@ -289,8 +304,9 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
      */
     private void writeToBuffers(byte[] value, int start, int len) throws IOException {
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-            Tr.debug(tc, "Writing " + len + ", buffered=" + this.bufferedCount);
+            Tr.debug(tc, "writeToBuffers ENTRY, Writing [" + len + "] bufferedCount [" + this.bufferedCount + "] , [" + this + "]");
         }
+        
         if (value.length < (start + len)) {
             throw new IllegalArgumentException("Length outside value range");
         }
@@ -327,10 +343,22 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
                 offset += avail;
                 remaining -= avail;
             }
+
             if (this.bufferedCount >= this.amountToBuffer) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "writeToBuffers, writing over amountToBuffer , isBufferFlushed = true , flushing"); 
+                }
+
+                //If first response has not sent yet, it is now chunked
+                this.isBufferFlushed = true;   
                 this.ignoreFlush = false;
                 flushBuffers();
             }
+        }
+        allocatedWsByteBufferTotal++;
+        
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "writeToBuffers RETURN , bufferedCount = " + bufferedCount); 
         }
     }
 
@@ -500,33 +528,35 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
     @Override
     @FFDCIgnore({ IOException.class })
     public void flushBuffers() throws IOException {
-
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-            Tr.debug(tc, "Flushing buffers: " + this);
+            Tr.debug(tc, "flushBuffers, Flushing buffers, ignoreFlush = " + ignoreFlush + " " + this);
         }
 
-        if ((isc != null) && (isc instanceof HttpInboundServiceContextImpl)) {
-            if (this.isc.getResponse() == null) {
-                IOException x = new IOException("response Object(s) (e.g. getObjectFactory()) are null");
-                throw x;
-            }
-
-            if (!this.isc.getResponse().isCommitted()) {
-                if (obs != null && !this.WCheadersWritten) {
-                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                        Tr.debug(tc, "obs  ->" + obs);
-                    }
-                    obs.alertOSFirstFlush();
+        HttpResponseMessage responseMessage = null;
+        if ((isc != null) && (isc instanceof HttpInboundServiceContextImpl)) { 
+            responseMessage = this.isc.getResponse();
+        }
+        
+        if (responseMessage == null) {
+            IOException x = new IOException("response Object(s) (e.g. getObjectFactory()) are null");
+            throw x;
+        }
+        
+        if (!responseMessage.isCommitted()) {
+            if (obs != null && !this.WCheadersWritten) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "obs  ->" + obs);
                 }
-
-                this.isc.getResponse().setCommitted();
+                obs.alertOSFirstFlush();
             }
-        }
 
+            responseMessage.setCommitted();
+        }
+        
         if (this.ignoreFlush) {
             this.ignoreFlush = false;
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                Tr.debug(tc, "Ignoring first flush attempt");
+                Tr.debug(tc, "Ignoring first flush attempt ; set ignoreFlush = false");
             }
             return;
         }
@@ -548,8 +578,42 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
                     this.hasFinished = true;
                 }
             } else {
+
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "flushBuffers , sendResponseBody : bufferedCount = " + bufferedCount 
+                             + " | amountToBuffer = " + amountToBuffer
+                             + " |  isBodySent = " + isBodySent
+                             + " | isBufferFlushed = " + isBufferFlushed
+                             + " | wcFinishCommitResponse = " + wcFinishCommitResponse
+                             + " | allocatedWsByteBufferTotal = " + allocatedWsByteBufferTotal);
+                }
+               
+                if (isBodySent || responseMessage.getContentLength() > 0) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "flushBuffers, Body sent or Content-Length set");
+                    } 
+                }
+                else if (!isBodySent && !isBufferFlushed && wcFinishCommitResponse) {
+                    //No prior commit() by the time WC response is finish() AND body/flush has NOT happened. CL can be set instead 
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "flushBuffers, set Content-Length : " + bufferedCount);
+                    } 
+                    responseMessage.setContentLength(bufferedCount);
+                }
+
                 // else use the partial body api
                 this.isc.sendResponseBody(content);
+                
+                isBodySent = true;
+                
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "flushBuffers , sendResponseBody RETURN : bufferedCount = " + bufferedCount 
+                             + " | amountToBuffer = " + getBufferSize() 
+                             + " | isBodySent = " + isBodySent
+                             + " | isBufferFlushed = " + isBufferFlushed
+                             + " | wcFinishCommitResponse = " + wcFinishCommitResponse
+                             + " | allocatedWsByteBufferTotal = " + allocatedWsByteBufferTotal);
+                }
             }
         } catch (MessageSentException mse) {
 
@@ -600,6 +664,7 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
         sb.append(" writing=").append(this.writing);
         sb.append(" closed=").append(this.closed);
         sb.append(" bufferedCount=").append(this.bufferedCount);
+        sb.append(" amountToBuffer=").append(this.amountToBuffer);
         sb.append(" bytesWritten=").append(this.bytesWritten);
         sb.append(" error=").append(this.error);
         if (null != this.output) {
@@ -651,7 +716,7 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
     @Override
     public void flush() throws IOException {
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-            Tr.debug(tc, "Flushing stream: " + this);
+            Tr.debug(tc, "Flushing stream: ignoreFlush = " + ignoreFlush );
         }
         validate();
         if (!this.hasFinished) {
@@ -681,6 +746,10 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
      */
     @Override
     public void setContentLength(long length) {
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "setContentLength: " + length);
+        }
+
         contentLengthSet = true;
         bytesRemaining = length;
     }
@@ -731,6 +800,9 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
 
     @Override
     public void setWebC_headersWritten(boolean headersWritten) {
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "setWebC_headersWritten = " + headersWritten);
+        }
         this.WCheadersWritten = headersWritten;
     }
 
@@ -740,6 +812,14 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
         if (isc instanceof HttpInboundServiceContextImpl) {
             ((HttpInboundServiceContextImpl) isc).setRemoteUser(remoteUser);
         }
+    }
+    
+    @Override
+    public void setWC_finishCommitResponse(boolean b) {
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "setWC_finishCommitResponse = " + b);
+        }
+        wcFinishCommitResponse = b;
     }
 
     /**
