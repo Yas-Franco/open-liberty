@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024, 2025 IBM Corporation and others.
+ * Copyright (c) 2024, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -58,6 +58,7 @@ import io.openliberty.classloading.lib.path.test.app.LibPathTestServlet;
 import io.openliberty.classloading.library.precedence.test.app.LibPrecedenceBeforeAppTestServlet;
 import io.openliberty.classloading.libs.util.CodeSourceUtil;
 import io.openliberty.classloading.parent.library.inconsistent.test.app.ParentLibraryInconsistentTestServlet;
+import io.openliberty.nativelib.test.app.NativeLibraryTestServlet;
 import io.openlibery.classloading.override.library.test.app.OverrideLibraryTestServlet;
 import io.openlibery.classloading.override.library.test.app.a.AOverride;
 import io.openlibery.classloading.override.library.test.app.b.BOverride;
@@ -95,7 +96,8 @@ import test.bundle.api4.c.API_C4;
     ParentLastInconsistentLibraryTests.class,
     OverrideLibraryTests.class,
     LibraryPrecedenceBeforeAppTests.class,
-    LibraryPrecedenceAfterAppTests.class
+    LibraryPrecedenceAfterAppTests.class,
+    NativeLibraryTest.class
 })
 public class FATSuite {
     static final String CLASSPATH_TEST_WAR_LOADER_SERVER = "classpathTestWarLoader";
@@ -105,6 +107,7 @@ public class FATSuite {
     static final String CLASSPATH_TEST_EAR_LOADER_SERVER = "classpathTestEarLoader";
     static final String PRIVATE_LIBRARY_TEST_SERVER = "privateLibraryTest";
     static final String LIB_FILESET_TEST_SERVER = "libPathTest";
+    static final String NATIVE_LIBRARY_TEST_SERVER = "nativeLibraryTest";
     static final String PARENT_LAST_LIBRARY_FEATURE_TEST_SERVER = "parentLastLibraryFeatureTest";
     static final String PARENT_LAST_LIBRARY_INCONSISTENT_SERVER = "parentLastLibraryInconsistentTest";
     static final String PARENT_LAST_RESOURCE_ADAPTOR_INCONSISTENT_SERVER = "parentLastResourceAdaptorInconsistentTest";
@@ -118,6 +121,7 @@ public class FATSuite {
     public static final String TEST_CLASS_PATH2_APP = "testClassPath2";
     public static final String TEST_CLASS_PATH3_APP = "testClassPath3";
     public static final String TEST_LIB_FILESET_APP = "testLibFileSet";
+    public static final String TEST_NATIVE_LIBRARY_APP = "testNativeLibrary";
     public static final String TEST_PARENT_LAST_LIBRARY_FEATURE_APP = "testParentLastLibraryFeature";
     public static final String TEST_PARENT_LIBRARY_INCONSISTENT_APP = "testParentLibraryInconsistent";
     public static final String TEST_LIB_PRECECENCE_APP = "testLibPrecedence";
@@ -199,6 +203,7 @@ public class FATSuite {
     static final WebArchive TEST_CLASS_PATH2_WAR;
     static final WebArchive TEST_CLASS_PATH3_WAR;
     static final WebArchive TEST_LIB_FILESET_WAR;
+    static final WebArchive TEST_NATIVE_LIBRARY_WAR;
     static final WebArchive TEST_PARENT_LAST_LIBRARY_FEATURE_WAR;
     static final WebArchive TEST_LIB_DELEGATION_PARENT_INCONSISTENT_WAR;
     static final WebArchive TEST_OVERRIDE_LIB_WAR;
@@ -317,6 +322,10 @@ public class FATSuite {
             TEST_LIB_FILESET_WAR = ShrinkHelper.buildDefaultApp(TEST_LIB_FILESET_APP + ".war",
                                                                         LibPathTestServlet.class.getPackage().getName(),
                                                                         TestUtils.class.getPackage().getName());
+
+            TEST_NATIVE_LIBRARY_WAR = ShrinkHelper.buildDefaultApp(TEST_NATIVE_LIBRARY_APP + ".war",
+                                                                NativeLibraryTestServlet.class.getPackage().getName(),
+                                                                TestUtils.class.getPackage().getName());
 
             TEST_PARENT_LAST_LIBRARY_FEATURE_WAR = ShrinkHelper.buildDefaultApp(TEST_PARENT_LAST_LIBRARY_FEATURE_APP + ".war",
                                                                 ParentLastFeatureMessageTestServlet.class.getPackage().getName());

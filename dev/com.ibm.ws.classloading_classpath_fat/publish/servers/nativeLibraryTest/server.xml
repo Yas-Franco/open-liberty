@@ -1,0 +1,27 @@
+<server>
+    <featureManager>
+        <feature>webProfile-8.0</feature>
+        <feature>componenttest-1.0</feature>
+    </featureManager>
+
+    <include location="../fatTestPorts.xml"/>
+
+    <webApplication location="testNativeLibrary.war">
+        <classloader privateLibraryRef="testPrivateLib" commonLibraryRef="testCommonLib" />
+    </webApplication>
+
+    <library id="testPrivateLib">
+       <!-- test of relative path to jar -->
+       <path name="lib1/testLib1.jar"/>
+       <!-- native path is configured in test code -->
+    </library>
+
+    <library id="testCommonLib">
+       <!-- test of relative path to jar -->
+       <path name="lib2/testLib2.jar"/>
+       <!-- native path is configured in test code -->
+    </library>
+
+    <javaPermission codeBase="${server.config.dir}/apps/testNativeLibrary.war" className="java.lang.RuntimePermission" name="getClassLoader"/>
+</server>
+
