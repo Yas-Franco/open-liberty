@@ -201,7 +201,7 @@ public class TestNewQueryTimeFunctionsServlet extends JPADBTestServlet {
     }
 
     @Test
-    @SkipIfSysProp(DB_Oracle) // Reference issue: https://github.com/OpenLiberty/open-liberty/issues/33805
+    // Reference issue: https://github.com/OpenLiberty/open-liberty/issues/33805
     public void testLocalTimeFunction_JPQL() throws Exception {
         em.clear();
 
