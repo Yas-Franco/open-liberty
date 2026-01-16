@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022, 2025 IBM Corporation and others.
+ * Copyright (c) 2022, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -1371,9 +1371,16 @@ public class DataJPATestServlet extends FATServlet {
                                           .thenComparing(Comparator.<ShippingAddress, String> comparing(o -> o.streetAddress.streetName))
                                           .thenComparing(Comparator.<ShippingAddress, Integer> comparing(o -> o.zipCode)));
 
-        assertEquals(List.of("200 1st Ave SW", "151 4th St SE", "201 4th St SE"),
-                     Stream.of(shippingAddresses.findByStreetAddress_houseNumberBetweenOrderByStreetAddress_streetNameAscStreetAddress_houseNumber(150, 250))
-                                     .map(a -> a.houseNumber + " " + a.streetName)
+        ShippingAddress[] addresses = shippingAddresses
+                        .findByStreetAddress_houseNumberBetweenOrderByStreetAddress_streetNameAscStreetAddress_houseNumber//
+                        (150,
+                         250);
+        assertEquals(List.of("200 1st Ave SW",
+                             "151 4th St SE",
+                             "201 4th St SE"),
+                     Stream.of(addresses)
+                                     .map(a -> a.streetAddress.houseNumber + " " +
+                                               a.streetAddress.streetName)
                                      .collect(Collectors.toList()));
 
         assertEquals(4, shippingAddresses.removeAll());
@@ -1680,10 +1687,11 @@ public class DataJPATestServlet extends FATServlet {
     }
 
     /**
-     * Repository method where the result type is an embeddable class 3 levels deep on the entity.
+     * Repository method where the resulting entity type includes an
+     * embeddable class 3 levels deep.
      */
     @Test
-    public void testEmbeddableTypeAsResultDepth3() {
+    public void testEmbeddableTypeAtDepth3() {
 
         assertEquals(List.of("N Broadway Ave",
                              "NE Wellner Dr",
@@ -1693,6 +1701,7 @@ public class DataJPATestServlet extends FATServlet {
                              "SW Greenview Dr"),
                      businesses.findByLocationAddressZipNotAndLocationAddressCity(ZipCode.of(55901),
                                                                                   "Rochester")
+                                     .map(b -> b.location.address.street)
                                      .map(street -> street.direction + " " + street.name)
                                      .collect(Collectors.toList()));
     }
@@ -1956,11 +1965,13 @@ public class DataJPATestServlet extends FATServlet {
             // expected
         }
 
-        // verify that the second entity remains at its second version (22.99) and that the addition of the sixth entity was rolled back
-        List<Float> orderTotals = orders.findTotalByPurchasedByIn(List.of("testEntitiesAsParameters-Customer2",
-                                                                          "testEntitiesAsParameters-Customer6"));
+        // verify that the second entity remains at its second version (22.99)
+        // and that the addition of the sixth entity was rolled back
+        List<PurchaseOrder> orderTotals = orders.findOrdersByPurchasedByIn(List
+                        .of("testEntitiesAsParameters-Customer2",
+                            "testEntitiesAsParameters-Customer6"));
         assertEquals(orderTotals.toString(), 1, orderTotals.size());
-        assertEquals(22.99f, orderTotals.get(0), 0.001f);
+        assertEquals(22.99f, orderTotals.get(0).total, 0.001f);
 
         orders.deleteAll(List.of(o3, o2));
 
@@ -2064,14 +2075,15 @@ public class DataJPATestServlet extends FATServlet {
         assertEquals(77.99f, updated.total, 0.001f);
         assertEquals(false, updatesIt.hasNext());
 
-        List<Float> totals = orders.findTotalByPurchasedByIn(Set.of("testEntitiesAsParameters-Customer8",
-                                                                    "testEntitiesAsParameters-Customer7",
-                                                                    "testEntitiesAsParameters-Customer1"),
-                                                             Sort.desc("total"));
-        assertEquals(totals.toString(), 3, totals.size());
-        assertEquals(88.99f, totals.get(0), 0.001f);
-        assertEquals(77.99f, totals.get(1), 0.001f);
-        assertEquals(11.99f, totals.get(2), 0.001f); // not updated due to version mismatch
+        List<PurchaseOrder> found = orders.findOrdersByPurchasedByIn(Set
+                        .of("testEntitiesAsParameters-Customer8",
+                            "testEntitiesAsParameters-Customer7",
+                            "testEntitiesAsParameters-Customer1"),
+                                                                   Sort.desc("total"));
+        assertEquals(found.toString(), 3, found.size());
+        assertEquals(88.99f, found.get(0).total, 0.001f);
+        assertEquals(77.99f, found.get(1).total, 0.001f);
+        assertEquals(11.99f, found.get(2).total, 0.001f); // not updated due to version mismatch
 
         try {
             orders.update(o1);
@@ -2080,7 +2092,7 @@ public class DataJPATestServlet extends FATServlet {
             // pass
         }
 
-        assertEquals(11.99f, totals.get(2), 0.001f); // still not updated due to version mismatch
+        assertEquals(11.99f, found.get(2).total, 0.001f); // still not updated due to version mismatch
 
         // use correct version for update:
         o1 = orders.findFirstByPurchasedBy("testEntitiesAsParameters-Customer1").orElseThrow();
@@ -2091,9 +2103,10 @@ public class DataJPATestServlet extends FATServlet {
         assertEquals("testEntitiesAsParameters-Customer1", updated.purchasedBy);
         assertEquals(0.99f, updated.total, 0.001f);
 
-        totals = orders.findTotalByPurchasedByIn(Set.of("testEntitiesAsParameters-Customer1"));
-        assertEquals(totals.toString(), 1, totals.size());
-        assertEquals(0.99f, totals.get(0), 0.001f);
+        found = orders.findOrdersByPurchasedByIn(Set
+                        .of("testEntitiesAsParameters-Customer1"));
+        assertEquals(found.toString(), 1, found.size());
+        assertEquals(0.99f, found.get(0).total, 0.001f);
 
         orders.deleteAll();
     }
@@ -3151,6 +3164,7 @@ public class DataJPATestServlet extends FATServlet {
 
         assertEquals(List.of("Badge#2636 Level A", "Badge#4948 Level A", "Badge#5310 Level C", "Badge#8171 Level B"),
                      employees.findByLastName("testIdThatIsNotTheUniqueIdentifier")
+                                     .map(emp -> emp.badge)
                                      .map(Badge::toString)
                                      .collect(Collectors.toList()));
 
@@ -3234,11 +3248,17 @@ public class DataJPATestServlet extends FATServlet {
                                           .thenComparing(Comparator.<ShippingAddress, Integer> comparing(o -> o.streetAddress.houseNumber))
                                           .thenComparing(Comparator.<ShippingAddress, Integer> comparing(o -> o.zipCode)));
 
-        StreetAddress[] streetAddresses = shippingAddresses.findByStreetAddress_houseNumberBetweenOrderByStreetAddress_streetNameAscStreetAddress_houseNumber(1000, 3000);
+        ShippingAddress[] addresses = shippingAddresses
+                        .findByStreetAddress_houseNumberBetweenOrderByStreetAddress_streetNameAscStreetAddress_houseNumber//
+                        (1000,
+                         3000);
 
-        assertArrayEquals(new StreetAddress[] { work.streetAddress, home.streetAddress }, streetAddresses,
-                          Comparator.<StreetAddress, Integer> comparing(o -> o.houseNumber)
-                                          .thenComparing(Comparator.<StreetAddress, String> comparing(o -> o.streetName)));
+        assertEquals(List.of("2800 37th St NW",
+                             "1234 5th St SW"),
+                     Stream.of(addresses)
+                                     .map(addr -> addr.streetAddress.houseNumber + " " +
+                                                  addr.streetAddress.streetName)
+                                     .collect(Collectors.toList()));
 
         shippingAddresses.removeAll();
     }

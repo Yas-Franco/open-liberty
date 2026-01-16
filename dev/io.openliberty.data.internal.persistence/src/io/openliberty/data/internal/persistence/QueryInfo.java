@@ -3101,40 +3101,19 @@ public class QueryInfo {
                 // TODO enable this once #29073 is fixed
                 // q.append("SELECT ID(").append(entityVar).append(')');
             } else {
-                // Is the result type a record or a single attribute?
+                // Is the result type a record?
                 RecordComponent[] recordComponents = singleType.getRecordComponents();
                 if (recordComponents == null) {
-                    // Look for single entity attribute with the desired type:
-                    String singleAttributeName = null;
-                    for (Map.Entry<String, Class<?>> entry : entityInfo.attributeTypes.entrySet()) {
-                        Class<?> attributeType = entry.getValue();
-                        if (attributeType.isPrimitive())
-                            attributeType = Util.wrapperClassIfPrimitive(attributeType);
-                        if (singleType.isAssignableFrom(attributeType))
-                            if (singleAttributeName == null)
-                                singleAttributeName = entry.getKey();
-                            else
-                                throw exc(MappingException.class,
-                                          "CWWKD1008.ambig.rtrn.err",
-                                          method.getGenericReturnType().getTypeName(),
-                                          method.getName(),
-                                          repositoryInterface.getName(),
-                                          List.of(singleAttributeName, entry.getKey()));
-                    }
-
-                    if (singleAttributeName == null)
-                        throw exc(MappingException.class,
-                                  "CWWKD1005.find.rtrn.err",
-                                  method.getName(),
-                                  repositoryInterface.getName(),
-                                  method.getGenericReturnType().getTypeName(),
-                                  entityInfo.entityClass.getName(),
-                                  List.of("List", "Optional",
-                                          "Page", "CursoredPage",
-                                          "Stream"));
-
-                    else
-                        q.append("SELECT ").append(o_).append(singleAttributeName);
+                    // not a record, not an entity, and app did not use @Select
+                    throw exc(MappingException.class,
+                              "CWWKD1005.find.rtrn.err",
+                              method.getName(),
+                              repositoryInterface.getName(),
+                              method.getGenericReturnType().getTypeName(),
+                              entityInfo.entityClass.getName(),
+                              List.of("List", "Optional",
+                                      "Page", "CursoredPage",
+                                      "Stream"));
                 } else {
                     // Construct new instance for record
                     q.append("SELECT NEW ").append(singleType.getName()).append('(');

@@ -104,9 +104,9 @@ public interface Primes {
 
     @Asynchronous
     @Find
-    CompletableFuture<Page<Long>> divisibleByTwo(boolean even,
-                                                 PageRequest req,
-                                                 Order<Prime> order);
+    CompletableFuture<Page<Prime>> divisibleByTwo(boolean even,
+                                                  PageRequest req,
+                                                  Order<Prime> order);
 
     @Asynchronous
     CompletionStage<Boolean> existsByNameIgnoreCase(String name);
@@ -223,9 +223,10 @@ public interface Primes {
     CompletionStage<CursoredPage<Prime>> findByNumberIdLessThanOrderByNumberIdDesc(long max, PageRequest pagination);
 
     @OrderBy(ID)
-    List<Long> findByNumberIdLessThanOrNumberIdGreaterThanAndNumberIdLessThan(int exclusiveMax,
-                                                                              int exclusiveRangeMin,
-                                                                              int exclusiveRangeMax);
+    List<Prime> findByNumberIdLessThanOrNumberIdGreaterThanAndNumberIdLessThan//
+    (int exclusiveMax,
+     int exclusiveRangeMin,
+     int exclusiveRangeMax);
 
     Iterator<Prime> findByNumberIdNotGreaterThan(long max, Sort<?>... order);
 
@@ -265,10 +266,11 @@ public interface Primes {
     List<Object[]> findNumberIdAndName(Sort<?>... sort);
 
     @OrderBy(value = ID, descending = true)
-    Set<Long> findNumberIdByNumberIdBetween(long min, long max);
+    Set<Prime> findPrimeByNumberIdBetween(long min, long max);
 
     @OrderBy(value = ID, descending = true)
-    IntStream findSumOfBitsByNumberIdBetween(long min, long max);
+    @Query("SELECT sumOfBits WHERE numberId BETWEEN :min and :max")
+    IntStream findSumOfBitsWhereNumberWithin(long min, long max);
 
     // Can omit entity identification variable after EclipseLink #33842 is fixed
     @Query("""

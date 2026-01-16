@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -593,27 +592,34 @@ public class DataTestServlet extends FATServlet {
 
         Order<Prime> asc = Order.by(Sort.asc(ID));
 
-        CompletableFuture<Page<Long>> cf1 = //
+        CompletableFuture<Page<Prime>> cf1 = //
                         primes.divisibleByTwo(false, page1req, asc);
 
-        CompletableFuture<Page<Long>> cf3 = //
+        CompletableFuture<Page<Prime>> cf3 = //
                         primes.divisibleByTwo(false, page3req, asc);
 
-        Page<Long> page1 = cf1.get(TIMEOUT_MINUTES, TimeUnit.MINUTES);
-        Page<Long> page3 = cf3.get(TIMEOUT_MINUTES, TimeUnit.MINUTES);
+        Page<Prime> page1 = cf1.get(TIMEOUT_MINUTES, TimeUnit.MINUTES);
+        Page<Prime> page3 = cf3.get(TIMEOUT_MINUTES, TimeUnit.MINUTES);
 
         assertEquals(List.of(3L, 5L, 7L, 11L),
-                     page1.content());
+                     page1.stream()
+                                     .map(prime -> prime.numberId)
+                                     .collect(Collectors.toList()));
 
         assertEquals(List.of(29L, 31L, 37L, 41L),
-                     page3.content());
+                     page3.stream()
+                                     .map(prime -> prime.numberId)
+                                     .collect(Collectors.toList()));
 
         PageRequest page2req = page3.previousPageRequest();
         assertEquals(page2req, page1.nextPageRequest());
 
         assertEquals(List.of(13L, 17L, 19L, 23L),
                      primes.divisibleByTwo(false, page2req, asc)
-                                     .thenApply(Page::content)
+                                     .thenApply(page -> page
+                                                     .stream()
+                                                     .map(prime -> prime.numberId)
+                                                     .collect(Collectors.toList()))
                                      .get(TIMEOUT_MINUTES, TimeUnit.MINUTES));
     }
 
@@ -1153,7 +1159,7 @@ public class DataTestServlet extends FATServlet {
         Package pkg = packages.deleteFirst5ByWidthLessThan(10.5f);
         assertEquals(10004, pkg.id);
 
-        List<Package> pkgs = packages.deleteFirst2();
+        List<Package> pkgs = packages.deleteFirst3();
         assertEquals(3, pkgs.size());
 
         assertEquals(0, packages.deleteAll()); //cleanup after test
@@ -1872,43 +1878,56 @@ public class DataTestServlet extends FATServlet {
     }
 
     /**
-     * Find-and-delete repository operations that return one or more IDs, corresponding to removed entities.
+     * Find-and-delete repository operations that return one or more removed
+     * entities.
      */
     @Test
-    public void testFindAndDeleteReturnsIds() throws Exception {
+    public void testFindAndDeleteReturnsEntities() throws Exception {
         String jdbcJarName = System.getenv().getOrDefault("DB_DRIVER", "UNKNOWN");
         boolean supportsOrderByForUpdate = !jdbcJarName.startsWith("derby");
 
         packages.deleteAll();
 
-        packages.save(new Package(80081, 18.0f, 18.1f, 8.8f, "testFindAndDeleteReturnsIds#80081"));
-        packages.save(new Package(80080, 80.0f, 80.0f, 8.0f, "testFindAndDeleteReturnsIds#80080"));
-        packages.save(new Package(80088, 88.0f, 18.8f, 8.8f, "testFindAndDeleteReturnsIds#80088"));
-        packages.save(new Package(80008, 80.0f, 10.8f, 0.8f, "testFindAndDeleteReturnsIds#80008"));
+        packages.save(new Package(80081, 18.0f, 18.1f, 8.8f, //
+                        "testFindAndDeleteReturnsEntities#80081"));
+        packages.save(new Package(80080, 80.0f, 80.0f, 8.0f, //
+                        "testFindAndDeleteReturnsEntities#80080"));
+        packages.save(new Package(80088, 88.0f, 18.8f, 8.8f, //
+                        "testFindAndDeleteReturnsEntities#80088"));
+        packages.save(new Package(80008, 80.0f, 10.8f, 0.8f, //
+                        "testFindAndDeleteReturnsEntities#80008"));
 
         Set<Integer> remaining = new TreeSet<>();
         remaining.addAll(Set.of(80008, 80080, 80081, 80088));
 
         Sort<Package> sort = supportsOrderByForUpdate ? Sort.desc("width") : null;
-        Integer id = packages.delete1(Limit.of(1), sort).orElseThrow();
+        Integer id = packages.deleteFirst1(Limit.of(1), sort).orElseThrow().id;
         if (supportsOrderByForUpdate)
             assertEquals(Integer.valueOf(80080), id);
         assertEquals("Found " + id + "; expected one of " + remaining, true, remaining.remove(id));
 
         Sort<?>[] sorts = supportsOrderByForUpdate ? new Sort[] { Sort.desc("height"), Sort.asc("length") } : null;
-        int[] ids = packages.delete2(Limit.of(2), sorts);
-        assertEquals(Arrays.toString(ids), 2, ids.length);
+        Package[] deleted = packages.deleteFirst2(Limit.of(2), sorts);
+        assertEquals(Arrays.toString(deleted), 2, deleted.length);
+
         if (supportsOrderByForUpdate) {
-            assertEquals(80081, ids[0]);
-            assertEquals(80088, ids[1]);
+            assertEquals(80081, deleted[0].id);
+            assertEquals(80088, deleted[1].id);
         }
-        assertEquals("Found " + ids[0] + "; expected one of " + remaining, true, remaining.remove(ids[0]));
-        assertEquals("Found " + ids[1] + "; expected one of " + remaining, true, remaining.remove(ids[1]));
+
+        assertEquals("Found " + deleted[0].id + "; expected one of " + remaining,
+                     true,
+                     remaining.remove(deleted[0].id));
+
+        assertEquals("Found " + deleted[1].id + "; expected one of " + remaining,
+                     true,
+                     remaining.remove(deleted[1].id));
 
         // should have only 1 remaining
-        ids = packages.delete2(Limit.of(2), sorts);
-        assertEquals(Arrays.toString(ids), 1, ids.length);
-        assertEquals(remaining.iterator().next(), Integer.valueOf(ids[0]));
+        deleted = packages.deleteFirst2(Limit.of(2), sorts);
+        assertEquals(Arrays.toString(deleted), 1, deleted.length);
+        assertEquals(remaining.iterator().next(),
+                     Integer.valueOf(deleted[0].id));
     }
 
     /**
@@ -1953,7 +1972,7 @@ public class DataTestServlet extends FATServlet {
         Sort<?>[] sorts = supportsOrderByForUpdate //
                         ? new Sort[] { Sort.desc("description"), Sort.asc("length") } //
                         : null;
-        LinkedList<?> deletesList = packages.delete2ByHeightLessThan(8.0f, Limit.of(2), sorts);
+        LinkedList<?> deletesList = packages.deleteFirst2ByHeightLessThan(8.0f, Limit.of(2), sorts);
         assertEquals("Deleted " + deletesList, 2, deletesList.size());
         Package p0 = (Package) deletesList.get(0);
         Package p1 = (Package) deletesList.get(1);
@@ -2008,7 +2027,10 @@ public class DataTestServlet extends FATServlet {
 
         assertEquals(List.of(551, 589),
                      packages.deleteByDescriptionOrderByWidthAsc(testName,
-                                                                 Limit.of(2)));
+                                                                 Limit.of(2))
+                                     .stream()
+                                     .map(p -> p.id)
+                                     .collect(Collectors.toList()));
 
         // remaining entities are:
         //         id   length  width   height  description
@@ -2016,10 +2038,16 @@ public class DataTestServlet extends FATServlet {
         // Package(533, 925.0f, 756.0f, 533.0f, testName))
 
         assertEquals(List.of(533),
-                     packages.removeIfDescriptionMatches(testName, Limit.of(1)));
+                     packages.removeIfDescriptionMatches(testName, Limit.of(1))
+                                     .stream()
+                                     .map(p -> p.id)
+                                     .collect(Collectors.toList()));
 
         assertEquals(List.of(527),
-                     packages.removeIfDescriptionMatches(testName, Limit.of(10)));
+                     packages.removeIfDescriptionMatches(testName, Limit.of(10))
+                                     .stream()
+                                     .map(p -> p.id)
+                                     .collect(Collectors.toList()));
     }
 
     /**
@@ -2863,7 +2891,7 @@ public class DataTestServlet extends FATServlet {
     @Test
     public void testIntStreamResult() {
         assertEquals(List.of(5, 4, 3, 3, 5, 4, 4),
-                     primes.findSumOfBitsByNumberIdBetween(20, 49)
+                     primes.findSumOfBitsWhereNumberWithin(20, 49)
                                      .mapToObj(i -> Integer.valueOf(i))
                                      .collect(Collectors.toList()));
     }
@@ -3994,8 +4022,11 @@ public class DataTestServlet extends FATServlet {
      */
     @Test
     public void testOrderedSet() {
-        assertEquals(new HashSet<>(List.of(47L, 43L, 41L, 37L, 31L, 29L, 23L)),
-                     primes.findNumberIdByNumberIdBetween(20, 49));
+        assertEquals(List.of(47L, 43L, 41L, 37L, 31L, 29L, 23L),
+                     primes.findPrimeByNumberIdBetween(20L, 49L)
+                                     .stream()
+                                     .map(prime -> prime.numberId)
+                                     .collect(Collectors.toList()));
     }
 
     /**
@@ -4006,7 +4037,10 @@ public class DataTestServlet extends FATServlet {
         List<Long> l;
         l = primes.findByNumberIdLessThanOrNumberIdGreaterThanAndNumberIdLessThan(10,
                                                                                   40,
-                                                                                  50);
+                                                                                  50)
+                        .stream()
+                        .map(prime -> prime.numberId)
+                        .collect(Collectors.toList());
         assertEquals(List.of(2L, 3L, 5L, 7L, 41L, 43L, 47L),
                      l);
     }
