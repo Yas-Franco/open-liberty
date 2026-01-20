@@ -27,6 +27,7 @@ import com.ibm.websphere.security.wim.Service;
 import com.ibm.websphere.security.wim.ras.WIMMessageHelper;
 import com.ibm.websphere.security.wim.ras.WIMMessageKey;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 import com.ibm.ws.security.registry.EntryNotFoundException;
 import com.ibm.ws.security.registry.RegistryException;
 import com.ibm.ws.security.registry.SearchResult;
@@ -69,6 +70,8 @@ public class SearchBridge {
      * RDN property for a group.
      */
     private String groupRDN = "cn";
+
+    private static boolean issuedBetaMessage = false;
 
     /**
      * Default constructor.
@@ -177,6 +180,9 @@ public class SearchBridge {
     @FFDCIgnore({ WIMException.class })
     public Map<String, Object> getAttributesForUser(final String userSecurityName, List<String> attributeNames) throws EntryNotFoundException, RegistryException {
         String methodName = "getAttributesForUser";
+
+        betaFenceCheck(methodName);
+
         Map<String, Object> returnValue = new HashMap<String, Object>();
 
         // bridge the APIs
@@ -258,8 +264,10 @@ public class SearchBridge {
     @FFDCIgnore(WIMException.class)
     public SearchResult getUsersByAttribute(String attributeName, String value, int inputLimit) throws RegistryException {
         String methodName = "getUsersByAttribute";
-        SearchResult returnValue = new SearchResult(new ArrayList<String>(), false);
 
+        betaFenceCheck(methodName);
+
+        SearchResult returnValue = new SearchResult(new ArrayList<String>(), false);
         try {
             if (attributeName == null || value == null) {
                 throw new WIMException();
@@ -592,5 +600,18 @@ public class SearchBridge {
         }
 
         return searchControl;
+    }
+
+    private void betaFenceCheck(String methodName) throws UnsupportedOperationException {
+        // Not running beta edition, throw exception
+        if (!ProductInfo.getBetaEdition()) {
+            throw new UnsupportedOperationException("The method '" + methodName + "' can only be used with the Open Liberty BETA.");
+        } else {
+            // Running beta exception, issue message if we haven't already issued one for this class
+            if (!issuedBetaMessage) {
+                Tr.info(tc, "BETA: A beta method has been invoked for the class " + this.getClass().getName() + " for the first time.");
+                issuedBetaMessage = !issuedBetaMessage;
+            }
+        }
     }
 }
