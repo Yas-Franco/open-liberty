@@ -15,7 +15,8 @@ bVersion=1.0
 
 src: \
     fat/src,\
-    test-applications/inmemory/src
+    test-applications/inmemory/src,\
+    test-applications/ham/src
         
 -dependson: \
     build.changeDetector,\

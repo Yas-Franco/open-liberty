@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
-package inmemory.identity.store;
+package multiple.ham;
 
 import static org.junit.Assert.assertEquals;
 
