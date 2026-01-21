@@ -288,7 +288,26 @@ public class SessionFilter implements Filter {
             return;
         }
 
-        chain.doFilter(req, resp);
+        try {
+            chain.doFilter(req, resp);
+        } catch (ServletException e) {
+            // Check if this is a FileNotFoundException for a missing resource
+            // This can happen during testing or when accessing non-existent endpoints
+            Throwable cause = e.getCause();
+            if (cause instanceof java.io.FileNotFoundException) {
+                // Log at debug level to avoid FFDC noise for expected 404s
+                if (tc.isDebugEnabled()) {
+                    Tr.debug(tc, "File not found: " + requestURI + " - " + cause.getMessage());
+                }
+                // Let the container handle the 404 response
+                if (!httpResponse.isCommitted()) {
+                    httpResponse.sendError(HttpServletResponse.SC_NOT_FOUND);
+                }
+                return;
+            }
+            // Re-throw other ServletExceptions
+            throw e;
+        }
 
         if (tc.isEntryEnabled()) {
             Tr.exit(tc, "doFilter");
