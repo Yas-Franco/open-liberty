@@ -44,5 +44,5 @@ javac.target: 17
 	io.openliberty.jakarta.cdi.4.0;version=latest,\
 	jakarta.inject.jakarta.inject-api;version=latest,\
 	jakarta.servlet-api,\
-	com.ibm.ws.componenttest.2.0;version=latest,\
+	com.ibm.ws.componenttest.2.0;version=latest
 
