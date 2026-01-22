@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024,2026 IBM Corporation and others.
+ * Copyright (c) 2024,2025 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -46,7 +46,6 @@ import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 import com.ibm.ws.runtime.metadata.ApplicationMetaData;
 import com.ibm.ws.runtime.metadata.ComponentMetaData;
 import com.ibm.ws.threadContext.ComponentMetaDataAccessorImpl;
-import com.ibm.wsspi.kernel.service.utils.FrameworkState;
 import com.ibm.wsspi.persistence.DDLGenerationParticipant;
 
 import io.openliberty.data.internal.persistence.DataProvider;
@@ -406,10 +405,6 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
                     throw excDefaultDataSourceNotFound(jeeName, x);
                 else
                     throw excJNDINameNotFound(jeeName, x);
-            } else if (FrameworkState.isStopping() &&
-                       x instanceof RuntimeException rx) {
-                // Avoid logging errors that might be due to server shutdown
-                throw rx;
             } else {
                 throw (DataException) exc(DataException.class,
                                           "CWWKD1080.datastore.general.err",
