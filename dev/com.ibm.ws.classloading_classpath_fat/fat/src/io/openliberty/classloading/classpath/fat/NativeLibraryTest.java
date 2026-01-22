@@ -12,10 +12,16 @@ package io.openliberty.classloading.classpath.fat;
 import static io.openliberty.classloading.classpath.fat.FATSuite.NATIVE_LIBRARY_TEST_SERVER;
 import static io.openliberty.classloading.classpath.fat.FATSuite.TEST_LIB1_JAR;
 import static io.openliberty.classloading.classpath.fat.FATSuite.TEST_LIB2_JAR;
+import static io.openliberty.classloading.classpath.fat.FATSuite.TEST_LIB3_JAR;
+import static io.openliberty.classloading.classpath.fat.FATSuite.TEST_LIB4_JAR;
+import static io.openliberty.classloading.classpath.fat.FATSuite.TEST_LIB5_JAR;
+import static io.openliberty.classloading.classpath.fat.FATSuite.TEST_LIB6_JAR;
 import static io.openliberty.classloading.classpath.fat.FATSuite.TEST_NATIVE_LIBRARY_APP;
 import static io.openliberty.classloading.classpath.fat.FATSuite.TEST_NATIVE_LIBRARY_WAR;
+import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.util.function.BiConsumer;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -51,32 +57,55 @@ public class NativeLibraryTest extends FATServletClient {
 
         ShrinkHelper.exportToServer(server, "/lib1", TEST_LIB1_JAR, DeployOptions.SERVER_ONLY);
         ShrinkHelper.exportToServer(server, "/lib2", TEST_LIB2_JAR, DeployOptions.SERVER_ONLY);
+        ShrinkHelper.exportToServer(server, "/lib3", TEST_LIB3_JAR, DeployOptions.SERVER_ONLY);
+        ShrinkHelper.exportToServer(server, "/lib4", TEST_LIB4_JAR, DeployOptions.SERVER_ONLY);
+        ShrinkHelper.exportToServer(server, "/lib5", TEST_LIB5_JAR, DeployOptions.SERVER_ONLY);
+        ShrinkHelper.exportToServer(server, "/lib6", TEST_LIB6_JAR, DeployOptions.SERVER_ONLY);
 
         ServerConfiguration serverConfiguration = server.getServerConfiguration();
         ConfigElementList<Library> libraries = serverConfiguration.getLibraries();
-
         File serverRoot = new File(server.getServerRoot());
-        File lib1Dir = new File(serverRoot, "lib1");
-        lib1Dir.mkdirs();
-        File lib2Dir = new File(serverRoot, "lib2");
-        lib2Dir.mkdirs();
 
-        String privateNativeFileName = System.mapLibraryName("privateNative");
-        new File(lib1Dir, privateNativeFileName).createNewFile();
-        Library privateLibrary = libraries.get(0);
-        Path privateLibraryNative = new Path();
-        privateLibraryNative.setName("lib1/" + privateNativeFileName);
-        privateLibrary.getPaths().add(privateLibraryNative);
+        BiConsumer<String, Library> paths = (n, l) -> {
+            Path nativePath = new Path();
+            nativePath.setName(n);
+            l.getPaths().add(nativePath);
+        };
+        configureNativeFile(libraries, serverRoot, "lib1", "testPrivateLib1", "privateNative1", paths);
+        configureNativeFile(libraries, serverRoot, "lib2", "testCommonLib2", "commonNative2", paths);
 
-        String commonNativeFileName = System.mapLibraryName("commonNative");
-        new File(lib2Dir, commonNativeFileName).createNewFile();
-        Library commonLibrary = libraries.get(1);
-        Path commonLibraryNative = new Path();
-        commonLibraryNative.setName("lib2/" + commonNativeFileName);
-        commonLibrary.getPaths().add(commonLibraryNative);
+        BiConsumer<String, Library> files = (n, l) -> {
+            com.ibm.websphere.simplicity.config.File nativeFile = new com.ibm.websphere.simplicity.config.File();
+            nativeFile.setName(n);
+            l.getFiles().add(nativeFile);
+        };
+        configureNativeFile(libraries, serverRoot, "lib3", "testPrivateLib3", "privateNative3", files);
+        configureNativeFile(libraries, serverRoot, "lib4", "testCommonLib4", "commonNative4", files);
+
+        configureNativeFile(libraries, serverRoot, "lib5", "testPrivateLib5", "privateNative5", null);
+        configureNativeFile(libraries, serverRoot, "lib6", "testCommonLib6", "commonNative6", null);
 
         server.updateServerConfiguration(serverConfiguration);
         server.startServer();
+    }
+
+    private static void configureNativeFile(ConfigElementList<Library> libraries, File serverRoot, String libDirName, String libId, String nativeName, BiConsumer<String, Library> addNative) throws Exception {
+        File libDir = new File(serverRoot, libDirName);
+        String nativeFileName = System.mapLibraryName(nativeName);
+        new File(libDir, nativeFileName).createNewFile();
+        if (addNative != null) {
+            Library library = null;
+            for (Library l : libraries) {
+                if (libId.equals(l.getId())) {
+                    library = l;
+                    break;
+                }
+            }
+            if (library == null) {
+                fail("Could not find library: " + libId);
+            }
+            addNative.accept(libDirName + '/' + nativeFileName, library);
+        }
     }
 
     @AfterClass
