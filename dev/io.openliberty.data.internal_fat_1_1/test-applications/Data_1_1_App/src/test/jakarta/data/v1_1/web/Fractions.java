@@ -91,6 +91,11 @@ public interface Fractions {
 
     @Find
     @OrderBy(_Fraction.DENOMINATOR)
+    @OrderBy(value = _Fraction.NUMERATOR, descending = true)
+    Stream<Fraction> where(Restriction<Fraction> filter);
+
+    @Find
+    @OrderBy(_Fraction.DENOMINATOR)
     @OrderBy(_Fraction.NUMERATOR)
     Stream<Fraction> withDenominatorBetweenNamedBeforeAndNumeratorNotBetween //
     (@By(_Fraction.DENOMINATOR) Between<Integer> denominatorRange,

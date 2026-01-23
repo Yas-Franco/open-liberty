@@ -669,6 +669,28 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Supply minus and times expressions to a restriction that is
+     * supplied to a repository method.
+     */
+    @Test
+    public void testMinusAndTimes() {
+
+        Restriction<Fraction> restriction = //
+                        _Fraction.numerator.times(3)
+                                        .equalTo(_Fraction.denominator.minus(1));
+
+        assertEquals(List.of("One Fourth",
+                             "Two Sevenths",
+                             "Three Tenths",
+                             "Four Thirteenths",
+                             "Five Sixteenths",
+                             "Six Nineteenths"),
+                     fractions.where(restriction)
+                                     .map(f -> f.name)
+                                     .collect(Collectors.toList()));
+    }
+
+    /**
      * Use a repository method that has the Is annotation on one method
      * argument and another method argument is a Between restriction.
      */
@@ -755,6 +777,63 @@ public class Data_1_1_Servlet extends FATServlet {
                                                  AtMost.max(4),
                                                  Sort.desc(_Fraction.DENOMINATOR),
                                                  Sort.asc(_Fraction.NUMERATOR)) //
+                                     .map(f -> f.name)
+                                     .collect(Collectors.toList()));
+    }
+
+    /**
+     * Supply plus and divide expressions to a restriction that is
+     * supplied to a repository method.
+     */
+    @Test
+    public void testPlusAndDivide() {
+
+        Restriction<Fraction> restriction = //
+                        _Fraction.denominator
+                                        .plus(1)
+                                        .dividedBy(_Fraction.numerator)
+                                        .equalTo(2);
+
+        assertEquals(List.of("Two Thirds", //     (3+1)/2 = 2
+                             "Two Fourths", //    (4+1)/2 floor is 2
+                             "Three Fifths", //   (5+1)/3 = 2
+                             "Three Sixths", //   (6+1)/3 floor is 2
+                             "Four Sevenths", //  (7+1)/4 = 2
+                             "Three Sevenths", // (7+1)/3 floor is 2
+                             "Four Eighths", //   (8+1)/4 floor is 2
+                             "Five Ninths", //    (9+1)/5 = 2
+                             "Four Ninths", //    (9+1)/4 floor is 2
+                             "Five Tenths", //   (10+1)/5 floor is 2
+                             "Four Tenths", //   (10+1)/4 floor is 2
+                             "Six Elevenths", // (11+1)/6 = 2
+                             "Five Elevenths", // ...
+                             "Six Twelfths",
+                             "Five Twelfths",
+                             "Seven Thirteenths",
+                             "Six Thirteenths",
+                             "Five Thirteenths",
+                             "Seven Fourteenths",
+                             "Six Fourteenths",
+                             "Eight Fifteenths",
+                             "Seven Fifteenths",
+                             "Six Fifteenths",
+                             "Eight Sixteenths",
+                             "Seven Sixteenths",
+                             "Six Sixteenths",
+                             "Nine Seventeenths",
+                             "Eight Seventeenths",
+                             "Seven Seventeenths",
+                             "Nine Eighteenths",
+                             "Eight Eighteenths",
+                             "Seven Eighteenths",
+                             "Ten Nineteenths",
+                             "Nine Nineteenths",
+                             "Eight Nineteenths",
+                             "Seven Nineteenths",
+                             "Ten Twentieths",
+                             "Nine Twentieths",
+                             "Eight Twentieths"),
+                     fractions.where(restriction)
                                      .map(f -> f.name)
                                      .collect(Collectors.toList()));
     }
