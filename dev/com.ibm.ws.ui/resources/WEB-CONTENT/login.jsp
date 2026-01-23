@@ -11,6 +11,40 @@
         IBM Corporation - initial API and implementation
  --%>
 <%@ page session="false" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%
+    // GET PRODUCT NAME using ProductInfo API - Must be done before HTML output
+    String productInfo = "";
+    boolean isOpenLiberty = false;
+    try {
+        java.util.Map<String, com.ibm.ws.kernel.productinfo.ProductInfo> productInfoMap =
+            com.ibm.ws.kernel.productinfo.ProductInfo.getAllProductInfo();
+        
+        for (com.ibm.ws.kernel.productinfo.ProductInfo pi : productInfoMap.values()) {
+            if (pi.getReplacedBy() == null) {
+                // This is the active product (not replaced by another)
+                productInfo = pi.getName();
+                
+                // Check if it's Open Liberty
+                if (productInfo != null && productInfo.toLowerCase().contains("open liberty")) {
+                    isOpenLiberty = true;
+                }
+                
+                // Escape for JavaScript string
+                if (productInfo != null && !productInfo.isEmpty()) {
+                    productInfo = productInfo.replace("\\", "\\\\")
+                                             .replace("\"", "\\\"")
+                                             .replace("'", "\\'")
+                                             .replace("\n", "\\n")
+                                             .replace("\r", "\\r");
+                }
+                break; // Use the first active product
+            }
+        }
+    } catch (Exception ex) {
+        // If we can't get the product info, just leave it empty
+        productInfo = "";
+    }
+%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -21,8 +55,8 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="apple-touch-fullscreen" content="yes" />
 
-  <link href="login/images/favicon.ico" rel="icon" />
-  <link href="login/images/favicon.ico" rel="shortcut icon" />
+  <link href="<%= isOpenLiberty ? "login/images/runtime-fav-icon.svg" : "login/images/favicon.ico" %>" rel="icon" />
+  <link href="<%= isOpenLiberty ? "login/images/runtime-fav-icon.svg" : "login/images/favicon.ico" %>" rel="shortcut icon" />
   <link href="login/images/apple-touch-icon.png" rel="apple-touch-icon" />
   <link href="login/login.css" rel="stylesheet"></link>
 
@@ -74,7 +108,9 @@
   <script src="404/404.js"></script>
   <script type="text/javascript">
     var userLocale = getLanguageCode();
-
+    
+    // Product info from server
+    var productInfoData = "<%= productInfo %>";
     var dojoConfig = {
       locale: userLocale
     };
@@ -96,7 +132,7 @@
   <div class="bg-fill-color"></div>
   <section id="login">
     <div class="login-panel" role="main">
-      <img class="liberty-logo" src="login/images/WAS-Liberty-Logo-White.png" alt="">
+      <img class="liberty-logo" src="<%= isOpenLiberty ? "login/images/runtime-icon.svg" : "login/images/WAS-Liberty-Logo-White.png" %>" alt="">
       <header class="login-header">
         <h1 id="loginTitle">Liberty Admin Center</h1>
       </header>
