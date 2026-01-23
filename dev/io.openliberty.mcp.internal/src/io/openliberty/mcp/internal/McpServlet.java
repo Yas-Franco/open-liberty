@@ -33,6 +33,7 @@ import io.openliberty.mcp.internal.encoders.EncoderRegistry;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.HttpResponseException;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCErrorCode;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCException;
+import io.openliberty.mcp.internal.exceptions.jsonrpc.McpResponseException;
 import io.openliberty.mcp.internal.meta.MetaImpl;
 import io.openliberty.mcp.internal.requests.CancellationImpl;
 import io.openliberty.mcp.internal.requests.ExecutionRequestId;
@@ -182,7 +183,7 @@ public class McpServlet extends HttpServlet {
         }
     }
 
-    @FFDCIgnore({ IllegalAccessException.class, IllegalArgumentException.class, ToolCallException.class })
+    @FFDCIgnore(ToolCallException.class)
     private void callTool(McpTransport transport) {
 
         ExecutionRequestId requestId = createOngoingRequestId(transport);
@@ -205,23 +206,23 @@ public class McpServlet extends HttpServlet {
             Authorizer.requireAuthorized(transport, params.getMetadata());
 
             if (params.getMetadata().returnsCompletionStage()) {
-                callToolMethodAndSendResponseAsync(transport, requestId, request, params);
+                callToolAndSendResponseAsync(transport, requestId, request, params);
             } else {
-                callToolSynchronously(transport, requestId, request, params);
+                callToolAndSendResponseSync(transport, requestId, request, params);
             }
         } catch (ToolCallException e) {
-            //Catch invalid tool args excetion(new type) send back new tool response
-            ToolResponse response = ToolResponse.error(e.getMessage());
+            // Catch validation errors that occur before calling the tool and should result in a tool call error response
+            ToolResponse response = ToolResponses.createBusinessErrorResponse(e);
             transport.sendResponse(response);
             return;
         }
     }
 
-    @FFDCIgnore({ HttpResponseException.class, ToolCallException.class, Exception.class })
-    private void callToolSynchronously(McpTransport transport,
-                                       ExecutionRequestId requestId,
-                                       McpRequest mcpRequest,
-                                       McpToolCallParams params) {
+    @FFDCIgnore({ McpResponseException.class, ToolCallException.class, Exception.class })
+    private void callToolAndSendResponseSync(McpTransport transport,
+                                             ExecutionRequestId requestId,
+                                             McpRequest mcpRequest,
+                                             McpToolCallParams params) {
 
         ToolArguments toolArgs = createToolArguments(mcpRequest, params);
         if (requestId != null) {
@@ -232,7 +233,7 @@ public class McpServlet extends HttpServlet {
         try {
             var handler = params.getMetadata().handler();
             response = handler.apply(toolArgs);
-        } catch (JSONRPCException | HttpResponseException e) {
+        } catch (McpResponseException e) {
             // These exceptions indicate a specific response should be used
             throw e;
         } catch (ToolCallException e) {
@@ -248,10 +249,10 @@ public class McpServlet extends HttpServlet {
         transport.sendResponse(response);
     }
 
-    private void callToolMethodAndSendResponseAsync(McpTransport transport,
-                                                    ExecutionRequestId requestId,
-                                                    McpRequest mcpRequest,
-                                                    McpToolCallParams params) {
+    private void callToolAndSendResponseAsync(McpTransport transport,
+                                              ExecutionRequestId requestId,
+                                              McpRequest mcpRequest,
+                                              McpToolCallParams params) {
         ToolArguments toolArgs = createToolArguments(mcpRequest, params);
 
         if (requestId != null) {
@@ -260,20 +261,16 @@ public class McpServlet extends HttpServlet {
 
         var handler = params.getMetadata().asyncHandler();
 
-        CompletionStage<ToolResponse> response = applyHandlerAndCatchException(handler, toolArgs);
+        CompletionStage<ToolResponse> response = callHandlerAndCatchException(handler, toolArgs);
         response = response.thenApply(r -> removeStructuredContentIfNotSupported(r, transport))
                            .exceptionally(throwable -> {
                                if (throwable instanceof CompletionException) {
                                    throwable = throwable.getCause();
                                }
-                               if (throwable instanceof JSONRPCException jsonEx) {
-                                   throw jsonEx;
-                               }
-                               if (throwable instanceof HttpResponseException httpEx) {
-                                   throw httpEx;
-                               }
-                               if (throwable instanceof ToolCallException) {
-                                   return ToolResponses.createBusinessErrorResponse(throwable);
+                               if (throwable instanceof McpResponseException responseEx) {
+                                   throw responseEx;
+                               } else if (throwable instanceof ToolCallException toolEx) {
+                                   return ToolResponses.createBusinessErrorResponse(toolEx);
                                } else {
                                    return ToolResponses.createNonBusinessErrorResponse(throwable,
                                                                                        params.getName());
@@ -285,7 +282,7 @@ public class McpServlet extends HttpServlet {
     }
 
     @FFDCIgnore(Exception.class)
-    private static <T, R> CompletionStage<R> applyHandlerAndCatchException(Function<T, CompletionStage<R>> handler, T arg) {
+    private static <T, R> CompletionStage<R> callHandlerAndCatchException(Function<T, CompletionStage<R>> handler, T arg) {
         try {
             return handler.apply(arg);
         } catch (Exception e) {
