@@ -173,7 +173,7 @@ public class ThreadIdentitySecurityHelper implements SecurityHelper {
     public ThreadIdentitySecurityHelper(int threadIdentitySupport, boolean threadSecurity, int serviceType) {
 
         if (tc.isEntryEnabled())
-            Tr.entry(this, tc, "<init>", threadIdentitySupport, threadSecurity);
+            Tr.entry(this, tc, "<init>", threadIdentitySupport, threadSecurity, serviceType);
 
         m_ThreadIdentitySupport = threadIdentitySupport;
         m_ThreadSecurity = threadSecurity;
