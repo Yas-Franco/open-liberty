@@ -192,7 +192,7 @@ public abstract class SipOutboundConnLink extends SipConnLink {
 				Tr.debug(this, tc, "channelRead0",
 						ctx.channel() + ". [" + msg.getMarkedBytesNumber() + "] bytes received");
 			}
-			complete(msg);
+			GenericEndpointImpl.getExecutorService().execute(() -> complete(msg));
 		}
 
 		@Override
@@ -200,7 +200,7 @@ public abstract class SipOutboundConnLink extends SipConnLink {
 			if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
 				Tr.debug(this, tc, "channelInactive", ctx.channel().remoteAddress() + " has been disconnected");
 			}
-			destroy(null);
+			GenericEndpointImpl.getExecutorService().execute(() -> destroy(null));
 		}
 
 		@Override
@@ -208,8 +208,7 @@ public abstract class SipOutboundConnLink extends SipConnLink {
 			if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
 				Tr.debug(this, tc, "exceptionCaught", cause);
 			}
-
-			connectionError(new Exception(cause));
+			GenericEndpointImpl.getExecutorService().execute(() -> connectionError(new Exception(cause)));
 			ctx.close();
 		}
 	}
