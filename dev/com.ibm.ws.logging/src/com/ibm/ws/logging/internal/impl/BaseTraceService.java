@@ -1929,16 +1929,9 @@ public class BaseTraceService implements TrService {
             this.trStream = trStream;
         }
 
-        protected boolean isDisabled() {
-            if (!systemLogHolder.isEnabled()) {
-                return true;
-            }
-            return false;
-        }
-
         @Override
         public synchronized void print(boolean b) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -1953,7 +1946,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void print(char c) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -1968,7 +1961,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void print(int i) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -1983,7 +1976,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void print(long l) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -1998,7 +1991,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void print(float f) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2013,7 +2006,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void print(double d) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2028,7 +2021,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void print(char c[]) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2043,7 +2036,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void print(String s) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2061,7 +2054,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void print(Object obj) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2076,7 +2069,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void println() {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2091,7 +2084,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void println(boolean b) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2106,7 +2099,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void println(char c) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2121,7 +2114,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void println(int i) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2136,7 +2129,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void println(long l) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2151,7 +2144,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void println(float f) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2166,7 +2159,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void println(double d) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2181,7 +2174,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void println(char c[]) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2196,7 +2189,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void println(String s) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
@@ -2214,7 +2207,7 @@ public class BaseTraceService implements TrService {
 
         @Override
         public synchronized void println(Object obj) {
-            if (isDisabled()) {
+            if (!systemLogHolder.isEnabled()) {
                 return;
             }
 
