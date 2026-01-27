@@ -43,6 +43,30 @@ import componenttest.rules.repeater.RepeatTests;
                 AlwaysPassesTest.class,
 
                 LiteBucketSet1Test.class,
+                LiteBucketSet2Test.class,
+
+                JMSMBeanTest.class, // javax only; j2ee-management is not available in jakarta
+
+                JMSProducerTest_118071.class, //full
+                JMSProducerTest_118073.class, //full
+                SharedSubscriptionTest_129623.class,
+
+                JMSConsumerTest_118076.class, //full
+                JMSConsumerTest_118077.class, //full
+                JMSRedeliveryTest_120846.class,
+
+                SharedSubscriptionWithMsgSelTest_129623.class,
+                SharedSubscriptionWithMsgSelTest_129626.class, //full 2nd
+                SharedSubscriptionTest_129626.class, //full 2nd
+                JMSProducer_Test118073.class, //full
+
+                DurableUnsharedTest.class,
+                JMSContextInjectTest.class, //full
+
+                JMSDCFTest.class,
+                JMSDCFVarTest.class, //full 2nd
+
+                JMSEjbJarXmlMdbTest.class
 })
 
 public class FATSuite {
