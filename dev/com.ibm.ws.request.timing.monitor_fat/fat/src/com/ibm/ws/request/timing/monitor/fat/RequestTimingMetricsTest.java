@@ -68,8 +68,7 @@ public class RequestTimingMetricsTest {
                                                              MicroProfileActions.MP41,
                                                              MicroProfileActions.MP33,
                                                              MicroProfileActions.MP32,
-                                                             MicroProfileActions.MP30
-                                                             );
+                                                             MicroProfileActions.MP30);
 
     private static final Class<RequestTimingMetricsTest> c = RequestTimingMetricsTest.class;
 
