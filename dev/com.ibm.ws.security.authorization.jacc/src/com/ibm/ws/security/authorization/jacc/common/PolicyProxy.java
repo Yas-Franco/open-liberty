@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024, 2025 IBM Corporation and others.
+ * Copyright (c) 2024, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -10,6 +10,7 @@
 package com.ibm.ws.security.authorization.jacc.common;
 
 import java.security.Permission;
+import java.util.Set;
 
 import javax.security.auth.Subject;
 
@@ -18,9 +19,7 @@ import javax.security.auth.Subject;
  */
 public interface PolicyProxy {
 
-    default public void refresh() {
-        // Do nothing for EE 11+
-    }
+    public void refresh(Set<String> contextIds);
 
     default public void setPolicy() {
         // Do nothing for EE 11+

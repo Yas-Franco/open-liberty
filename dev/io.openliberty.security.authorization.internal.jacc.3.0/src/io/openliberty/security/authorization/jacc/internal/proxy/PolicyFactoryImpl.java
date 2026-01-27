@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -96,7 +96,7 @@ public class PolicyFactoryImpl extends PolicyFactory {
             policy = policyMap.get(contextId);
             if (policy == null && !policyMap.containsKey(contextId)) {
                 // get policy and set it in the map
-                policy = providerService.getPolicy(contextId);
+                policy = providerService.getPolicyFactory().getPolicy(contextId);
                 policyMap.put(contextId, policy);
             }
         }
@@ -115,6 +115,11 @@ public class PolicyFactoryImpl extends PolicyFactory {
                 wrapped.setPolicy(contextId, policy);
             } else {
                 policyMap.put(contextId, policy);
+            }
+
+            JakartaPolicyConfigFactoryProxy configFactoryProxy = JakartaPolicyConfigFactoryProxy.getInstance();
+            if (configFactoryProxy != null && configFactoryProxy.inService(contextId)) {
+                policy.refresh();
             }
         }
     }
