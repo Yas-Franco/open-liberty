@@ -140,6 +140,8 @@ public class SibIntrospectorImpl implements Introspector {
 			if (destiation != null && destiation instanceof DestinationHandler) {
 				DestinationHandler destinationHandler = (DestinationHandler) destiation;
 				out.println("Destination. Name: " + destinationHandler.getName() + " description : "+ destinationHandler.getDescription() +  "alias? " + destinationHandler.isAlias());
+			} else {
+				out.println("Unexpected value for destination. Destination was " + destiation == null ? "null" : destiation.getClass().getName()); 
 			}
 		}
 
@@ -155,9 +157,11 @@ public class SibIntrospectorImpl implements Introspector {
 			SIMPIterator virtualLinkIterator = ((MessageProcessorControl) controlAdapter).getVirtualLinkIterator();
 			while (virtualLinkIterator.hasNext()) {
 				Object virtualLink = virtualLinkIterator.next();
-				if (virtualLink instanceof VirtualLinkControl) {
+				if (virtualLink != null && virtualLink instanceof VirtualLinkControl) {
 					VirtualLinkControl virtualLinkControl = (VirtualLinkControl) virtualLink;
 					out.println(virtualLinkControl.getDebugInfo());
+				} else {
+					out.println("Unexpected value for virtualLink. virtualLink was " + virtualLink == null ? "null" : virtualLink.getClass().getName());
 				}
 			}
 		}
