@@ -48,6 +48,7 @@ import io.openliberty.mcp.internal.tools.ToolManager.ToolArguments;
 import io.openliberty.mcp.messaging.Cancellation;
 import io.openliberty.mcp.meta.Meta;
 import io.openliberty.mcp.request.RequestId;
+import io.openliberty.mcp.tools.ToolCallException;
 import io.openliberty.mcp.tools.ToolResponse;
 import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.inject.Inject;
@@ -177,7 +178,7 @@ public class McpServlet extends HttpServlet {
         }
     }
 
-    @FFDCIgnore({ IllegalAccessException.class, IllegalArgumentException.class })
+    @FFDCIgnore({ IllegalAccessException.class, IllegalArgumentException.class, ToolCallException.class })
     private void callTool(McpTransport transport) {
 
         ExecutionRequestId requestId = createOngoingRequestId(transport);
@@ -208,6 +209,12 @@ public class McpServlet extends HttpServlet {
             throw new JSONRPCException(JSONRPCErrorCode.INTERNAL_ERROR, List.of("Could not call " + params.getName()));
         } catch (IllegalArgumentException e) {
             throw new JSONRPCException(JSONRPCErrorCode.INVALID_PARAMS, List.of("Incorrect arguments in params"));
+        }
+        //Catch invalid tool args excetion(new type) send back new tool response
+        catch (ToolCallException e) {
+            ToolResponse response = ToolResponse.error(e.getMessage());
+            transport.sendResponse(response);
+            return;
         }
     }
 

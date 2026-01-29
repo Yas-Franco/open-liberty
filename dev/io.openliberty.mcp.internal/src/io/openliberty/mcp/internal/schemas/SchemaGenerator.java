@@ -113,7 +113,7 @@ public class SchemaGenerator {
             properties.add(argumentName, parameterSchemaBuilder.build());
             // - add it as required (if it is)
             if (argument.argument().required()) {
-                required.add(argumentName);
+                required.add(argument.argument().name());
             }
         }
 

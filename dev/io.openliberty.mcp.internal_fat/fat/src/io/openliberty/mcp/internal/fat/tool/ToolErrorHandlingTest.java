@@ -316,7 +316,6 @@ public class ToolErrorHandlingTest extends FATServletClient {
 
     @Test
     public void testCheckedExceptionTool_Unwrapped() throws Exception {
-        server.setMarkToEndOfLog();
 
         String request = """
                         {
@@ -354,6 +353,122 @@ public class ToolErrorHandlingTest extends FATServletClient {
         JSONAssert.assertEquals(expectedResponse, response, true);
 
         assertNotNull(server.waitForStringInLogUsingMark("Unwrapped checked error for: abc", server.getDefaultLogFile()));
+    }
+
+    @Test
+    public void testUnexpectedArgumentSupplied() throws Exception {
+        String request = """
+                        {
+                          "jsonrpc": "2.0",
+                          "id": 2,
+                          "method": "tools/call",
+                          "params": {
+                            "name": "inputValidationTool",
+                            "arguments": {
+                              "input": "Hi",
+                              "count": 2,
+                              "extra": "unexpected"
+                            }
+                          }
+                        }
+                        """;
+
+        String response = client.callMCP(request);
+
+        String expectedResponse = """
+                        {
+                          "jsonrpc": "2.0",
+                          "id": 2,
+                          "result": {
+                            "isError": true,
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "The following arguments were passed but were not found in the method: [extra]."
+                              }
+                            ]
+                          }
+                        }
+                        """;
+
+        JSONAssert.assertEquals(expectedResponse, response, true);
+    }
+
+    @Test
+    public void testMissingRequiredArgument() throws Exception {
+
+        String request = """
+                        {
+                          "jsonrpc": "2.0",
+                          "id": 103,
+                          "method": "tools/call",
+                          "params": {
+                            "name": "inputValidationTool",
+                            "arguments": {
+                              "count": 2
+                            }
+                          }
+                        }
+                        """;
+
+        String response = client.callMCP(request);
+
+        String expectedResponse = """
+                        {
+                          "jsonrpc": "2.0",
+                          "id": 103,
+                          "result": {
+                            "isError": true,
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "The following arguments were expected by the method but were not provided: [input]."
+                              }
+                            ]
+                          }
+                        }
+                        """;
+
+        JSONAssert.assertEquals(expectedResponse, response, true);
+    }
+
+    @Test
+    public void testArgumentTypeMismatch() throws Exception {
+
+        String request = """
+                        {
+                          "jsonrpc": "2.0",
+                          "id": 104,
+                          "method": "tools/call",
+                          "params": {
+                            "name": "inputValidationTool",
+                            "arguments": {
+                              "input": "hello",
+                              "count": "oops"
+                            }
+                          }
+                        }
+                        """;
+
+        String response = client.callMCP(request);
+
+        String expectedResponse = """
+                        {
+                          "jsonrpc": "2.0",
+                          "id": 104,
+                          "result": {
+                            "isError": true,
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "The count argument cannot be converted to the java.lang.Integer type."
+                              }
+                            ]
+                          }
+                        }
+                        """;
+
+        JSONAssert.assertEquals(expectedResponse, response, true);
     }
 
     @Test
@@ -508,6 +623,24 @@ public class ToolErrorHandlingTest extends FATServletClient {
                                            "description": "Throws IOException but not listed",
                                            "title": "Unwrapped Checked"
                                        },
+                                       {
+                                          "inputSchema": {
+                                            "type": "object",
+                                            "properties": {
+                                              "input": {
+                                                "type": "string"
+                                              },
+                                              "count": {
+                                                "type": "integer"
+                                              }
+                                            },
+                                            "required": [
+                                              "input"
+                                            ]
+                                          },
+                                          "name": "inputValidationTool",
+                                          "title": "Input Validation Tool"
+                                        }
                                      ]
                                     },
                                     "id":1,

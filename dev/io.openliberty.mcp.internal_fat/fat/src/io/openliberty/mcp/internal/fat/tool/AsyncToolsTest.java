@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -187,14 +187,21 @@ public class AsyncToolsTest extends FATServletClient {
 
         String response = client.callMCP(request);
         String expectedResponseString = """
-                        {"error":{"code":-32602,
-                        "data":[
-                            "The request does not have any arguments in parameters."
-                            ],
-                        "message":"Invalid params"},
-                        "id":"2",
-                        "jsonrpc":"2.0"}
+                        {
+                          "jsonrpc": "2.0",
+                          "id": "2",
+                          "result": {
+                            "isError": true,
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "The following arguments were expected by the method but were not provided: [input]."
+                              }
+                            ]
+                          }
+                        }
                         """;
+
         JSONAssert.assertEquals(expectedResponseString, response, true);
     }
 

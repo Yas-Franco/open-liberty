@@ -286,7 +286,7 @@ public class ToolTest extends FATServletClient {
     @Test
     public void testEchoWithInvalidParamsException() throws Exception {
         String request = """
-                          {
+                        {
                           "jsonrpc": "2.0",
                           "id": "2",
                           "method": "tools/call",
@@ -296,46 +296,59 @@ public class ToolTest extends FATServletClient {
                         }
                         """;
 
-        String response = client.callMCP(request);
         String expectedResponseString = """
-                        {"error":{"code":-32602,
-                        "data":[
-                            "The request does not have any arguments in parameters."
-                            ],
-                        "message":"Invalid params"},
-                        "id":"2",
-                        "jsonrpc":"2.0"}
+                        {
+                          "jsonrpc": "2.0",
+                          "id": "2",
+                          "result": {
+                            "isError": true,
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "The following arguments were expected by the method but were not provided: [input]."
+                              }
+                            ]
+                          }
+                        }
                         """;
+
+        String response = client.callMCP(request);
         JSONAssert.assertEquals(expectedResponseString, response, true);
     }
 
     @Test
     public void testEchoWithInvalidParamsArgumentMismatchException() throws Exception {
         String request = """
-                          {
+                        {
                           "jsonrpc": "2.0",
                           "id": "2",
                           "method": "tools/call",
                           "params": {
                             "name": "echo",
                             "arguments": {
-                                "other": "Hello"
+                              "other": "Hello"
+                            }
+                          }
+                        }
+                        """;
+
+        String expectedResponseString = """
+                        {
+                          "jsonrpc": "2.0",
+                          "id": "2",
+                          "result": {
+                            "isError": true,
+                            "content": [
+                              {
+                                "type": "text",
+                                    "text": "The following arguments were passed but were not found in the method: [other]. The following arguments were expected by the method but were not provided: [input]."
                               }
+                            ]
                           }
                         }
                         """;
 
         String response = client.callMCP(request);
-        String expectedResponseString = """
-                        {"error":{"code":-32602,
-                        "data":[
-                            "The following arguments were passed but were not found in the method: [other].",
-                            "The following arguments were expected by the method but were not provided: [input]."
-                            ],
-                        "message": "Invalid params"},
-                        "id":"2",
-                        "jsonrpc":"2.0"}
-                        """;
         JSONAssert.assertEquals(expectedResponseString, response, true);
     }
 
