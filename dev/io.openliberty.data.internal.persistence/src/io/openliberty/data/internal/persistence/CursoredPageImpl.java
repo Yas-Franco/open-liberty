@@ -166,6 +166,7 @@ public class CursoredPageImpl<T> implements CursoredPage<T> {
      *                            are added due to repository special parameters.
      * @throws Exception if an error occurs
      */
+    @SuppressWarnings("unchecked")
     private void addParametersForCursor(Cursor cursor,
                                         @Sensitive Map<Object, Object> addedJPQLParams) //
                     throws Exception {
