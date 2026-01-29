@@ -69,7 +69,7 @@ public class CDIIntrospector implements Introspector {
                     if (deployment instanceof WebSphereCDIDeploymentImpl) {
                         WebSphereCDIDeploymentImpl deploymentImpl = (WebSphereCDIDeploymentImpl) deployment;
 
-                        out.println("Application contains the following BDAs: " +
+                        out.println("Deployment contains the following BDAs: " +
                                     deploymentImpl.getOrderedBDAs().stream().map((bda) -> bda.getId()).collect(Collectors.joining(", ")));
 
                     }
