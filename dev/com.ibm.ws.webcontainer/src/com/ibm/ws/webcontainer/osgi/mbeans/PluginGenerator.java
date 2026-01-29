@@ -334,6 +334,18 @@ public class PluginGenerator {
             esiProp5.setAttribute("Value", root);
             rootElement.appendChild(esiProp5);
 
+            // Add OutboundInterfacesList property if configured
+            Element outboundInterfacesProp = output.createElement("Property");
+            outboundInterfacesProp.setAttribute("Name", "OutboundInterfacesList");
+            outboundInterfacesProp.setAttribute("Value", pcd.OutboundInterfacesList);
+            rootElement.appendChild(outboundInterfacesProp);
+
+            // Add OutboundBindStrict property
+            Element outboundBindStrictProp = output.createElement("Property");
+            outboundBindStrictProp.setAttribute("Name", "OutboundBindStrict");
+            outboundBindStrictProp.setAttribute("Value", pcd.OutboundBindStrict.toString());
+            rootElement.appendChild(outboundBindStrictProp);
+
             HttpEndpointInfo httpEndpointInfo;
             httpEndpointInfo = new HttpEndpointInfo(context, output, pcd.httpEndpointPid);
 
@@ -1764,6 +1776,8 @@ protected class XMLRootHandler extends DefaultHandler implements LexicalHandler 
         protected Hashtable<String, String> extraConfigProperties = new Hashtable<String, String>();
         protected Integer loadBalanceWeight = null;
         protected Role roleKind = null;
+        protected String OutboundInterfacesList = null;
+        protected Boolean OutboundBindStrict = Boolean.FALSE;
 
         protected PluginConfigData() {
             // nothing
@@ -1815,6 +1829,14 @@ protected class XMLRootHandler extends DefaultHandler implements LexicalHandler 
             String proxyList = (String) config.get("trustedProxyGroup");
             if (proxyList != null) {
                 TrustedProxyGroup = proxyList.split(",");
+            }
+
+            // Initialize new outbound interface properties
+            OutboundInterfacesList = (String) config.get("outboundInterfacesList");
+
+            // Initialize new outbound bind strict property
+            if (config.get("outboundBindStrict") != null) {
+                OutboundBindStrict = (Boolean) config.get("outboundBindStrict");
             }
 
             // populate extra properties map with default values but allow override from user config
