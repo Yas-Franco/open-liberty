@@ -19,16 +19,21 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.RandomAccess;
+import java.util.SortedMap;
 import java.util.stream.Stream;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
+import com.ibm.websphere.ras.annotation.Sensitive;
 import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
@@ -84,17 +89,21 @@ public class CursoredPageImpl<T> implements CursoredPage<T> {
     /**
      * Construct a new CursoredPage.
      *
-     * @param queryInfo   query information.
-     * @param em          the entity manager.
-     * @param pageRequest the request for this page.
-     * @param args        values that are supplied to the repository method.
+     * @param queryInfo       query information.
+     * @param em              the entity manager.
+     * @param pageRequest     the request for this page.
+     * @param args            values that are supplied to the repository method.
+     * @param addedJPQLParams map of JPQL parameter names/indices and values that are
+     *                            added due to repository special parameters.
+     *                            Null indicates none are added.
      * @throws Exception if an error occurs.
      */
     @Trivial // avoid tracing customer data
     CursoredPageImpl(QueryInfo queryInfo,
                      EntityManager em,
                      PageRequest pageRequest,
-                     Object[] args) throws Exception {
+                     Object[] args,
+                     Map<Object, Object> addedJPQLParams) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(tc, "<init>", queryInfo, pageRequest, queryInfo.loggable(args));
@@ -118,16 +127,20 @@ public class CursoredPageImpl<T> implements CursoredPage<T> {
                         isForward ? queryInfo.jpqlAfterCursor : //
                                         queryInfo.jpqlBeforeCursor;
 
-        @SuppressWarnings("unchecked")
-        TypedQuery<T> query = (TypedQuery<T>) em.createQuery(jpql,
-                                                             Object.class);
-        queryInfo.setParameters(query, args, null);
+        if (cursor.isPresent()) {
+            if (addedJPQLParams == null)
+                addedJPQLParams = new LinkedHashMap<>();
+            addParametersForCursor(cursor.get(), addedJPQLParams);
+        }
 
-        if (cursor.isPresent())
-            queryInfo.setParametersFromCursor(query, cursor.get());
+        @SuppressWarnings("unchecked")
+        TypedQuery<T> query = (TypedQuery<T>) em.createQuery(jpql, Object.class);
+        queryInfo.setParameters(query, args, addedJPQLParams);
 
         query.setFirstResult(firstResult);
-        query.setMaxResults(maxPageSize + (maxPageSize == Integer.MAX_VALUE ? 0 : 1)); // extra position is for knowing whether to expect another page
+        query.setMaxResults(maxPageSize + (maxPageSize == Integer.MAX_VALUE //
+                        ? 0 //
+                        : 1)); // extra position is for knowing whether to expect another page
 
         List<T> resultList = query.getResultList();
         results = resultList;
@@ -142,6 +155,62 @@ public class CursoredPageImpl<T> implements CursoredPage<T> {
 
         if (trace && tc.isEntryEnabled())
             Tr.exit(this, tc, "<init>");
+    }
+
+    /**
+     * Generates query parameters for the cursor element values and adds them to
+     * the addedJPQLParams map.
+     *
+     * @param cursor          the cursor
+     * @param addedJPQLParams map of JPQL parameter names/indices and values that
+     *                            are added due to repository special parameters.
+     * @throws Exception if an error occurs
+     */
+    private void addParametersForCursor(Cursor cursor,
+                                        @Sensitive Map<Object, Object> addedJPQLParams) //
+                    throws Exception {
+        final boolean trace = TraceComponent.isAnyTracingEnabled();
+
+        // Expand ID(THIS) for composite IdClass into separate attributes
+        List<Object> cursorValues;
+        SortedMap<String, Member> idClassAttributeAccessors = //
+                        queryInfo.entityInfo.idClassAttributeAccessors;
+        if (idClassAttributeAccessors == null) {
+            cursorValues = (List<Object>) cursor.elements();
+        } else {
+            cursorValues = new ArrayList<>(cursor.size() + 3);
+            for (Object value : cursor.elements()) {
+                if (queryInfo.entityInfo.idType.isInstance(value)) {
+                    for (Member accessor : idClassAttributeAccessors.values()) {
+                        Object v = accessor instanceof Field //
+                                        ? ((Field) accessor).get(value) //
+                                        : ((Method) accessor).invoke(value);
+                        cursorValues.add(v);
+                    }
+                } else {
+                    cursorValues.add(value);
+                }
+            }
+        }
+
+        int cursorSize = cursorValues.size();
+        if (queryInfo.sorts.size() != cursorSize)
+            cursorSizeMismatchError(cursor);
+
+        Object[] paramNames = queryInfo.jpqlParamNames.isEmpty() //
+                        ? null //
+                        : queryInfo.jpqlParamNames.toArray();
+
+        int paramNum = queryInfo.jpqlParamCount + 1;
+        for (int c = 0; c < cursorSize; c++, paramNum++) {
+            Object key = paramNames == null //
+                            ? paramNum // positional parameters
+                            : paramNames[paramNum - 1]; // named parameters
+            addedJPQLParams.put(key, cursorValues.get(c));
+
+            if (trace && tc.isDebugEnabled())
+                Tr.debug(this, tc, "added parameter " + key + " for cursor");
+        }
     }
 
     /**
@@ -224,6 +293,28 @@ public class CursoredPageImpl<T> implements CursoredPage<T> {
             }
 
         return Cursor.forKey(keyElements);
+    }
+
+    /**
+     * Raises an error because the number of cursor elements does not match the
+     * number of sort parameters.
+     *
+     * @param cursor cursor
+     */
+    @Trivial
+    private void cursorSizeMismatchError(PageRequest.Cursor cursor) {
+        List<String> keyTypes = new ArrayList<>();
+        for (int i = 0; i < cursor.size(); i++)
+            keyTypes.add(cursor.get(i) == null ? null : cursor.get(i).getClass().getName());
+
+        throw exc(IllegalArgumentException.class,
+                  "CWWKD1036.cursor.size.mismatch",
+                  cursor.size(),
+                  queryInfo.method.getName(),
+                  queryInfo.repositoryInterface.getName(),
+                  queryInfo.sorts.size(),
+                  queryInfo.loggable(cursor.elements()),
+                  queryInfo.sorts);
     }
 
     @Override
