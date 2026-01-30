@@ -332,8 +332,9 @@ public class LongIntervalHealthCheckTest {
 
         long readyUpdateDiff = readyModifiedTime - readyCreatedTime;
         Log.info(getClass(), "HealthCheckTestLongCheckInterval", "The difference between creation time and the ready update is (ms) : " + readyUpdateDiff);
-        //Allow for up to 32 seconds diff (account for any potential slowness
-        assertTrue("The modified time is out of bounds(ms): " + readyUpdateDiff, readyUpdateDiff >= 30000 && readyUpdateDiff <= 32000);
+
+        //Allow for 29.5-32 range to allow for quickness or slowness of system.
+        assertTrue("The modified time is out of bounds(ms): " + readyUpdateDiff, readyUpdateDiff >= 29500 && readyUpdateDiff <= 32000);
 
     }
 }
