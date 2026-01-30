@@ -119,13 +119,26 @@ public class URAPIs_ADLDAPTest {
 
     @Test
     @ExpectedFFDC(value = { "com.ibm.ws.security.registry.EntryNotFoundException" })
-    public void getAttributesForUserWithInvalidUserSecurityName() throws Exception {
+    public void getAttributesForUserWithUserSecurityNameNotFound() throws Exception {
         Log.info(c, "getAttributesForUserWithInvalidUserSecurityName", "Get ['*'] attribute from User: someBogusUser");
 
         expectedException.expect(EntryNotFoundException.class);
+        expectedException.expectMessage("CWIML4001E");
 
         List<String> attributeNames = new ArrayList<>(Collections.singletonList("*"));
         Map<String, Object> result = servlet.getAttributesForUser("someBogusUser", attributeNames);
+    }
+
+    @Test
+    @ExpectedFFDC(value = { "com.ibm.ws.security.registry.EntryNotFoundException" })
+    public void getAttributesForUserWithUserSecurityNameMultipleUsersReturned() throws Exception {
+        Log.info(c, "getAttributesForUserWithInvalidUserSecurityName", "Get ['*'] attribute from User: someBogusUser");
+
+        expectedException.expect(EntryNotFoundException.class);
+        expectedException.expectMessage("CWIML4538E");
+
+        List<String> attributeNames = new ArrayList<>(Collections.singletonList("*"));
+        Map<String, Object> result = servlet.getAttributesForUser("vmm*", attributeNames);
     }
 
     @Test
@@ -192,6 +205,20 @@ public class URAPIs_ADLDAPTest {
         assertTrue(list.contains("vmmuser1"));
         assertTrue(list.contains("vmmuser2"));
         assertTrue(list.contains("vmmuser3"));
+    }
+
+    @Test
+    public void getUsersWithAttributeWithAsteriskWildcardAttributeNegativeLimit() throws Exception {
+        Log.info(c, "getUsersWithAttributeWithAsteriskWildcardAttributeNoLimit", "Get users from Attribute: { kerberosId: vmmuser*@secfvt2.austin.ibm.com }");
+
+        String attributeName = "kerberosId";
+        String value = "vmmuser*@secfvt2.austin.ibm.com";
+        int limit = -10;
+
+        SearchResult result = servlet.getUsersByAttribute(attributeName, value, limit);
+        List<String> list = result.getList();
+
+        assertTrue(list.isEmpty());
     }
 
     @Test

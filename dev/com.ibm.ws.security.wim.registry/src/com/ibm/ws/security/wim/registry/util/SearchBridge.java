@@ -234,13 +234,15 @@ public class SearchBridge {
             root = this.mappingUtils.getWimService().search(root);
             List<Entity> returnedEntities = root.getEntities();
 
-            boolean isUserReturnedAndUnique = returnedEntities.size() == uniqueCount;
-            if (!(isUserReturnedAndUnique)) {
-                throw new InvalidIdentifierException(WIMMessageKey.INVALID_IDENTIFIER, Tr.formatMessage(
-                                                                                            tc,
-                                                                                            WIMMessageKey.INVALID_IDENTIFIER,
-                                                                                            WIMMessageHelper.generateMsgParms(userSecurityName)));
+            if (returnedEntities.isEmpty()) {
+                String msg = Tr.formatMessage(tc, WIMMessageKey.ENTITY_NOT_FOUND, WIMMessageHelper.generateMsgParms(userSecurityName));
+                throw new EntityNotFoundException(WIMMessageKey.ENTITY_NOT_FOUND, msg);
             }
+            if (returnedEntities.size() != uniqueCount) {
+                String msg = Tr.formatMessage(tc, WIMMessageKey.MULTIPLE_PRINCIPALS_FOUND, WIMMessageHelper.generateMsgParms(userSecurityName));
+                throw new EntityNotFoundException(WIMMessageKey.MULTIPLE_PRINCIPALS_FOUND, msg);
+            }
+
 
             boolean shouldGetAllAttributes = attributeNames.contains("*");
             if (shouldGetAllAttributes) {
