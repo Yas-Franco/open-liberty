@@ -30,7 +30,7 @@ public interface AttributeReader {
      * @param attributeNames
      * @return a Map of attributes for the user.
      *         <code>null</code> is not returned.
-     * @exception EntryNotFoundException   if uniqueUserId does not exist.
+     * @exception EntryNotFoundException   if userSecurityName does not exist or is not unique.
      * @exception RegistryException        if there is any UserRegistry specific problem
      * @exception IllegalArgumentException if userSecurityName is <code>null</code> or empty
      **/
