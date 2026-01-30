@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024 IBM Corporation and others.
+ * Copyright (c) 2024, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -22,15 +22,19 @@ import static org.junit.Assert.fail;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -54,6 +58,7 @@ import jakarta.servlet.annotation.WebServlet;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
+import org.junit.After;
 import org.junit.Test;
 
 import componenttest.app.FATServlet;
@@ -76,7 +81,10 @@ import test.context.timezone.TimeZone;
 public class Concurrency31TestServlet extends FATServlet {
 
     // Maximum number of nanoseconds to wait for a task to finish.
-    private static final long TIMEOUT_NS = TimeUnit.MINUTES.toNanos(2);
+    static final long TIMEOUT_NS = TimeUnit.MINUTES.toNanos(2);
+
+    // Futures to cancel between tests, to reduce the chance of failures in one test method interfering with others
+    private final Set<Future<?>> cancelAfterTest = Collections.newSetFromMap(new ConcurrentHashMap<Future<?>, Boolean>());
 
     /**
      * A single instance to share across tests that are okay with using context that
@@ -96,6 +104,24 @@ public class Concurrency31TestServlet extends FATServlet {
         } catch (NamingException x) {
             throw new ServletException(x);
         }
+    }
+
+    /**
+     * Cancel futures that are still incomplete when tests methods end, in order to prevent long-running tasks
+     * and queued tasks from interfering with subsequent tests.
+     * Ideally, there should never be any futures left incomplete after successful execution of a test method,
+     * and this should only be needed for when test methods fail and cannot easily clean up.
+     */
+    @After
+    void cancelFuturesAfterTest() {
+        int count = 0;
+        for (Iterator<Future<?>> it = cancelAfterTest.iterator(); it.hasNext();) {
+            Future<?> f = it.next();
+            if (!f.isDone() && f.cancel(true))
+                count++;
+        }
+        if (count > 0)
+            System.out.println("Canceled " + count + " futures after previous test");
     }
 
     /**
@@ -818,5 +844,54 @@ public class Concurrency31TestServlet extends FATServlet {
                 System.out.println("TestVirtualThreadsInterruptedWhenAppStopped2");
             }
         }).start();
+    }
+
+    /**
+     * Verify that a ManagedExecutorService configured with virtual=true and maxPolicy=loose
+     * does not allow inline execution on the submitter's thread when max concurrency is reached.
+     *
+     * This test confirms that virtual thread executors behave differently from platform thread
+     * executors with maxPolicy=loose. With platform threads, maxPolicy=loose allows tasks to run
+     * inline on the submitter's thread when max concurrency is exhausted. However, with virtual
+     * threads, inline execution would defeat the purpose of using virtual threads, so tasks must
+     * be rejected instead when the queue is full.
+     */
+    @Test
+    public void testMaxPolicyLooseVirtualThreads() throws Exception {
+
+        ManagedExecutorService virtualExecutor = InitialContext
+                        .doLookup("concurrent/virtual-executor-loose");
+
+        // Use up normal policy's max concurrency of 2
+        CountDownLatch continueLatch = new CountDownLatch(1);
+        Future<Boolean> blockerTask1Future = virtualExecutor.submit(new VirtualCheckTask(continueLatch));
+        cancelAfterTest.add(blockerTask1Future);
+        Future<Boolean> blockerTask2Future = virtualExecutor.submit(new VirtualCheckTask(continueLatch));
+        cancelAfterTest.add(blockerTask2Future);
+
+        // Use up maxQueueSize of 1
+        Future<Boolean> queuedTaskFuture1 = virtualExecutor.submit(new VirtualCheckTask());
+        cancelAfterTest.add(queuedTaskFuture1);
+
+        // Submit task that aborts due to full queue
+        try {
+            Future<Boolean> abortedTaskFuture1 = virtualExecutor.submit(new VirtualCheckTask());
+            cancelAfterTest.add(abortedTaskFuture1);
+            fail("Unexpectedly allowed submit: " + abortedTaskFuture1);
+        } catch (RejectedExecutionException x) {
+            if (!x.getMessage().startsWith("CWWKE1201E"))
+                throw x;
+        }
+
+        // Allow the blockers to complete normally and verify they ran on virtual threads.
+        continueLatch.countDown();
+        assertEquals(true, blockerTask1Future.get());
+        cancelAfterTest.remove(blockerTask1Future);
+        assertEquals(true, blockerTask2Future.get());
+        cancelAfterTest.remove(blockerTask2Future);
+
+        // Verify that the queued task ran on a virtual thread.
+        assertEquals(true, queuedTaskFuture1.get());
+        cancelAfterTest.remove(queuedTaskFuture1);
     }
 }
