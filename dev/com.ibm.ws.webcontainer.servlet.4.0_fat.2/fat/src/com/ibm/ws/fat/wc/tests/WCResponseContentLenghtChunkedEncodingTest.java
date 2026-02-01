@@ -105,7 +105,7 @@ public class WCResponseContentLenghtChunkedEncodingTest {
     }
 
     /*
-     * Test large size ASCII what overflow the buffer
+     * Test large size ASCII that overflow the buffer
      * Type: Writer
      * Expecting - Chunked
      */
@@ -118,7 +118,7 @@ public class WCResponseContentLenghtChunkedEncodingTest {
     }
 
     /*
-     * Test large size ASCII what overflow the buffer
+     * Test large size ASCII that overflow the buffer
      * Type - Stream
      * Expecting - Chunked
      */
@@ -131,7 +131,7 @@ public class WCResponseContentLenghtChunkedEncodingTest {
     }
 
     /*
-     * Test large size ASCII what overflow the buffer but explicitly setContentLength
+     * Test large size ASCII that overflow the buffer but explicitly setContentLength
      * Type - Writer
      * Expecting - CL
      */
@@ -144,7 +144,7 @@ public class WCResponseContentLenghtChunkedEncodingTest {
     }
 
     /*
-     * Test large size ASCII what overflow the buffer but explicitly setContentLength
+     * Test large size ASCII that overflow the buffer but explicitly setContentLength
      * Type - Stream
      * Expecting - CL
      */
