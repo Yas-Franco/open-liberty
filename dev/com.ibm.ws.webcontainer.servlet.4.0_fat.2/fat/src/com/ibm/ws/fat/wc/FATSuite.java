@@ -19,6 +19,7 @@ import com.ibm.ws.fat.util.FatLogHandler;
 import com.ibm.ws.fat.wc.tests.WCPartitionedAttributeTests;
 import com.ibm.ws.fat.wc.tests.WCPartitionedCookieAttributeSecurityTest;
 import com.ibm.ws.fat.wc.tests.WCRequestAutoDecompressTest;
+import com.ibm.ws.fat.wc.tests.WCResponseContentLenghtChunkedEncodingTest;
 import com.ibm.ws.fat.wc.tests.WCResponseHeadersTest;
 import com.ibm.ws.fat.wc.tests.WCSameSiteCookieAttributeSecurityTest;
 import com.ibm.ws.fat.wc.tests.WCSameSiteCookieAttributeTests;
@@ -49,6 +50,7 @@ import componenttest.rules.repeater.RepeatTests;
 @RunWith(Suite.class)
 @SuiteClasses({
                 WCRequestAutoDecompressTest.class,
+                WCResponseContentLenghtChunkedEncodingTest.class,
                 WCResponseHeadersTest.class,
                 WCSameSiteCookieAttributeTests.class,
                 WCSameSiteCookieAttributeSecurityTest.class,
