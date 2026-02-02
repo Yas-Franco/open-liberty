@@ -2798,36 +2798,13 @@ public class DataJPATestServlet extends FATServlet {
                                      .map(City::getName)
                                      .collect(Collectors.toList()));
 
-        // TODO enable once EclipseLink #29073 is fixed
-        // EclipseLink tries to allow querying by IdClass, but generates wrong SQL.
-        // This would need to be interpreted as (c.name=?1 AND c.stateName=?2)
-        //
-        // At one point, this was failing with:
-        // You have attempted to set a value of type class test.jakarta.data.jpa.web.CityId
-        // for parameter 1 with expected type of class java.lang.String from query string
-        // SELECT o FROM City o WHERE (o.stateName=?1)
-        // in which case EclipseLink was wrongly only using one part (stateName) of the id class
-        // in the SQL it generates, but then attempting to send the id class CityId value as
-        // the stateName, which does not match because CityId is not a String.
-        //
-        // However, now it is failing due to no result found
-        // Jakarta Data uses this JPQL: SELECT o FROM City o WHERE (id(o)=?1)
-        // Note that id(o) is a function that obtains the id of the entity,
-        // which in this case is an instance of CityId.
-        // EclipseLink wrongly generates the SQL:
-        // SELECT STATENAME, NAME, AREACODES, CHANGECOUNT, POPULATION FROM City WHERE (NAME = ?)
-        // and invokes toString on the CityId instance, supplying it as the NAME value
-        // rather than generating a query,
-        // ... WHERE (NAME = ? AND STATENAME = ?)
-        // and supplying the name and stateName values from the CityId instance.
-        //
-        //City city = cities.findById(CityId.of("Rochester", "Minnesota"))
-        //                .orElseThrow();
+        City city = cities.findById(CityId.of("Rochester", "Minnesota"))
+                        .orElseThrow();
 
-        //assertEquals("Rochester", city.getName());
-        //assertEquals("Minnesota", city.getStateName());
-        //assertEquals(Set.of(507), city.getAreaCodes());
-        //assertEquals(121395, city.getPopulation());
+        assertEquals("Rochester", city.getName());
+        assertEquals("Minnesota", city.getStateName());
+        assertEquals(Set.of(507), city.getAreaCodes());
+        assertEquals(121395, city.getPopulation());
     }
 
     /**
@@ -2867,12 +2844,7 @@ public class DataJPATestServlet extends FATServlet {
     /**
      * Repository method with a Query based on multiple IdClass parameters.
      */
-    // TODO enable once #29073 is fixed
-    // SELECT o FROM City o WHERE (o.name=?1 AND id(o)<>?2) ORDER BY o.stateName
-    // is wrongly interpreted as:
-    // SELECT STATENAME, NAME, AREACODES, CHANGECOUNT, POPULATION FROM City
-    //  WHERE ((NAME = ?) AND (STATENAME <> ?)) ORDER BY STATENAME
-    //@Test
+    @Test
     public void testIdClassInQuery() {
 
         assertEquals(List.of("Springfield Illinois",
@@ -2890,8 +2862,8 @@ public class DataJPATestServlet extends FATServlet {
                              "Springfield Illinois"),
                      cities.whereIdIsOneOf(CityId.of("Rochester",
                                                      "Minnesota"),
-                                           CityId.of("springfield",
-                                                     "illinois"),
+                                           CityId.of("Springfield",
+                                                     "Illinois"),
                                            CityId.of("Kansas City",
                                                      "Missouri"))
                                      .map(c -> c.getName() + ' ' + c.getStateName())
