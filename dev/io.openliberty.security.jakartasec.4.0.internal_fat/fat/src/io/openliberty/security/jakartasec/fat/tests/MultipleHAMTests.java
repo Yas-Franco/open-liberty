@@ -28,7 +28,7 @@ import componenttest.custom.junit.runner.Mode;
 import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.FATServletClient;
-import inmemory.identity.store.BasicServlet;
+import multiple.ham.BasicServlet;
 
 /**
  * Tests appSecurity-6.0

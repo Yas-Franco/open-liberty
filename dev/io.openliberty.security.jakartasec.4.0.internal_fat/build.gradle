@@ -13,7 +13,9 @@
 
 dependencies {
   requiredLibs project(':com.ibm.ws.security.fat.common'),
-  	  project(':com.ibm.ws.security.fat.common.jwt')
+      project(':io.openliberty.security.jakartasec.3.0.internal_fat.common'),
+  	  project(':com.ibm.ws.security.fat.common.jwt'),
+  	  'net.sourceforge.htmlunit:htmlunit:2.44.0'
 }
 
 addRequiredLibraries {
@@ -22,12 +24,12 @@ addRequiredLibraries {
 
 autoFVT.dependsOn ':com.ibm.ws.security.fat.common:assemble'
 autoFVT.dependsOn ':com.ibm.ws.security.fat.common.jwt:assemble'
-autoFVT.doLast {
-  
-   copy {
-      from project(':com.ibm.ws.security.fat.common').file('publish/shared/config')
-      into new File(autoFvtDir, 'publish/shared/config')
-      include '**/allAlgSSLSettings.xml'
-   }
- 
-}
+//autoFVT.doLast {
+//  
+//   copy {
+//      from project(':com.ibm.ws.security.fat.common').file('publish/shared/config')
+//      into new File(autoFvtDir, 'publish/shared/config')
+//      include '**/allAlgSSLSettings.xml'
+//   }
+// 
+//}
