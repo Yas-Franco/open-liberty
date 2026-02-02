@@ -7166,15 +7166,23 @@ _MF_CLS(_PFX_XHR + "_AjaxRequest", _MF_OBJECT, /** @lends myfaces._impl.xhrCore.
             //now this is less performant but we have to call it to allow viewstate decoration
             ret = this._Lang.createFormDataDecorator(new Array());
             _AJAXUTIL.encodeSubmittableFields(ret, this._sourceForm, this._partialIdsArray);
-            if (this._source && myfacesOptions && myfacesOptions.form)
+            // Backported MYFACES-4606
+            if (this._source && !this._isBehaviorEvent()) {
                 _AJAXUTIL.appendIssuingItem(this._source, ret);
-
+            }
         }
         return ret;
 
     },
 
-
+    /**
+     * Check if this is a non-action behavior event 
+     */
+    _isBehaviorEvent: function() {
+        var eventType = this._passThrough[this.attr("impl").P_BEHAVIOR_EVENT] || null;
+        var isBehaviorEvent = (!!eventType) && eventType != 'click';
+        return isBehaviorEvent;
+    },
 
     /**
      * Client error handlers which also in the long run route into our error queue
@@ -7450,7 +7458,10 @@ _MF_CLS(_PFX_XHR + "_AjaxRequestQuirks", myfaces._impl.xhrCore._AjaxRequest, /**
      */
     getFormData:function () {
         var formDataDecorator = this._Lang.createFormDataDecorator(jsf.getViewState(this._sourceForm));
-        this._AJAXUTIL.appendIssuingItem(this._source, formDataDecorator);
+        // Backported MYFACES-4606
+        if(this._source && !this._isBehaviorEvent()) {
+            this._AJAXUTIL.appendIssuingItem(this._source, formDataDecorator);
+        }
         return formDataDecorator;
     },
 
@@ -7616,13 +7627,15 @@ _MF_CLS(_PFX_XHR+"_FormDataRequest", myfaces._impl.xhrCore._AjaxRequest, {
             //just in case the source item is outside of the form
             //only if the form override is set we have to append the issuing item
             //otherwise it is an element of the parent form
-            if (this._source && myfacesOptions && myfacesOptions.form) {
+            // Backported MYFACES-4606
+            if (this._source && !this._isBehaviorEvent()) {
                 _AJAXUTIL.appendIssuingItem(this._source, ret);
             }
         } else {
             ret = new FormData();
             _AJAXUTIL.encodeSubmittableFields(ret, this._sourceForm, this._partialIdsArray);
-            if (this._source && this._source && myfacesOptions && myfacesOptions.form) {
+            // Backported MYFACES-4606
+            if (this._source && !this._isBehaviorEvent()) {
                 _AJAXUTIL.appendIssuingItem(this._source, ret);
             }
         }
@@ -9353,6 +9366,7 @@ _MF_SINGLTN(_PFX_CORE + "Impl", _MF_OBJECT, /**  @lends myfaces._impl.core.Impl.
     P_EXECUTE:"jakarta.faces.partial.execute",
     P_RENDER:"jakarta.faces.partial.render",
     P_EVT:"jakarta.faces.partial.event",
+    P_BEHAVIOR_EVENT:"jakarta.faces.behavior.event",
     P_WINDOW_ID:"jakarta.faces.ClientWindow",
     P_RESET_VALUES:"jakarta.faces.partial.resetValues",
 

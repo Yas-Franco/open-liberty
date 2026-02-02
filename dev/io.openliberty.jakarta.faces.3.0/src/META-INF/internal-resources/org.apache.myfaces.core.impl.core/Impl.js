@@ -55,6 +55,7 @@ _MF_SINGLTN(_PFX_CORE + "Impl", _MF_OBJECT, /**  @lends myfaces._impl.core.Impl.
     P_EXECUTE:"jakarta.faces.partial.execute",
     P_RENDER:"jakarta.faces.partial.render",
     P_EVT:"jakarta.faces.partial.event",
+    P_BEHAVIOR_EVENT:"jakarta.faces.behavior.event",
     P_WINDOW_ID:"jakarta.faces.ClientWindow",
     P_RESET_VALUES:"jakarta.faces.partial.resetValues",
 
