@@ -30,36 +30,6 @@ The Program includes some or all of the following that IBM obtained
 under the Apache License, Version 2.0:
 
 @carbon/telemetry [telemetry-0.0.0-alpha.6.tgz],
-@swagger-api/apidom-ast [apidom-ast-1.0.0-rc.3.tgz],
-@swagger-api/apidom-core [apidom-core-1.0.0-rc.3.tgz],
-@swagger-api/apidom-error [apidom-error-1.0.0-rc.3.tgz],
-@swagger-api/apidom-json-pointer [apidom-json-pointer-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-api-design-systems [apidom-ns-api-design-systems-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-arazzo-1 [apidom-ns-arazzo-1-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-asyncapi-2 [apidom-ns-asyncapi-2-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-json-schema-2019-09 [apidom-ns-json-schema-2019-09-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-json-schema-2020-12 [apidom-ns-json-schema-2020-12-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-json-schema-draft-4 [apidom-ns-json-schema-draft-4-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-json-schema-draft-6 [apidom-ns-json-schema-draft-6-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-json-schema-draft-7 [apidom-ns-json-schema-draft-7-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-openapi-2 [apidom-ns-openapi-2-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-openapi-3-0 [apidom-ns-openapi-3-0-1.0.0-rc.3.tgz],
-@swagger-api/apidom-ns-openapi-3-1 [apidom-ns-openapi-3-1-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-api-design-systems-json [apidom-parser-adapter-api-design-systems-json-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-api-design-systems-yaml [apidom-parser-adapter-api-design-systems-yaml-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-arazzo-json-1 [apidom-parser-adapter-arazzo-json-1-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-arazzo-yaml-1 [apidom-parser-adapter-arazzo-yaml-1-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-asyncapi-json-2 [apidom-parser-adapter-asyncapi-json-2-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-asyncapi-yaml-2 [apidom-parser-adapter-asyncapi-yaml-2-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-json [apidom-parser-adapter-json-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-openapi-json-2 [apidom-parser-adapter-openapi-json-2-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-openapi-json-3-0 [apidom-parser-adapter-openapi-json-3-0-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-openapi-json-3-1 [apidom-parser-adapter-openapi-json-3-1-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-openapi-yaml-2 [apidom-parser-adapter-openapi-yaml-2-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-openapi-yaml-3-0 [apidom-parser-adapter-openapi-yaml-3-0-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-openapi-yaml-3-1 [apidom-parser-adapter-openapi-yaml-3-1-1.0.0-rc.3.tgz],
-@swagger-api/apidom-parser-adapter-yaml-1-2 [apidom-parser-adapter-yaml-1-2-1.0.0-rc.3.tgz],
-@swagger-api/apidom-reference [apidom-reference-1.0.0-rc.3.tgz],
 @swaggerexpert/cookie [cookie-2.0.2.tgz],
 @swaggerexpert/json-pointer [json-pointer-2.10.2.tgz], Apache Ant Core [ant],
 Apache Ant Launcher [ant-launcher],
@@ -654,20 +624,17 @@ BSD 3 Clause license
 The Program includes some or all of the following that IBM obtained
 under the BSD 3 Clause license:
 
-ANTLR 4 Runtime [antlr4-runtime] (ANTLR) (Copyright 2012-2017 The ANTLR Project)
+ANTLR 4 Runtime [antlr4-runtime] (ANTLR) (Copyright 2012 Terence Parr and Sam Harwell) (Copyright 2012-2017 The ANTLR Project)
 Angus Activation Registries [angus-activation] (Copyright 2018 Oracle and/or its affiliates) (Copyright 2021 Oracle and/or its affiliates)
-Angus Activation Registries [angus-activation] (Copyright 2018 Oracle and/or its affiliates) (Copyright 2021-2023 Oracle and/or its affiliates) (Eclipse Foundation)
 Angus Activation Registries [angus-activation] (Copyright 2021-2023 Oracle and/or its affiliates)
-Codemodel Core [codemodel] (Copyright 2010-2018 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Codemodel Core [codemodel] (Copyright 2010-2021 Oracle and/or its affiliates)
 Codemodel Core [codemodel] (Copyright 2010-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Codemodel Core [codemodel] (Copyright 2010-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Codemodel Core [codemodel] (Copyright 2010-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
-DTD Parser [dtd-parser] (Copyright 1998-2018 Oracle and/or its affiliates) (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2017-2018 Oracle and/or its affiliates)
 DTD Parser [dtd-parser] (Copyright 1998-2021 Oracle and/or its affiliates) (Copyright 2017-2018 Oracle and) (Copyright 2017-2018 Oracle and/or its affiliates)
 DTD Parser [dtd-parser] (Copyright 1998-2022 Oracle and/or its affiliates) (Copyright 2017-2018 Oracle and/or its affiliates)
-EclipseLink Core [org.eclipse.persistence.core] (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2019-2025 Oracle and/or its affiliates) (Eclipse.org - EclipseLink Project)
-Extended StAX API [stax-ex] (Copyright 1997-2020 Oracle and/or its affiliates) (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2017 Oracle and/or its affiliates) (Copyright 2018-2019 Oracle and/or its affiliates)
+EclipseLink Core [org.eclipse.persistence.core] (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2019-2025 Oracle and/or its affiliates) (Copyright Oracle and/or its affiliates) (Eclipse.org - EclipseLink Project)
+Extended StAX API [stax-ex] (Copyright 1997-2020 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates) (Copyright 2018-2019 Oracle and/or its affiliates) (Eclipse Foundation)
 Extended StAX API [stax-ex] (Copyright 1997-2021 Oracle and) (Copyright 1997-2021 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates)
 Extended StAX API [stax-ex] (Copyright 1997-2022 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates)
 GMBAL (API only) [gmbal-api-only] (Copyright 2018 Oracle and/or its affiliates) (Copyright 2019-2021 Oracle and/or its affiliates)
@@ -684,48 +651,30 @@ JAXB JXC [jaxb-jxc] (Copyright 2013-2020 Oracle and/or its affiliates) (Copyrigh
 JAXB JXC [jaxb-jxc] (Copyright 2013-2022 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
 JAXB JXC [jaxb-jxc] (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 JAXB JXC [jaxb-jxc] (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
-JAXB Runtime [jaxb-runtime] (Copyright 2013-2018 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-JAXB Runtime [jaxb-runtime] (Copyright 2013-2019 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 JAXB Runtime [jaxb-runtime] (Copyright 2013-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 JAXB Runtime [jaxb-runtime] (Copyright 2013-2022 Oracle and/or its affiliates)
 JAXB Runtime [jaxb-runtime] (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 JAXB Runtime [jaxb-runtime] (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
 JAXB Runtime [jaxb-runtime] (Copyright 2018 Oracle)
-JAXB XJC [jaxb-xjc] (Copyright 2013-2018 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 JAXB XJC [jaxb-xjc] (Copyright 2013-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 JAXB XJC [jaxb-xjc] (Copyright 2013-2022 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
 JAXB XJC [jaxb-xjc] (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 JAXB XJC [jaxb-xjc] (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
-Jakarta Activation API [jakarta.activation-api] (Copyright 1997-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Jakarta Activation API [jakarta.activation-api] (Copyright 1997-2022 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Jakarta Activation API [jakarta.activation-api] (Copyright 1997-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Jakarta Activation API [jakarta.activation-api] (Copyright 1997-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
-Jakarta Activation API jar [jakarta.activation-api] (Copyright 1997-2019 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-Jakarta Activation [jakarta.activation] (Copyright 1997-2019 Oracle and/or its affiliates) (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2018 Oracle and/or its affiliates) (Copyright 2019 Eclipse Foundation)
 Jakarta Activation [jakarta.activation] (Copyright 1997-2020 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Jakarta Activation [jakarta.activation] (Copyright 1997-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Jakarta Persistence API [jakarta.persistence-api] (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2018-2020 Oracle and/or its affiliates) (Copyright 2019 Oracle and/or its affiliates)
 Jakarta Persistence API [jakarta.persistence-api] (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2018-2022 Oracle and/or its affiliates)
-Jakarta Persistence [jakarta.persistence] (Copyright 2007-2018 Oracle and/or its affiliates) (Eclipse.org - EclipseLink Project)
+Jakarta Persistence [jakarta.persistence] (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2007-2018 Oracle and/or its affiliates) (Copyright 2008-2018 Oracle and/or its affiliates) (Eclipse.org - EclipseLink Project)
 Jakarta SOAP Implementation [saaj-impl] (Copyright 2011-2021 Oracle and) (Copyright 2011-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Jakarta SOAP Implementation [saaj-impl] (Copyright 2011-2022 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-Jakarta SOAP with Attachments API [jakarta.xml.soap-api] (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2013-2020 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates) (Copyright 2018-2019 Oracle and/or its affiliates) (Copyright 2019-2020 Eclipse Foundation)
-Jakarta SOAP with Attachments API [jakarta.xml.soap-api] (Copyright 2013-2021 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates)
-Jakarta SOAP with Attachments API [jakarta.xml.soap-api] (Copyright 2013-2022 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates)
-Jakarta SOAP with Attachments API [jakarta.xml.soap-api] (Copyright 2013-2024 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates) (Eclipse Foundation)
-Jakarta Web Services Metadata API [jakarta.jws-api] (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2013-2020 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates) (Copyright 2019 Oracle and/or its affiliates) (Copyright 2019-2020 Eclipse Foundation)
 Jakarta Web Services Metadata API [jakarta.jws-api] (Copyright 2013-2020 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates)
 Jakarta XML Binding API [jakarta.xml.bind-api] (Copyright 2017-2018 Oracle and/or its affiliates) (Copyright 2018-2020 Oracle and/or its affiliates)
 Jakarta XML Binding API [jakarta.xml.bind-api] (Copyright 2017-2018 Oracle and/or its affiliates) (Copyright 2018-2021 Oracle and/or its affiliates)
 Jakarta XML Binding API [jakarta.xml.bind-api] (Copyright 2017-2018 Oracle and/or its affiliates) (Copyright 2018-2022 Oracle and/or its affiliates)
 Jakarta XML Binding API [jakarta.xml.bind-api] (Copyright 2017-2018 Oracle and/or its affiliates) (Copyright 2018-2023 Oracle and/or its affiliates)
-Jakarta XML Binding API [jakarta.xml.bind-api] (Copyright 2018 Oracle)
-Jakarta XML Binding API [jboss-jaxb-api_2.3_spec] (Copyright 2017-2018 Oracle and/or its affiliates) (Copyright 2018-2019 Oracle and/or its affiliates)
-Jakarta XML Web Services API [jakarta.xml.ws-api] (Copyright 1997-2020 Oracle and/or its affiliates) (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2017-2018 Oracle and/or its affiliates) (Copyright 2018-2019 Oracle and/or its affiliates) (Copyright 2019-2020 Eclipse Foundation) (Eclipse Foundation)
-Jakarta XML Web Services API [jakarta.xml.ws-api] (Copyright 1997-2021 Oracle and/or its affiliates) (Copyright 2017-2018 Oracle and) (Copyright 2017-2018 Oracle and/or its affiliates) (Eclipse Foundation)
-Jakarta XML Web Services API [jakarta.xml.ws-api] (Copyright 1997-2024 Oracle and/or its affiliates) (Copyright 2017-2018 Oracle and/or its affiliates) (Eclipse Foundation)
-JavaBeans Activation Framework API jar [jakarta.activation-api] (Copyright 1997-2018 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-JavaBeans Activation Framework [jakarta.activation] (Copyright 1997-2018 Oracle and/or its affiliates) (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2018 Oracle and/or its affiliates)
 MIME streaming extension [mimepull] (Copyright 2012-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Old JAXB Core [jaxb-core] (Copyright 2018 Oracle and/or its affiliates) (Copyright 2020-2021 Oracle and/or its affiliates)
 Old JAXB JXC [jaxb-jxc] (Copyright 2013-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
@@ -734,28 +683,17 @@ Old JAXB JXC [jaxb-jxc] (Copyright 2013-2023 Oracle and/or its affiliates) (Copy
 Old JAXB Runtime [jaxb-impl] (Copyright 2013-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 Old JAXB Runtime [jaxb-impl] (Copyright 2013-2022 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
 Old JAXB Runtime [jaxb-impl] (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-Old JAXB XJC [jaxb-xjc] (Copyright 2001-2002 SourceForge ISO) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2004 Kohsuke Kawaguchi) (Copyright 2013-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-Old JAXB XJC [jaxb-xjc] (Copyright 2001-2002 SourceForge ISO) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2004 Kohsuke Kawaguchi) (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-Old JAXB XJC [jaxb-xjc] (Copyright 2001-2002 SourceForge ISO-RELAX Project) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2004 Kohsuke Kawaguchi) (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
 Protocol Buffers [Core] [protobuf-java] (Copyright 2008 Google Inc)
 Protocol Buffers [Lite] [protobuf-javalite] (Copyright 2008 Google Inc)
-RNGOM [rngom] (Copyright 2001-2002 SourceForge ISO) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2004 Kohsuke Kawaguchi) (Copyright 2005-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-RNGOM [rngom] (Copyright 2001-2002 SourceForge ISO) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2004 Kohsuke Kawaguchi) (Copyright 2005-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-RNGOM [rngom] (Copyright 2001-2002 SourceForge ISO-RELAX Project (ASAMI Tomoharu, Daisuke) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2004 Kohsuke Kawaguchi) (Copyright 2005-2018 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 RNGOM [rngom] (Copyright 2001-2002 SourceForge ISO-RELAX Project) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2004 Kohsuke Kawaguchi) (Copyright 2005-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
-RelaxNG Datatype [relaxng-datatype] (Copyright 2001-2002 SourceForge ISO) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2013-2020 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-RelaxNG Datatype [relaxng-datatype] (Copyright 2001-2002 SourceForge ISO) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2013-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-RelaxNG Datatype [relaxng-datatype] (Copyright 2001-2002 SourceForge ISO) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-RelaxNG Datatype [relaxng-datatype] (Copyright 2001-2002 SourceForge ISO-RELAX Project (ASAMI Tomoharu, Daisuke) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2013-2018 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 RelaxNG Datatype [relaxng-datatype] (Copyright 2001-2002 SourceForge ISO-RELAX Project) (Copyright 2001-2003 Thai Open Source Software Center Ltd) (Copyright 2013-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
-TXW2 Runtime [txw2] (Copyright 2005-2018 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
-TXW2 Runtime [txw2] (Copyright 2005-2019 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
+TXW2 Runtime [txw2] (Copyright 2005-2018 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Oracle Corporation)
+TXW2 Runtime [txw2] (Copyright 2005-2019 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
 TXW2 Runtime [txw2] (Copyright 2005-2020 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 TXW2 Runtime [txw2] (Copyright 2005-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
 TXW2 Runtime [txw2] (Copyright 2005-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 TXW2 Runtime [txw2] (Copyright 2005-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates) (Eclipse Foundation)
 TXW2 Runtime [txw2] (Copyright 2018 Oracle)
-XSOM [xsom] (Copyright 2010-2018 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 XSOM [xsom] (Copyright 2010-2021 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 XSOM [xsom] (Copyright 2010-2022 Oracle and/or its affiliates)
 XSOM [xsom] (Copyright 2010-2023 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
@@ -768,14 +706,12 @@ asm-util (Copyright 2000-2011 INRIA) (OW2)
 dojo [dojo-1.13.10.tgz] (Copyright 2003-2004 Lawrence E. Rosen) (Copyright 2005-2017 JS Foundation) (Copyright 2005-2017 The JS Foundation)
 highlight.js [highlight.js-10.7.3.tgz] (Copyright 2006 Ivan Sagalaev)
 ieee754 [ieee754-1.2.1.tgz] (Copyright 2008 Fair Oaks Labs, Inc)
-istack common utility code runtime [istack-commons-runtime] (Copyright 1997-2018 Oracle and/or its affiliates) (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2017 Oracle and/or its affiliates)
-istack common utility code runtime [istack-commons-runtime] (Copyright 1997-2019 Oracle and/or its affiliates) (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2017 Oracle and/or its affiliates)
+istack common utility code runtime [istack-commons-runtime] (Copyright 1997-2018 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates) (Eclipse Foundation)
+istack common utility code runtime [istack-commons-runtime] (Copyright 1997-2019 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates) (Eclipse Foundation)
 istack common utility code runtime [istack-commons-runtime] (Copyright 1997-2021 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates)
 istack common utility code runtime [istack-commons-runtime] (Copyright 1997-2023 Oracle and/or its affiliates)
-istack common utility code tools [istack-commons-tools] (Copyright 1997-2018 Oracle and/or its affiliates) (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2017 Oracle and/or its affiliates)
 istack common utility code tools [istack-commons-tools] (Copyright 1997-2021 Oracle and/or its affiliates) (Copyright 2017 Oracle and/or its affiliates)
 istack common utility code tools [istack-commons-tools] (Copyright 1997-2022 Oracle and/or its affiliates)
-jakarta.xml.bind-api (Copyright 2017-2018 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 management-api (Copyright 2007 Eclipse Foundation, Inc. and its licensors) (Copyright 2011-2020 Oracle and/or its affiliates) (Copyright 2018 Oracle and/or its affiliates)
 org.eclipse.persistence.core(Copyright Not Found)
 ramda-adjunct [ramda-adjunct-5.1.0.tgz] (Copyright 2017-2019 Vladim)
@@ -883,6 +819,7 @@ Expression Language 3.0 API [javax.el-api] http://glassfish.org
 Expression Language 3.0 API [jboss-el-api_3.0_spec] http://www.jboss.org
 Extended StAX API [stax-ex] http://stax-ex.java.net/
 JAX-WS API [jaxws-api] http://www.oracle.com
+JAXB XJC [jaxb-xjc] https://javaee.github.io/jaxb-v2/
 JMS API [javax.jms-api] http://java.net/projects/jms-spec/pages/Home
 JSR 353 (JSON Processing) API [javax.json-api] http://www.oracle.com
 JSR 374 (JSON Processing) API [javax.json-api] http://www.oracle.com
@@ -903,6 +840,8 @@ MIME streaming extension [mimepull] http://www.oracle.com/
 Old JAXB Core [jaxb-core] http://www.oracle.com/
 Old JAXB Runtime [jaxb-impl] http://www.oracle.com/
 Old JAXB XJC [jaxb-xjc] http://www.oracle.com/
+Old JAXB XJC [jaxb-xjc] https://eclipse-ee4j.github.io/jaxb-ri/
+Old JAXB XJC [jaxb-xjc] https://www.eclipse.org
 Streaming API for XML [stax-api] https://repo.maven.apache.org/maven2/javax/xml/stream/stax-api/1.0-2
 TXW2 Runtime [txw2] http://www.oracle.com/
 WebSocket server API [javax.websocket-api] http://www.oracle.com
@@ -974,7 +913,7 @@ GlassFish High Availability APIs and SPI [ha-api] https://www.eclipse.org
 JBoss Jakarta Annotations API [jboss-annotations-api_1.3_spec] http://www.jboss.org
 JSON-B API [jakarta.json.bind-api] https://www.eclipse.org
 JSON-P Default Provider [jakarta.json] https://www.eclipse.org
-Jakarta Annotations API [jakarta.annotation-api] https://www.eclipse.org
+Jakarta Annotations API [jakarta.annotation-api] https://projects.eclipse.org/projects/ee4j.ca
 Jakarta Authentication [jakarta.authentication-api] https://github.com/eclipse-ee4j/authentication
 Jakarta Authentication [jakarta.authentication-api] https://github.com/jakartaee/authentication
 Jakarta Authorization [jakarta.authorization-api] http://www.oracle.com
@@ -992,19 +931,20 @@ Jakarta Mail API [jakarta.mail] https://repo.maven.apache.org/maven2/com/sun/mai
 Jakarta Mail API [jakarta.mail] https://repo.maven.apache.org/maven2/com/sun/mail/jakarta.mail/2.0.2
 Jakarta Mail API jar [jakarta.mail-api] https://repo.maven.apache.org/maven2/jakarta/mail/jakarta.mail-api/1.6.8
 Jakarta Mail API jar [jakarta.mail-api] https://repo.maven.apache.org/maven2/jakarta/mail/jakarta.mail-api/2.0.2
-Jakarta Messaging API [jakarta.jms-api] https://www.eclipse.org
+Jakarta Messaging API [jakarta.jms-api] https://projects.eclipse.org/projects/ee4j.jms
 Jakarta Persistence API [jakarta.persistence-api] https://www.eclipse.org
-Jakarta RESTful WS API [jakarta.ws.rs-api] https://www.eclipse.org/org/foundation/
+Jakarta RESTful WS API [jakarta.ws.rs-api] https://github.com/eclipse-ee4j/jaxrs-api
+Jakarta RESTful WS API [jakarta.ws.rs-api] https://github.com/jakartaee/rest
 Jakarta Security [jakarta.security.enterprise-api] https://projects.eclipse.org/projects/ee4j/
 Jakarta Security [jakarta.security.enterprise-api] https://www.eclipse.org
 Jakarta Server Pages API [jakarta.servlet.jsp-api] https://projects.eclipse.org/projects/ee4j.jsp
 Jakarta Server Pages API [jakarta.servlet.jsp-api] https://www.eclipse.org
-Jakarta Servlet [jakarta.servlet-api] https://www.eclipse.org
+Jakarta Servlet [jakarta.servlet-api] https://projects.eclipse.org/projects/ee4j.servlet
 Jakarta Standard Tag Library API [jakarta.servlet.jsp.jstl-api] https://projects.eclipse.org/projects/ee4j.jstl
 Jakarta Standard Tag Library API [jakarta.servlet.jsp.jstl-api] https://www.eclipse.org
 Jakarta Standard Tag Library Implementation [jakarta.servlet.jsp.jstl] https://projects.eclipse.org/projects/ee4j.jstl
-Jakarta WebSocket - Client API [jakarta.websocket-client-api] https://www.eclipse.org
-Jakarta WebSocket - Server API [jakarta.websocket-api] https://www.eclipse.org
+Jakarta WebSocket - Client API [jakarta.websocket-client-api] https://projects.eclipse.org/projects/ee4j.websocket
+Jakarta WebSocket - Server API [jakarta.websocket-api] https://projects.eclipse.org/projects/ee4j.websocket
 Java(TM) API for JSON Processing [jboss-json-api_1.0_spec] http://www.jboss.org
 Meta Type [org.eclipse.equinox.metatype] https://github.com/eclipse-equinox/equinox/
 OSGi System Bundle [org.eclipse.osgi] https://github.com/eclipse-equinox/equinox/
@@ -1016,16 +956,15 @@ che-lib7.0.0-rc-4.0 [che-lib] https://github.com/eclipse-che/che-lib.git
 jakarta.enterprise.concurrent-api http://www.oracle.com/
 jakarta.json(https://repo.maven.apache.org/maven2/jakarta/json/jakarta.json-api/2.0.2)
 jakarta.resource API [jakarta.resource-api] https://www.eclipse.org
-jakarta.transaction API [jakarta.transaction-api] https://github.com/eclipse-ee4j
-jakarta.ws.rs-api https://www.eclipse.org/org/foundation/
+jakarta.transaction API [jakarta.transaction-api] https://projects.eclipse.org/projects/ee4j.jta
+jakarta.ws.rs-api https://github.com/eclipse-ee4j/jaxrs-api
 jakarta.xml.soap-api (https://github.com/javaee/javax.xml.soap)
-javax.transaction API [jakarta.transaction-api] https://github.com/eclipse-ee4j
+javax.transaction API [jakarta.transaction-api] https://projects.eclipse.org/projects/ee4j.jta
 javax.transaction API [jboss-transaction-api_1.3_spec] https://github.com/eclipse-ee4j
-javax.ws.rs-api [jakarta.ws.rs-api] https://www.eclipse.org/org/foundation/
+javax.ws.rs-api [jakarta.ws.rs-api] https://github.com/eclipse-ee4j/jaxrs-api
 javax.ws.rs-api https://www.eclipse.org/org/foundation/
 jboss-jakarta-ejb-api_spec [jboss-ejb-api_3.2_spec] http://www.jboss.org
 jboss-jakarta-jaxrs-api_spec [jboss-jaxrs-api_2.1_spec] http://www.jboss.org
-open-libertygm-25.0.0.12 [open-liberty] https://github.com/OpenLiberty/open-liberty.git
 org.eclipse.persistence.jpa (https://github.com/jakartaee/persistence)
 org.eclipse.yasson [yasson] http://www.oracle.com/
 
@@ -1511,14 +1450,14 @@ glob-parent [glob-parent-5.1.2.tgz] (Copyright 2015-2019 Elan Shanker)
 graceful-fs [graceful-fs-4.2.11.tgz] (Copyright 2011-2022 Isaac Z. Schlueter)
 inherits [inherits-2.0.4.tgz] (Copyright Isaac Z. Schlueter and Contributors)
 minimatch [minimatch-7.4.6.tgz] (Copyright 2011-2023 Isaac Z. Schlueter and Contributors)
-once [once-1.4.0.tgz] (Copyright Isaac Z. Schlueter and Contributors) (Copyright Isaac Z. Schlueter and Contributors)
+once [once-1.4.0.tgz] (Copyright Isaac Z. Schlueter and Contributors)
 picocolors [picocolors-1.1.1.tgz] (Copyright 2021-2024 Oleksii Raspopov)
 remove-trailing-separator [remove-trailing-separator-1.1.0.tgz] (Copyright 2017 Tomas Sardyha) (Copyright 2017.0 Tomas Sardyha)
 semver [semver-6.3.1.tgz] (Copyright Isaac Z. Schlueter and Contributors) (Copyright Isaac Z. Schlueter and Contributors)
 semver [semver-7.7.1.tgz] (Copyright Isaac Z. Schlueter and Contributors) (Copyright Isaac Z. Schlueter and Contributors)
 signal-exit [signal-exit-3.0.7.tgz] (Copyright 2015 Contributors)
 vinyl-sourcemaps-apply [vinyl-sourcemaps-apply-0.2.1.tgz](Copyright Not Found)
-wrappy [wrappy-1.0.2.tgz] (Copyright Isaac Z. Schlueter and Contributors) (Copyright Isaac Z. Schlueter and Contributors)
+wrappy [wrappy-1.0.2.tgz] (Copyright Isaac Z. Schlueter and Contributors)
 write-file-atomic [write-file-atomic-3.0.3.tgz] (Copyright 2015 Rebecca Turner)
 y18n [y18n-5.0.8.tgz] (Copyright 2015 Contributors)
 yargs-parser [yargs-parser-20.2.9.tgz] (Copyright 2016 Contributors)
