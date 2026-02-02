@@ -46,15 +46,18 @@ import io.openliberty.mcp.internal.fat.tool.basicToolApp.BasicTools;
 @Mode(Mode.TestMode.LITE)
 public class IntrospectorMultiAppTest {
 
+    private static final String BASIC_TOOLS = "BasicTools";
+    private static final String INTROSPECTOR_TESTAPP = "IntrospectorTestapp";
+
     @Server("mcp-server")
     public static LibertyServer server;
 
     @BeforeClass
     public static void setup() throws Exception {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "BasicTools.war")
+        WebArchive war = ShrinkWrap.create(WebArchive.class, BASIC_TOOLS + ".war")
                                    .addClasses(BasicTools.class);
 
-        WebArchive testApp = ShrinkWrap.create(WebArchive.class, "IntrospectorTestapp.war")
+        WebArchive testApp = ShrinkWrap.create(WebArchive.class, INTROSPECTOR_TESTAPP + ".war")
                                        .addClasses(IntrospectorTestTools.class);
 
         ShrinkHelper.exportDropinAppToServer(server, war, SERVER_ONLY);
@@ -96,16 +99,16 @@ public class IntrospectorMultiAppTest {
         assertFalse("Testapp.war was not deleted", Files.exists(testAppPath));
 
         // Wait for undeploy to take effect
-        server.removeInstalledAppForValidation("Testapp.war");
+        server.removeInstalledAppForValidation(INTROSPECTOR_TESTAPP);
 
         // Redump and verify Testapp tools are gone, BasicIntroSpector still there
         String introspection2 = getIntrospectorDumpContents();
 
         assertTrue("Expected BasicIntroSpector to still be listed",
-                   introspection2.contains("Application: BasicTools"));
+                   introspection2.contains("Application: " + BASIC_TOOLS));
 
         assertFalse("Did NOT expect Testapp after undeploy",
-                    introspection2.contains("Application: IntrospectorTestapp"));
+                    introspection2.contains("Application: " + INTROSPECTOR_TESTAPP));
 
         assertFalse("Did NOT expect tool 'IntrospectTool' after undeploy",
                     introspection2.contains("Tool: helloFromTestApp"));
