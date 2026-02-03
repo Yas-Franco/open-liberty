@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
-package multiple.ham.custom;
+package multiple.ham.custom.hams;
 
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -18,8 +18,9 @@ import jakarta.security.enterprise.authentication.mechanism.http.HttpMessageCont
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+//Least priority
 @ApplicationScoped
-@Priority(100001)
+@Priority(100)
 public class CustomHAMOne implements HttpAuthenticationMechanism {
 
     @Override

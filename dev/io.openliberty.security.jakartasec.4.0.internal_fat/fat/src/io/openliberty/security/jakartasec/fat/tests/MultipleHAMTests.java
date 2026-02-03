@@ -13,6 +13,7 @@
 package io.openliberty.security.jakartasec.fat.tests;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -32,17 +33,21 @@ import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
-import componenttest.topology.utils.FATServletClient;
+import multiple.ham.custom.hams.CustomHAMOne;
+import multiple.ham.custom.hams.CustomHAMThree;
+import multiple.ham.custom.hams.CustomHAMTwo;
 
 /**
  * Tests appSecurity-6.0
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
-public class MultipleHAMTests extends FATServletClient {
+public class MultipleHAMTests {
 
-    public static final String SERVER_NAME = "basicServer";
-    public static final String APP_NAME = "basicApp";
+    public static final String SERVER_NAME = "jakartaSec40Server";
+    public static final String APP_NAME = "CustomHAMApp";
+    private static final String CONTEXT_ROOT = "/" + APP_NAME;
+    private static final String RESOURCE_PATH = "/resource/test";
 
     private static String url = null;
 
@@ -52,19 +57,32 @@ public class MultipleHAMTests extends FATServletClient {
     @BeforeClass
     public static void setUp() throws Exception {
         WebArchive multipleHamApp = ShrinkWrap.create(WebArchive.class,
-                                                      APP_NAME + ".war").addPackage("multiple.ham.custom");
+                                                      APP_NAME + ".war").addPackage("multiple.ham.custom").addClass(CustomHAMOne.class).addClass(CustomHAMTwo.class).addClass(CustomHAMThree.class);
 
         // The URL is not expected to be modified during this test scope
-        url = "http://localhost:" + server.getHttpDefaultPort() + "/basicServlet";
+        url = "http://localhost:" + server.getHttpDefaultPort() + CONTEXT_ROOT + RESOURCE_PATH;
 
         ShrinkHelper.exportDropinAppToServer(server, multipleHamApp, DeployOptions.SERVER_ONLY);
 
         server.startServer();
     }
 
+    /*
+     * Assert that we find the following message in trace.log:
+     *
+     * Order of HttpAuthenticationMechanisms found (the first one will be used if its prioritization is unique -
+     *
+     * @Priority for application HAMs and HAM type - Oidc/CustomForm/Form/Basic - for in-built HAMs):
+     * CustomHAMThree Priority = 300, CustomHAMTwo Priority = 200, CustomHAMOne Priority = 100
+     *
+     * CustomHAMThree has the most priority with Priority = 300, CustomHAMOne has the least priority with Priority = 100
+     */
     @Test
-    public void testCustomHam() throws Exception {
-        System.out.println("We are testing the custom hams");
+    public void testCustomHamsPrioritization() throws Exception {
+
+        // Mark the trace before making HTTP connection
+        server.setTraceMarkToEndOfDefaultTrace();
+
         URL urlObj = new URL(url);
         HttpURLConnection conn = (HttpURLConnection) urlObj.openConnection();
 
@@ -72,6 +90,16 @@ public class MultipleHAMTests extends FATServletClient {
         conn.setDoInput(true);
         int responseCode = conn.getResponseCode();
         assertEquals("Expected status code 200 but got " + responseCode, 200, responseCode);
+
+        String startOfMessage = "Order of HttpAuthenticationMechanisms found";
+        String prioritizationOrder = "CustomHAMThree Priority = 300, CustomHAMTwo Priority = 200, CustomHAMOne Priority = 100";
+
+        // Check that warning appears
+        assertNotNull("Warning message should appear in log",
+                      server.waitForStringInTraceUsingMark(startOfMessage));
+        // Check that warning appears
+        assertNotNull("Warning message should appear in log",
+                      server.waitForStringInTraceUsingMark(prioritizationOrder));
     }
 
     @AfterClass

@@ -51,7 +51,6 @@ import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
-import componenttest.topology.utils.FATServletClient;
 
 /**
  * Tests for InMemoryIdentityStoreDefinition with various password encoding schemes.
@@ -60,11 +59,11 @@ import componenttest.topology.utils.FATServletClient;
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
-public class InMemoryIdentityStoreTests extends FATServletClient {
+public class InMemoryIdentityStoreTests {
 
     private static final Class<?> c = InMemoryIdentityStoreTests.class;
 
-    public static final String SERVER_NAME = "basicServer";
+    public static final String SERVER_NAME = "jakartaSec40Server";
     public static final String APP_NAME = "IdentityStore";
     private static final String CONTEXT_ROOT = "/" + APP_NAME;
     private static final String RESOURCE_PATH = "/resource/test";

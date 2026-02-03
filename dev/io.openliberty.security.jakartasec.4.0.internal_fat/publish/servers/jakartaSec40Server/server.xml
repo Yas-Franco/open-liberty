@@ -1,4 +1,4 @@
-<server description="JavaEESec Multiple Module Global Login Cert FAT">
+<server description="Used for InStore and HAM tests">
 
     <featureManager>
         <feature>servlet-6.1</feature>

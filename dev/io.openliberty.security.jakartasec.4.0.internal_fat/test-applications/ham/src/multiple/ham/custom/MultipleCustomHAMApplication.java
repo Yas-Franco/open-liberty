@@ -10,21 +10,15 @@
  * Contributors:
  * IBM Corporation - initial API and implementation
  *******************************************************************************/
-package io.openliberty.security.jakartasec.fat;
+package multiple.ham.custom;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import jakarta.ws.rs.ApplicationPath;
+import jakarta.ws.rs.core.Application;
 
-import componenttest.custom.junit.runner.AlwaysPassesTest;
-import io.openliberty.security.jakartasec.fat.tests.InMemoryIdentityStoreTests;
-import io.openliberty.security.jakartasec.fat.tests.MultipleHAMTests;
-
-@RunWith(Suite.class)
-@SuiteClasses({
-                AlwaysPassesTest.class,
-                MultipleHAMTests.class,
-                InMemoryIdentityStoreTests.class
-})
-public class FATSuite {
+/**
+ * JAX-RS Application with multiple custom HAM's
+ * This is used for testing multiple HAM prioritization scenarios
+ */
+@ApplicationPath("/")
+public class MultipleCustomHAMApplication extends Application {
 }
