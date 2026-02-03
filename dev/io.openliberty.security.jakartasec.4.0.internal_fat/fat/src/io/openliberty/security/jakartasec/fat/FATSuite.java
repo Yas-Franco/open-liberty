@@ -16,13 +16,13 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-import io.openliberty.security.jakartasec.fat.tests.InMemoryIdentityStoreTests;
+import io.openliberty.security.jakartasec.fat.tests.MultipleHAMTests;
 
 @RunWith(Suite.class)
 @SuiteClasses({
                 //AlwaysPassesTest.class,
-                //MultipleHAMTests.class,
-                InMemoryIdentityStoreTests.class
+                MultipleHAMTests.class,
+//InMemoryIdentityStoreTests.class
 })
 public class FATSuite {
 }
