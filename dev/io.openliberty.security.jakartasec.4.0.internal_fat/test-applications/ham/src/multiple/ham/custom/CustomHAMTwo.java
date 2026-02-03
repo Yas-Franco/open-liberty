@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
-package multiple.ham;
+package multiple.ham.custom;
 
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -19,8 +19,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @ApplicationScoped
-@Priority(100001)
-public class CustomHAMOne implements HttpAuthenticationMechanism {
+@Priority(100002)
+public class CustomHAMTwo implements HttpAuthenticationMechanism {
 
     @Override
     public AuthenticationStatus validateRequest(HttpServletRequest request, HttpServletResponse response, HttpMessageContext httpMessageContext) throws AuthenticationException {
