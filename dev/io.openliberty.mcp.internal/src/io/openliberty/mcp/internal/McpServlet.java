@@ -116,6 +116,7 @@ public class McpServlet extends HttpServlet {
     @FFDCIgnore({ JSONRPCException.class, HttpResponseException.class })
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException, JSONRPCException {
         McpTransport transport = new McpTransport(req, resp, jsonb);
+
         try {
             Boolean stateless = mcpConfigService.run(config -> {
                 boolean s = config.isStateless();

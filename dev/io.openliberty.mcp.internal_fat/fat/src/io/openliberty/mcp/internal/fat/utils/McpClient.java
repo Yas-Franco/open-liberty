@@ -241,17 +241,6 @@ public class McpClient extends ExternalResource {
         return setupAndRunRequest(request, jsonRequestBody);
     }
 
-    public String callMCPAuthorisationErrorExpected(String jsonRequestBody) throws Exception {
-        final HttpRequest request = new HttpRequest(server, path + "/mcp").expectCode(403);
-        return setupAndRunRequest(request, jsonRequestBody);
-    }
-
-    public String callMCPwithBasicAuth_AuthorisationErrorExpected(String jsonRequestBody, String user, String password) throws Exception {
-        final HttpRequest request = new HttpRequest(server, path + "/mcp").expectCode(403)
-                                                                          .basicAuth(user, password);
-        return setupAndRunRequest(request, jsonRequestBody);
-    }
-
     /**
      * Call MCP server with a custom endpoint, and an expected response code
      */
@@ -295,6 +284,48 @@ public class McpClient extends ExternalResource {
         final HttpRequest request = new HttpRequest(server, path + "/mcp").expectCode(403).basicAuth(user, password);;
         String response = setupAndRunRequest(request, jsonRequestBody);
         return response;
+    }
+
+    /**
+     * Sends an MCP request with Basic Authentication credentials and asserts
+     * that the server responds with the expected HTTP status code.
+     *
+     * This is used for negative security tests where we want to verify that:
+     *
+     * - 401 Unauthorized is returned when authentication fails (wrong credentials)
+     * - 403 Forbidden is returned when authentication succeeds but authorization fails (wrong role)
+     */
+    public void callMCPExpectingStatus(String jsonRequestBody,
+                                       String user,
+                                       String password,
+                                       int expectedCode)
+                    throws Exception {
+
+        HttpRequest request = new HttpRequest(server, path + "/mcp")
+                                                                    .expectCode(expectedCode)
+                                                                    .basicAuth(user, password);
+
+        setupAndRunRequest(request, jsonRequestBody);
+    }
+
+    /**
+     * Sends an MCP request without any authentication credentials and asserts
+     * that the server responds with the expected HTTP status code.
+     *
+     * This is mainly used to verify that unauthenticated requests are rejected
+     * correctly, for example:
+     *
+     * - 401 Unauthorized when a tool requires authentication
+     * - 403 Forbidden when a tool is explicitly denied
+     */
+    public void callMCPExpectingStatus(String jsonRequestBody,
+                                       int expectedCode)
+                    throws Exception {
+
+        HttpRequest request = new HttpRequest(server, path + "/mcp")
+                                                                    .expectCode(expectedCode);
+
+        setupAndRunRequest(request, jsonRequestBody);
     }
 
     /**
