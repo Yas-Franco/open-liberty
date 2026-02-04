@@ -323,12 +323,12 @@ public class WCResponseContentLengthChunkedEncodingTest {
                 LOG.info("\n>>>>>> Response Headers: >>>>>>");
                 for (Header header : headers) {
                     LOG.info(header.toString());
-                    if (header.getName().equals(LENGTH)) {
+                    if (header.getName().equalsIgnoreCase(LENGTH)) {
                         responseCL = Integer.valueOf(header.getValue());
                         LOG.info("\n Found Content-Length = " + responseCL);
                     }
 
-                    if (header.getName().equals(CHUNKED)) {
+                    if (header.getName().equalsIgnoreCase(CHUNKED)) {
                         chunkedResponse = true;
                         LOG.info("\n Found " + CHUNKED + " header");
                     }
