@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.ibm.ws.security.registry.AttributeReader;
 import com.ibm.ws.security.registry.CertificateMapFailedException;
 import com.ibm.ws.security.registry.CertificateMapNotSupportedException;
 import com.ibm.ws.security.registry.EntryNotFoundException;
@@ -44,7 +43,7 @@ import com.ibm.ws.security.registry.UserRegistry;
  * Test abstraction layer. Implement a programmatic UserRegistry test API
  * that drives the real implementation logic via an associated test servlet.
  */
-public class UserRegistryServletConnection implements UserRegistry, AttributeReader {
+public class UserRegistryServletConnection implements UserRegistry {
     private static final Class<?> c = UserRegistryServletConnection.class;
     private final Logger logger;
     private final String servletURL;

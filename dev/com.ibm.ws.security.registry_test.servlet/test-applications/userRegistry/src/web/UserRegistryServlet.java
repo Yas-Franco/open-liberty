@@ -35,7 +35,6 @@ import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.ServiceReference;
 
 import com.ibm.ws.security.SecurityService;
-import com.ibm.ws.security.registry.AttributeReader;
 import com.ibm.ws.security.registry.CustomRegistryException;
 import com.ibm.ws.security.registry.EntryNotFoundException;
 import com.ibm.ws.security.registry.NotImplementedException;
@@ -226,7 +225,7 @@ public class UserRegistryServlet extends HttpServlet {
             } else if ("getAttributesForUser".equals(method)) {
                 String userSecurityName = req.getParameter("userSecurityName");
                 String attributeNames = req.getParameter("attributeNames");
-                response = convertFromMap(((AttributeReader) ur).getAttributesForUser(
+                response = convertFromMap(ur.getAttributesForUser(
                         userSecurityName,
                         Arrays.stream(attributeNames.split(",")).collect(Collectors.toSet())
                 )).replaceAll("\n", "");
@@ -234,8 +233,7 @@ public class UserRegistryServlet extends HttpServlet {
                 String attributeName = req.getParameter("attributeName");
                 String value = req.getParameter("value");
                 int limit = Integer.parseInt(req.getParameter("limit"));
-                if (ur instanceof AttributeReader)
-                    response = convertFromSR(((AttributeReader) ur).getUsersByAttribute(attributeName, value, limit));
+                response = convertFromSR(ur.getUsersByAttribute(attributeName, value, limit));
             } else {
                 pw.println("Usage: url?method=name&paramName=paramValue&...");
             }

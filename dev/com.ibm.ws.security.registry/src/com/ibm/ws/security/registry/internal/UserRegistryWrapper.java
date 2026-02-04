@@ -35,17 +35,11 @@ import com.ibm.ws.security.registry.SearchResult;
 /**
  *
  */
-public class UserRegistryWrapper implements com.ibm.websphere.security.UserRegistry, com.ibm.websphere.security.AttributeReader {
+public class UserRegistryWrapper implements com.ibm.websphere.security.UserRegistry {
     private final com.ibm.ws.security.registry.UserRegistry wrappedUr;
-    private final com.ibm.ws.security.registry.AttributeReader wrappedUrAttr;
 
     public UserRegistryWrapper(com.ibm.ws.security.registry.UserRegistry wrappedUr) {
         this.wrappedUr = wrappedUr;
-        if (wrappedUr instanceof com.ibm.ws.security.registry.AttributeReader) {
-            this.wrappedUrAttr = (com.ibm.ws.security.registry.AttributeReader) wrappedUr;
-        } else {
-            this.wrappedUrAttr = null;
-        }
     }
 
     /**
@@ -300,27 +294,23 @@ public class UserRegistryWrapper implements com.ibm.websphere.security.UserRegis
     }
 
     @Override
-    public Map<String, Object> getAttributesForUser(String userSecurityName, Set<String> attributeNames) throws EntryNotFoundException, CustomRegistryException {
-        if (wrappedUrAttr == null) {
-            throw new UnsupportedOperationException();
-        }
+    public Map<String, Object> getAttributesForUser(String userSecurityName, Set<String> attributeNames) throws EntryNotFoundException, CustomRegistryException, NotImplementedException {
         try {
-            return wrappedUrAttr.getAttributesForUser(userSecurityName, attributeNames);
+            return wrappedUr.getAttributesForUser(userSecurityName, attributeNames);
         } catch (RegistryException e) {
             throw new CustomRegistryException(e.getMessage(), e);
         } catch (com.ibm.ws.security.registry.EntryNotFoundException e) {
             throw new EntryNotFoundException(e.getMessage(), e);
+        } catch (com.ibm.ws.security.registry.NotImplementedException e) {
+            throw new NotImplementedException(e.getMessage(), e);
         }
 
     }
 
     @Override
-    public Result getUsersByAttribute(String attributeName, String value, int limit) throws CustomRegistryException {
-        if (wrappedUrAttr == null) {
-            throw new UnsupportedOperationException();
-        }
+    public Result getUsersByAttribute(String attributeName, String value, int limit) throws CustomRegistryException, NotImplementedException {
         try {
-            SearchResult ret = wrappedUrAttr.getUsersByAttribute(attributeName, value, limit);
+            SearchResult ret = wrappedUr.getUsersByAttribute(attributeName, value, limit);
             Result result = new Result();
             result.setList(ret.getList());
             if (ret.hasMore()) {
@@ -330,6 +320,8 @@ public class UserRegistryWrapper implements com.ibm.websphere.security.UserRegis
 
         } catch (RegistryException e) {
             throw new CustomRegistryException(e.getMessage(), e);
+        } catch (com.ibm.ws.security.registry.NotImplementedException e) {
+            throw new NotImplementedException(e.getMessage(), e);
         }
     }
 

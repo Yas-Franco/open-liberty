@@ -33,7 +33,6 @@ import com.ibm.websphere.ras.annotation.Sensitive;
 import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.bnd.metatype.annotation.Ext;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
-import com.ibm.ws.security.registry.AttributeReader;
 import com.ibm.ws.security.registry.CertificateMapFailedException;
 import com.ibm.ws.security.registry.CertificateMapNotSupportedException;
 import com.ibm.ws.security.registry.CustomRegistryException;
@@ -67,7 +66,7 @@ interface WIMUserRegistryConfig {
  */
 //TODO policy REQUIRE when we count this....
 @Component(configurationPolicy = ConfigurationPolicy.IGNORE, immediate = true, property = { "service.vendor=IBM", "com.ibm.ws.security.registry.type=WIM" })
-public class WIMUserRegistry implements FederationRegistry, UserRegistry, AttributeReader {
+public class WIMUserRegistry implements FederationRegistry, UserRegistry {
 
     private static final TraceComponent tc = Tr.register(WIMUserRegistry.class);
 
