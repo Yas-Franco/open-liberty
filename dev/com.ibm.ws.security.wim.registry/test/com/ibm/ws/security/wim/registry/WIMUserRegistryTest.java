@@ -19,8 +19,10 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.jmock.Mockery;
 import org.jmock.integration.junit4.JUnit4Mockery;
@@ -802,7 +804,7 @@ public class WIMUserRegistryTest {
         UR = newWIMUR(urProps);
         WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
 
-        List<String> attrList = new ArrayList();
+        Set<String> attrList = new HashSet<>();
         attrList.add("*");
         Map<String, Object> result = WIMUR.getAttributesForUser("user1", attrList);
 
@@ -821,7 +823,7 @@ public class WIMUserRegistryTest {
         UR = newWIMUR(urProps);
         WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
 
-        List<String> attrList = new ArrayList();
+        Set<String> attrList = new HashSet<>();
         attrList.add("sn");
         attrList.add("cn");
         attrList.add("");
@@ -842,7 +844,7 @@ public class WIMUserRegistryTest {
         UR = newWIMUR(urProps);
         WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
 
-        List<String> attrList = new ArrayList();
+        Set<String> attrList = new HashSet();
         attrList.add("title");
         attrList.add("mail");
         Map<String, Object> result = WIMUR.getAttributesForUser("user1", attrList);
@@ -861,7 +863,7 @@ public class WIMUserRegistryTest {
 	        UR = newWIMUR(urProps);
 	        WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
 	
-	        List<String> attrList = new ArrayList();
+	        Set<String> attrList = new HashSet();
 	        attrList.add("sn");
 	        attrList.add("cn");
 	        WIMUR.getAttributesForUser(null, attrList);
@@ -882,7 +884,7 @@ public class WIMUserRegistryTest {
 	        UR = newWIMUR(urProps);
 	        WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
 	
-	        List<String> attrList = new ArrayList();
+	        Set<String> attrList = new HashSet();
 	        attrList.add("sn");
 	        attrList.add("cn");
 	        WIMUR.getAttributesForUser("user1", null);

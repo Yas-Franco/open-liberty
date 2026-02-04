@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -554,7 +555,7 @@ public class WIMUserRegistry implements FederationRegistry, UserRegistry, Attrib
 
     /** {@inheritDoc} */
     @Override
-    public Map<String, Object> getAttributesForUser(final String userSecurityName, List<String> attributeNames) throws EntryNotFoundException, RegistryException {
+    public Map<String, Object> getAttributesForUser(final String userSecurityName, Set<String> attributeNames) throws EntryNotFoundException, RegistryException {
         Map<String, Object> returnValue = null;
         try {
             returnValue = searchBridge.getAttributesForUser(userSecurityName, attributeNames);

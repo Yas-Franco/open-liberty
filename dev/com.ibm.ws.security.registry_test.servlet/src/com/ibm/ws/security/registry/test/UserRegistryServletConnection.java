@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -485,7 +486,7 @@ public class UserRegistryServletConnection implements UserRegistry, AttributeRea
 
     /** {@inheritDoc} */
     @Override
-    public Map<String, Object> getAttributesForUser(String userSecurityName, List<String> attributeNames) throws EntryNotFoundException, RegistryException {
+    public Map<String, Object> getAttributesForUser(String userSecurityName, Set<String> attributeNames) throws EntryNotFoundException, RegistryException {
         String methodName = "getAttributesForUser";
         String servletRequest = "?method=" + methodName +
                 "&userSecurityName=" + encodeForURI(userSecurityName) + "&attributeNames=" + String.join(",", attributeNames);

@@ -21,6 +21,7 @@ import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -225,7 +226,10 @@ public class UserRegistryServlet extends HttpServlet {
             } else if ("getAttributesForUser".equals(method)) {
                 String userSecurityName = req.getParameter("userSecurityName");
                 String attributeNames = req.getParameter("attributeNames");
-                response = convertFromMap(((AttributeReader) ur).getAttributesForUser(userSecurityName, Arrays.asList(attributeNames.split(",")))).replaceAll("\n", "");
+                response = convertFromMap(((AttributeReader) ur).getAttributesForUser(
+                        userSecurityName,
+                        Arrays.stream(attributeNames.split(",")).collect(Collectors.toSet())
+                )).replaceAll("\n", "");
             } else if ("getUsersByAttribute".equals(method)) {
                 String attributeName = req.getParameter("attributeName");
                 String value = req.getParameter("value");

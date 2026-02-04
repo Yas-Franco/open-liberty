@@ -17,6 +17,7 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import com.ibm.websphere.ras.annotation.Sensitive;
 import com.ibm.websphere.security.CertificateMapFailedException;
@@ -299,7 +300,7 @@ public class UserRegistryWrapper implements com.ibm.websphere.security.UserRegis
     }
 
     @Override
-    public Map<String, Object> getAttributesForUser(String userSecurityName, List<String> attributeNames) throws EntryNotFoundException, CustomRegistryException {
+    public Map<String, Object> getAttributesForUser(String userSecurityName, Set<String> attributeNames) throws EntryNotFoundException, CustomRegistryException {
         if (wrappedUrAttr == null) {
             throw new UnsupportedOperationException();
         }

@@ -12,8 +12,8 @@
  *******************************************************************************/
 package com.ibm.websphere.security;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Defines read-only API contract for AttributeReader implementations.
@@ -33,7 +33,7 @@ public interface AttributeReader {
      * @exception EntryNotFoundException  if userSecurityName does not exist.
      * @exception CustomRegistryException if there is any registry specific problem
      **/
-    Map<String, Object> getAttributesForUser(String userSecurityName, List<String> attributeNames) throws EntryNotFoundException, CustomRegistryException;
+    Map<String, Object> getAttributesForUser(String userSecurityName, Set<String> attributeNames) throws EntryNotFoundException, CustomRegistryException;
 
     /**
      * Gets a list of users that match an <i>attributeName</i> with specified

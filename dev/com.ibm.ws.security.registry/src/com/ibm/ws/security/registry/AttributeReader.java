@@ -12,8 +12,8 @@
  *******************************************************************************/
 package com.ibm.ws.security.registry;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Defines read-only API contract for AttributeReader implementations.
@@ -34,7 +34,7 @@ public interface AttributeReader {
      * @exception RegistryException        if there is any UserRegistry specific problem
      * @exception IllegalArgumentException if userSecurityName is <code>null</code> or empty
      **/
-    Map<String, Object> getAttributesForUser(String userSecurityName, List<String> attributeNames) throws EntryNotFoundException, RegistryException;
+    Map<String, Object> getAttributesForUser(String userSecurityName, Set<String> attributeNames) throws EntryNotFoundException, RegistryException;
 
     /**
      * Gets a list of users that match an <i>attributeName</i> with specified

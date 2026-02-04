@@ -21,10 +21,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import componenttest.annotation.ExpectedFFDC;
 import org.junit.AfterClass;
@@ -109,7 +110,7 @@ public class URAPIs_ADLDAPTest {
     public void getAttributesForUserWithValidAttributes() throws Exception {
         Log.info(c, "getAttributesForUserWithValidAttributes", "Get ['kerberosId', 'uid'] attribute from User: vmmtestuser");
 
-        List<String> attributeNames = new ArrayList<>(Arrays.asList("kerberosId", "uid"));
+        Set<String> attributeNames = new HashSet<>(Arrays.asList("kerberosId", "uid"));
         Map<String, Object> result = servlet.getAttributesForUser("vmmtestuser", attributeNames);
 
         assertEquals(2, result.size());
@@ -125,7 +126,7 @@ public class URAPIs_ADLDAPTest {
         expectedException.expect(EntryNotFoundException.class);
         expectedException.expectMessage("CWIML4001E");
 
-        List<String> attributeNames = new ArrayList<>(Collections.singletonList("*"));
+        Set<String> attributeNames = new HashSet<>(Collections.singletonList("*"));
         Map<String, Object> result = servlet.getAttributesForUser("someBogusUser", attributeNames);
     }
 
@@ -137,7 +138,7 @@ public class URAPIs_ADLDAPTest {
         expectedException.expect(EntryNotFoundException.class);
         expectedException.expectMessage("CWIML4538E");
 
-        List<String> attributeNames = new ArrayList<>(Collections.singletonList("*"));
+        Set<String> attributeNames = new HashSet<>(Collections.singletonList("*"));
         Map<String, Object> result = servlet.getAttributesForUser("vmm*", attributeNames);
     }
 
@@ -145,7 +146,7 @@ public class URAPIs_ADLDAPTest {
     public void getAttributesForUserWithInvalidAttributes() throws Exception {
         Log.info(c, "getAttributesForUserWithInvalidAttributes", "Get ['invalidAttributeNames'] attribute from User: vmmtestuser");
 
-        List<String> attributeNames = new ArrayList<>(Collections.singletonList("invalidAttributeNames"));
+        Set<String> attributeNames = new HashSet<>(Collections.singletonList("invalidAttributeNames"));
         Map<String, Object> result = servlet.getAttributesForUser("vmmtestuser", attributeNames);
 
         assertEquals(0, result.size());
@@ -156,7 +157,7 @@ public class URAPIs_ADLDAPTest {
         Log.info(c, "getAttributesForUserWithAsteriskWildcardAttribute", "Get ['*'] attribute from User: vmmtestuser");
 
 
-        List<String> attributeNames = new ArrayList<>(Collections.singletonList("*"));
+        Set<String> attributeNames = new HashSet<>(Collections.singletonList("*"));
         Map<String, Object> result = servlet.getAttributesForUser("vmmtestuser", attributeNames);
 
         assertEquals(10, result.size());

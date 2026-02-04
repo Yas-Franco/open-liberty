@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
@@ -36,7 +37,6 @@ import com.ibm.ws.security.wim.util.UniqueNameHelper;
 import com.ibm.wsspi.security.wim.SchemaConstants;
 import com.ibm.wsspi.security.wim.exception.EntityNotFoundException;
 import com.ibm.wsspi.security.wim.exception.EntityNotInRealmScopeException;
-import com.ibm.wsspi.security.wim.exception.InvalidIdentifierException;
 import com.ibm.wsspi.security.wim.exception.InvalidUniqueNameException;
 import com.ibm.wsspi.security.wim.exception.WIMException;
 import com.ibm.wsspi.security.wim.model.Context;
@@ -178,7 +178,7 @@ public class SearchBridge {
     }
 
     @FFDCIgnore({ WIMException.class })
-    public Map<String, Object> getAttributesForUser(final String userSecurityName, List<String> attributeNames) throws EntryNotFoundException, RegistryException {
+    public Map<String, Object> getAttributesForUser(final String userSecurityName, Set<String> attributeNames) throws EntryNotFoundException, RegistryException {
         String methodName = "getAttributesForUser";
 
         betaFenceCheck(methodName);
@@ -191,6 +191,8 @@ public class SearchBridge {
             if (attributeNames == null || attributeNames.isEmpty()) {
                 throw new WIMException();
             }
+
+            List<String> validAttrNames = new ArrayList<>(attributeNames);
 
             IDAndRealm idAndRealm = this.mappingUtils.separateIDAndRealm(userSecurityName);
             Root root = this.mappingUtils.getWimService().createRootObject();
@@ -246,11 +248,11 @@ public class SearchBridge {
 
             boolean shouldGetAllAttributes = attributeNames.contains("*");
             if (shouldGetAllAttributes) {
-                attributeNames = PersonAccount.getPropertyNames(null);
+                validAttrNames = PersonAccount.getPropertyNames(null);
             }
 
             Entity entity = returnedEntities.get(0);
-            for (String attrName : attributeNames) {
+            for (String attrName : validAttrNames) {
                 if (entity.isSet(attrName)) {
                     Object value = entity.get(attrName);
                     returnValue.put(attrName, value);
