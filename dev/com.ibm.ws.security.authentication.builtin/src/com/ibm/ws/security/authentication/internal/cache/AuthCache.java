@@ -57,7 +57,7 @@ public interface AuthCache {
     public void stopEvictionTask();
 
     /**
-     * Creates a cache implementation specific CacheObject or the provided Subject
+     * Creates a cache implementation specific CacheObject for the provided Subject
      */
     public CacheObject createCacheObject(Subject subject);
 }
