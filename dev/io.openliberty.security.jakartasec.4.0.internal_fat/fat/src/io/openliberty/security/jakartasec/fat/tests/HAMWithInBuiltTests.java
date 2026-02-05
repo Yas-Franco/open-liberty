@@ -13,6 +13,7 @@
 package io.openliberty.security.jakartasec.fat.tests;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -65,15 +66,22 @@ public class HAMWithInBuiltTests {
     }
 
     /*
-     * Assert that we find jakarta.enterprise.inject.AmbiguousResolutionException
+     * Assert that we find the following message in trace.log:
      *
-     * CustomHAMOne and CustomHAMOneDuplicate both have Priority = 100
+     * Order of HttpAuthenticationMechanisms found (the first one will be used if its prioritization is unique -
+     *
+     * Order of HttpAuthenticationMechanisms found (the first one will be used if its prioritization is unique -
+     *
+     * @Priority for application HAMs and HAM type - Oidc/CustomForm/Form/Basic - for in-built HAMs):
+     * CustomHAMOne Priority = 100, BasicHttpAuthenticationMechanism
+     *
+     * CustomHAMOne has the most priority with Priority = 100, the in-built HAM's have less priority than custom HAM's
      */
     @Test
-    public void testAmbiguousResolutionException() throws Exception {
+    public void testCustomHamsWithInBuiltHamPrioritization() throws Exception {
 
-        // Mark log to check for error message
-        server.setMarkToEndOfLog();
+        // Mark the trace before making HTTP connection
+        server.setTraceMarkToEndOfDefaultTrace();
 
         URL urlObj = new URL(url);
         HttpURLConnection conn = (HttpURLConnection) urlObj.openConnection();
@@ -83,11 +91,19 @@ public class HAMWithInBuiltTests {
         int responseCode = conn.getResponseCode();
         assertEquals("Expected status code 200 but got " + responseCode, 200, responseCode);
 
+        String startOfMessage = "Order of HttpAuthenticationMechanisms found";
+        String prioritizationOrder = "CustomHAMOne Priority = 100, BasicHttpAuthenticationMechanism";
+
+        // Check that warning appears
+        assertNotNull("Warning message should appear in log",
+                      server.waitForStringInTraceUsingMark(startOfMessage));
+        // Check that warning appears
+        assertNotNull("Warning message should appear in log",
+                      server.waitForStringInTraceUsingMark(prioritizationOrder));
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
         server.stopServer();
     }
-
 }
