@@ -31,7 +31,7 @@
   </library>
   
   <managedExecutorService jndiName="concurrent/virtual-executor-loose">
-     <concurrencyPolicy max="2" maxPolicy="loose" maxQueueSize="1" virtual="true"/> 
+     <concurrencyPolicy maxPolicy="loose" virtual="true"/> 
   </managedExecutorService>
 
 </server>

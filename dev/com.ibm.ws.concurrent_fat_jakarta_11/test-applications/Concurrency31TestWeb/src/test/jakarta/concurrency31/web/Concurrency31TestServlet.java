@@ -34,7 +34,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -848,13 +847,8 @@ public class Concurrency31TestServlet extends FATServlet {
 
     /**
      * Verify that a ManagedExecutorService configured with virtual=true and maxPolicy=loose
-     * does not allow inline execution on the submitter's thread when max concurrency is reached.
-     *
-     * This test confirms that virtual thread executors behave differently from platform thread
-     * executors with maxPolicy=loose. With platform threads, maxPolicy=loose allows tasks to run
-     * inline on the submitter's thread when max concurrency is exhausted. However, with virtual
-     * threads, inline execution would defeat the purpose of using virtual threads, so tasks must
-     * be rejected instead when the queue is full.
+     * is rejected. With virtual threads, inline execution would run on platform threads,
+     * defeating the purpose of using virtual threads.
      */
     @Test
     public void testMaxPolicyLooseVirtualThreads() throws Exception {
@@ -862,36 +856,13 @@ public class Concurrency31TestServlet extends FATServlet {
         ManagedExecutorService virtualExecutor = InitialContext
                         .doLookup("concurrent/virtual-executor-loose");
 
-        // Use up normal policy's max concurrency of 2
-        CountDownLatch continueLatch = new CountDownLatch(1);
-        Future<Boolean> blockerTask1Future = virtualExecutor.submit(new VirtualCheckTask(continueLatch));
-        cancelAfterTest.add(blockerTask1Future);
-        Future<Boolean> blockerTask2Future = virtualExecutor.submit(new VirtualCheckTask(continueLatch));
-        cancelAfterTest.add(blockerTask2Future);
-
-        // Use up maxQueueSize of 1
-        Future<Boolean> queuedTaskFuture1 = virtualExecutor.submit(new VirtualCheckTask());
-        cancelAfterTest.add(queuedTaskFuture1);
-
-        // Submit task that aborts due to full queue
         try {
-            Future<Boolean> abortedTaskFuture1 = virtualExecutor.submit(new VirtualCheckTask());
-            cancelAfterTest.add(abortedTaskFuture1);
-            fail("Unexpectedly allowed submit: " + abortedTaskFuture1);
-        } catch (RejectedExecutionException x) {
-            if (!x.getMessage().startsWith("CWWKE1201E"))
-                throw x;
+            virtualExecutor.submit(() -> {
+            });
+            fail("virtual=true and maxPolicy=loose should result in IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            //pass
         }
 
-        // Allow the blockers to complete normally and verify they ran on virtual threads.
-        continueLatch.countDown();
-        assertEquals(true, blockerTask1Future.get());
-        cancelAfterTest.remove(blockerTask1Future);
-        assertEquals(true, blockerTask2Future.get());
-        cancelAfterTest.remove(blockerTask2Future);
-
-        // Verify that the queued task ran on a virtual thread.
-        assertEquals(true, queuedTaskFuture1.get());
-        cancelAfterTest.remove(queuedTaskFuture1);
     }
 }
