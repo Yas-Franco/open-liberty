@@ -133,6 +133,11 @@ public class QueryInfo {
     private static final int[] NONE_STATIC_SORT_ONLY = new int[0];
 
     /**
+     * The implicit entity identifier variable defined by Jakarta Persistence.
+     */
+    private static final String THIS = "this";
+
+    /**
      * Information about the type of entity to which the query pertains.
      */
     EntityInfo entityInfo;
@@ -146,13 +151,13 @@ public class QueryInfo {
      * Entity identifier variable name if an identifier variable is used.
      * Otherwise "this". "o" is used as the default in generated queries.
      */
-    private String entityVar = "o";
+    private String entityVar = THIS;
 
     /**
      * Entity identifier variable name and . character if an identifier variable is used.
      * Otherwise the empty string. "o." is used as the default in generated queries.
      */
-    private String entityVar_ = "o.";
+    private String entityVar_ = THIS + '.';
 
     /**
      * Indicates if the query has a WHERE clause.
@@ -2598,9 +2603,13 @@ public class QueryInfo {
      */
     private void generateCount(String where) {
         String o = entityVar;
-        StringBuilder q = new StringBuilder(21 + 2 * o.length() + entityInfo.name.length() + (where == null ? 0 : where.length())) //
-                        .append("SELECT COUNT(").append(o).append(") FROM ") //
-                        .append(entityInfo.name).append(' ').append(o);
+        StringBuilder q = new StringBuilder(21 + 2 * o.length() +
+                                            entityInfo.name.length() +
+                                            (where == null ? 0 : where.length())) //
+                                                            .append("SELECT COUNT(").append(o).append(") FROM ") //
+                                                            .append(entityInfo.name);
+        if (o != THIS)
+            q.append(' ').append(o);
 
         if (where != null)
             q.append(where);
@@ -2713,12 +2722,19 @@ public class QueryInfo {
         StringBuilder q;
         if (entityInfo.idClassAttributeAccessors == null) {
             String idAttrName = entityInfo.attributeNames.get(ID);
-            q = new StringBuilder(24 + entityInfo.name.length() + o.length() * 2 + idAttrName.length()) //
-                            .append("DELETE FROM ").append(entityInfo.name).append(' ').append(o).append(" WHERE ") //
-                            .append(o_).append(idAttrName).append("=?1");
+            q = new StringBuilder(24 + entityInfo.name.length() +
+                                  o.length() * 2 +
+                                  idAttrName.length()) //
+                                                  .append("DELETE FROM ").append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
+            q.append(" WHERE ").append(o_).append(idAttrName).append("=?1");
         } else {
             q = new StringBuilder(200) //
-                            .append("DELETE FROM ").append(entityInfo.name).append(' ').append(o).append(" WHERE ");
+                            .append("DELETE FROM ").append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
+            q.append(" WHERE ");
             int count = 0;
             for (String idClassAttrName : entityInfo.idClassAttributeAccessors.keySet()) {
                 if (++count != 1)
@@ -2737,7 +2753,9 @@ public class QueryInfo {
         String o_ = entityVar_;
 
         StringBuilder q = new StringBuilder(100) //
-                        .append("DELETE FROM ").append(entityInfo.name).append(' ').append(o);
+                        .append("DELETE FROM ").append(entityInfo.name);
+        if (o != THIS)
+            q.append(' ').append(o);
 
         if (method.getParameterCount() == 0) {
             type = QM_DELETE;
@@ -2962,11 +2980,15 @@ public class QueryInfo {
         if (q == null && type == FIND) { // SELECT
             q = generateSelectClause() //
                             .append(" FROM ") //
-                            .append(entityInfo.name).append(' ').append(o);
+                            .append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
         } else if (q == null) { // UPDATE
             q = new StringBuilder(250).append("UPDATE ") //
-                            .append(entityInfo.name).append(' ').append(o) //
-                            .append(" SET");
+                            .append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
+            q.append(" SET");
 
             boolean needsVersionUpdate = entityInfo.versionAttributeName != null;
             boolean first = true;
@@ -3155,7 +3177,7 @@ public class QueryInfo {
                 // Omission of the optional SELECT clause means "SELECT this" per
                 // the Jakarta Persistence spec. Given that, a SELECT clause ends up
                 // being required if the entity identification variable is not "this"
-                if (!"this".equals(o))
+                if (o != THIS)
                     q.append("SELECT ").append(o);
             } else if (entityInfo.idClassAttributeAccessors != null &&
                        singleType.equals(entityInfo.idType)) {
@@ -3309,9 +3331,10 @@ public class QueryInfo {
             setType(Update.class, LC_UPDATE);
 
             q = new StringBuilder(100) //
-                            .append("UPDATE ").append(entityInfo.name) //
-                            .append(' ').append(o) //
-                            .append(" SET ");
+                            .append("UPDATE ").append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
+            q.append(" SET ");
 
             boolean first = true;
             for (String name : entityInfo.attributeNamesForEntityUpdate) {
@@ -3330,8 +3353,9 @@ public class QueryInfo {
 
             q = new StringBuilder(100) //
                             .append("SELECT ").append(o) //
-                            .append(" FROM ").append(entityInfo.name) //
-                            .append(' ').append(o);
+                            .append(" FROM ").append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
         }
 
         hasWhere = true;
@@ -3442,7 +3466,7 @@ public class QueryInfo {
     }
 
     @Trivial
-    private String getAttributeName(String name, boolean failIfNotFound) {
+    private String getAttributeName(final String name, final boolean failIfNotFound) {
         String attributeName;
         int len = name.length();
         if (len > 6 && name.charAt(len - 1) == ')') {
@@ -3503,24 +3527,34 @@ public class QueryInfo {
                     // tolerate possible mixture of . and _ separators with lack of separators:
                     lowerName = lowerName.replace("_", "");
                     attributeName = entityInfo.attributeNames.get(lowerName);
-                    if (attributeName == null && failIfNotFound) {
-                        if (Util.hasOperationAnno(method, producer))
-                            throw exc(MappingException.class,
-                                      "CWWKD1010.unknown.entity.attr",
-                                      name,
-                                      entityInfo.getType().getName(),
-                                      method.getName(),
-                                      repositoryInterface.getName(),
-                                      entityInfo.attributeTypes.keySet());
-                        else
-                            throw exc(MappingException.class,
-                                      "CWWKD1091.method.name.parse.err",
-                                      name,
-                                      entityInfo.getType().getName(),
-                                      method.getName(),
-                                      repositoryInterface.getName(),
-                                      Util.operationAnnoNames(producer),
-                                      entityInfo.attributeTypes.keySet());
+                    if (attributeName == null) {
+                        boolean nameCharsOnly = true;
+                        for (int i = 0; nameCharsOnly && i < lowerName.length(); i++)
+                            nameCharsOnly &= Character //
+                                            .isJavaIdentifierPart(lowerName.charAt(i));
+                        if (!nameCharsOnly)
+                            // allow functions, such as: length * width
+                            attributeName = name;
+
+                        if (nameCharsOnly && failIfNotFound) {
+                            if (Util.hasOperationAnno(method, producer))
+                                throw exc(MappingException.class,
+                                          "CWWKD1010.unknown.entity.attr",
+                                          name,
+                                          entityInfo.getType().getName(),
+                                          method.getName(),
+                                          repositoryInterface.getName(),
+                                          entityInfo.attributeTypes.keySet());
+                            else
+                                throw exc(MappingException.class,
+                                          "CWWKD1091.method.name.parse.err",
+                                          name,
+                                          entityInfo.getType().getName(),
+                                          method.getName(),
+                                          repositoryInterface.getName(),
+                                          Util.operationAnnoNames(producer),
+                                          entityInfo.attributeTypes.keySet());
+                        }
                     }
                 }
             }
@@ -3546,6 +3580,15 @@ public class QueryInfo {
                 if (trace && tc.isDebugEnabled())
                     Tr.debug(this, tc, "getCursorValues for " + loggable(entity),
                              accessors);
+                if (accessors == null)
+                    throw exc(MappingException.class,
+                              "CWWKD1123.sort.incompat.with.cursor",
+                              method.getName(),
+                              repositoryInterface.getName(),
+                              sort.property(),
+                              "Cursor.forKey",
+                              entityInfo.getType().getName(),
+                              entityInfo.attributeTypes.keySet());
                 Object value = entity;
                 for (Member accessor : accessors)
                     if (accessor instanceof Method)
@@ -3784,7 +3827,9 @@ public class QueryInfo {
                 if (q == null)
                     if (jpql == null) {
                         q = generateSelectClause();
-                        q.append(" FROM ").append(entityInfo.name).append(' ').append(entityVar);
+                        q.append(" FROM ").append(entityInfo.name);
+                        if (entityVar != THIS)
+                            q.append(' ').append(entityVar);
                         if (countPages)
                             generateCount(null);
                     } else {
@@ -3958,7 +4003,7 @@ public class QueryInfo {
                               "UPDATE [entity_name] SET [update_items] WHERE [conditional_expression]");
 
                 entityVar = parseIdentificationVariable(startAt, length, ql);
-                entityVar_ = entityVar == "this" ? "" : (entityVar + '.');
+                entityVar_ = entityVar + '.';
             }
 
             modifyAt = parseQuery(ql, startAt, null, false, entityInfos, qlParamNames);
@@ -4082,7 +4127,9 @@ public class QueryInfo {
                 orderBy = methodName.indexOf("OrderBy", by + 2);
             }
             parseFindClause(by > 0 ? by : orderBy > 0 ? orderBy : -1);
-            q = generateSelectClause().append(" FROM ").append(entityInfo.name).append(' ').append(o);
+            q = generateSelectClause().append(" FROM ").append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
             if (by > 0) {
                 int where = q.length();
                 generateWhereClause(methodName, by + 2, orderBy > 0 ? orderBy : methodName.length(), q);
@@ -4107,11 +4154,15 @@ public class QueryInfo {
                     orderBy = methodName.indexOf("OrderBy", by + 2);
                 }
                 type = FIND_AND_DELETE;
-                q = generateSelectClause().append(" FROM ").append(entityInfo.name).append(' ').append(o);
+                q = generateSelectClause().append(" FROM ").append(entityInfo.name);
+                if (o != THIS)
+                    q.append(' ').append(o);
                 jpqlDelete = generateDeleteById();
             } else { // DELETE
                 type = QM_DELETE;
-                q = new StringBuilder(150).append("DELETE FROM ").append(entityInfo.name).append(' ').append(o);
+                q = new StringBuilder(150).append("DELETE FROM ").append(entityInfo.name);
+                if (o != THIS)
+                    q.append(' ').append(o);
             }
 
             if (by > 0)
@@ -4126,14 +4177,18 @@ public class QueryInfo {
         } else if (methodName.startsWith("count")) {
             q = new StringBuilder(150) //
                             .append("SELECT COUNT(").append(o).append(") FROM ") //
-                            .append(entityInfo.name).append(' ').append(o);
+                            .append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
             if (by > 0 && methodName.length() > by + 2)
                 generateWhereClause(methodName, by + 2, methodName.length(), q);
             type = COUNT;
         } else if (methodName.startsWith("exists")) {
             q = new StringBuilder(200) //
                             .append("SELECT ID(").append(o).append(") FROM ") //
-                            .append(entityInfo.name).append(' ').append(o);
+                            .append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
             if (by > 0 && methodName.length() > by + 2)
                 generateWhereClause(methodName, by + 2, methodName.length(), q);
             type = EXISTS;
@@ -4178,17 +4233,23 @@ public class QueryInfo {
         } else if (methodTypeAnno instanceof Delete) {
             if (isFindAndDelete()) {
                 type = FIND_AND_DELETE;
-                q = generateSelectClause().append(" FROM ").append(entityInfo.name).append(' ').append(o);
+                q = generateSelectClause().append(" FROM ").append(entityInfo.name);
+                if (o != THIS)
+                    q.append(' ').append(o);
                 jpqlDelete = generateDeleteById();
             } else { // DELETE
                 type = QM_DELETE;
-                q = new StringBuilder(150).append("DELETE FROM ").append(entityInfo.name).append(' ').append(o);
+                q = new StringBuilder(150).append("DELETE FROM ").append(entityInfo.name);
+                if (o != THIS)
+                    q.append(' ').append(o);
             }
             if (method.getParameterCount() > 0)
                 generateParamBasedQuery(q, methodTypeAnno, countPages);
         } else if ("Count".equals(methodTypeAnno.annotationType().getSimpleName())) {
             type = COUNT;
-            q = new StringBuilder(150).append("SELECT COUNT(").append(o).append(") FROM ").append(entityInfo.name).append(' ').append(o);
+            q = new StringBuilder(150).append("SELECT COUNT(").append(o).append(") FROM ").append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
             if (method.getParameterCount() > 0)
                 generateParamBasedQuery(q, methodTypeAnno, countPages);
         } else if ("Exists".equals(methodTypeAnno.annotationType().getSimpleName())) {
@@ -4196,7 +4257,9 @@ public class QueryInfo {
             validateReturnForExists();
             q = new StringBuilder(200) //
                             .append("SELECT ID(").append(o).append(") FROM ") //
-                            .append(entityInfo.name).append(' ').append(o);
+                            .append(entityInfo.name);
+            if (o != THIS)
+                q.append(' ').append(o);
             if (method.getParameterCount() > 0)
                 generateParamBasedQuery(q, methodTypeAnno, countPages);
         } else {
@@ -4869,7 +4932,7 @@ public class QueryInfo {
                                           "DELETE FROM [entity_name] WHERE [conditional_expression]");
 
                             entityVar = parseIdentificationVariable(i, length, ql);
-                            entityVar_ = entityVar == "this" ? "" : (entityVar + '.');
+                            entityVar_ = entityVar + '.';
                             initEntityVar = false;
                         }
                         i--; // balances loop increment when already positioned correctly
@@ -4965,8 +5028,8 @@ public class QueryInfo {
         }
 
         if (initEntityVar) {
-            entityVar = "this";
-            entityVar_ = "";
+            entityVar = THIS;
+            entityVar_ = THIS + ".";
         }
 
         if (paramName != null)
