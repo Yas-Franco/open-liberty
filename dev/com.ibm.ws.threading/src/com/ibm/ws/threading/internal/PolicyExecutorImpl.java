@@ -1541,6 +1541,9 @@ public class PolicyExecutorImpl implements PolicyExecutor {
         boolean u_runIfQueueFull = (Boolean) props.get("runIfQueueFull");
         long u_startTimeout = null == (v = props.get("startTimeout")) ? -1l : (Long) v;
         boolean useVirtualThreads = null == (v = props.get("virtual")) ? false : (Boolean) v;
+        MaxPolicy u_maxPolicy = null == (v = props.get("maxPolicy")) //
+                        ? (useVirtualThreads ? MaxPolicy.strict : MaxPolicy.loose) //
+                        : MaxPolicy.valueOf((String) v);
 
         // Validation that cannot be performed by metatype:
         if (useVirtualThreads) {
