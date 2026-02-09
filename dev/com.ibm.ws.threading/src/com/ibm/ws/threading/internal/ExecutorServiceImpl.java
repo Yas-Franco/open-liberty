@@ -216,7 +216,7 @@ public final class ExecutorServiceImpl implements WSExecutorService, ThreadQuies
 
     public static boolean isBeta = Boolean.valueOf(System.getProperty("com.ibm.ws.beta.edition"));
 
-    // Default to use BoundedBuffer, but make it possible to easily switch to using ConcurrentPriorityBlockingQueue
+    // Default to use ConcurrentPriorityBlockingQueue, but make it possible to easily switch to using BoundedBuffer
     public static final boolean useBoundedBuffer = Boolean.valueOf(System.getProperty("io.openliberty.threading.useBoundedBuffer", "false"));
 
     /**
