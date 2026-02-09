@@ -11,7 +11,7 @@ package io.openliberty.mcp.internal;
 
 import java.util.Optional;
 
-import io.openliberty.mcp.internal.tools.ToolManager.ToolAnnotations;
+import io.openliberty.mcp.tools.ToolManager.ToolAnnotations;
 import jakarta.json.JsonObject;
 
 public class ToolDescription {

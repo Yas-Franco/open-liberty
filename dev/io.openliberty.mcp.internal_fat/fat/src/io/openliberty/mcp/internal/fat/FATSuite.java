@@ -53,6 +53,7 @@ import io.openliberty.mcp.internal.fat.tool.McpUrlPathTest;
 import io.openliberty.mcp.internal.fat.tool.NoParamNameTest;
 import io.openliberty.mcp.internal.fat.tool.NonRequiredArgsToolsTest;
 import io.openliberty.mcp.internal.fat.tool.ToolErrorHandlingTest;
+import io.openliberty.mcp.internal.fat.tool.ToolManagerTest;
 import io.openliberty.mcp.internal.fat.tool.ToolTest;
 
 /**
@@ -83,6 +84,7 @@ import io.openliberty.mcp.internal.fat.tool.ToolTest;
                 StatefulModeTest.class,
                 StatelessModeTest.class,
                 ToolErrorHandlingTest.class,
+                ToolManagerTest.class,
                 ToolTest.class,
                 // Authorisation Tests
                 AdminsRoleAllowedTests.class,

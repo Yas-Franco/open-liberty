@@ -10,5 +10,6 @@
 /**
  *
  */
-@com.ibm.websphere.ras.annotation.TraceOptions(messageBundle = "io.openliberty.mcp.internal.resources.CWMCM", traceGroup = "MCP")
-package io.openliberty.mcp.internal.features;
+@com.ibm.websphere.ras.annotation.TraceOptions(traceGroup = "MCP")
+@org.osgi.annotation.versioning.Version("1.0")
+package io.openliberty.mcp.features;

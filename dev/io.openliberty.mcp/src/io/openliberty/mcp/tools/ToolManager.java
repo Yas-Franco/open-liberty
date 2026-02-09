@@ -19,16 +19,15 @@
  * Based on https://github.com/quarkiverse/quarkus-mcp-server/blob/main/core/runtime/src/main/java/io/quarkiverse/mcp/server/ToolManager.java
  * Modifications have been made.
  *******************************************************************************/
-package io.openliberty.mcp.internal.tools;
+package io.openliberty.mcp.tools;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import io.openliberty.mcp.annotations.Tool;
-import io.openliberty.mcp.internal.features.FeatureManager;
-import io.openliberty.mcp.internal.tools.ToolManager.ToolInfo;
-import io.openliberty.mcp.tools.ToolResponse;
+import io.openliberty.mcp.features.FeatureManager;
+import io.openliberty.mcp.tools.ToolManager.ToolInfo;
 
 /**
  * This manager can be used to obtain metadata and register a new tool programmatically.

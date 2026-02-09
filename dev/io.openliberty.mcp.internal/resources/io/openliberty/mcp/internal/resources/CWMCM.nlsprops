@@ -169,7 +169,7 @@ CWMCM0019E.error.encoding.element.useraction=Review the server message.log and F
 
 # Used for server logging
 # do not translate MCP
-# {0} = The  qualified name of the tool
+# {0} = The qualified name of the tool method, or the tool name
 # {1} = corresponding argument name
 # {2} = corresponding argument type
 # {3} = corresponding default value
@@ -202,7 +202,7 @@ CWMCM0023E.invalid.length.tool.name.useraction=Make sure that tool names are bet
 
 # Used for server logging
 # do not translate MCP
-# {0} = The name of the tool 
+# {0} = The name of the tool
 # {1} = The qualified name of the tool
 CWMCM0024E.invalid.character.tool.name=CWMCM0024E: The {0} tool name for the {1} MCP tool method is not valid. Tool names must contain only ASCII letters, digits, underscores, or hyphens.
 CWMCM0024E.invalid.character.tool.name.explanation=The tool name doesn't follow the MCP specification for names. Names can contain only ASCII letters, digits, underscores, hyphens, and not any other special character.
@@ -220,3 +220,54 @@ missing.arguments=The following arguments were expected by the method but were n
 CWMCM0025E.unsupported.output=CWMCM0025E: The {0} return type of the {1} MCP tool method must be an object.
 CWMCM0025E.unsupported.output.explanation=The provided MCP tool return type is not supported.
 CWMCM0025E.unsupported.output.useraction=Provide a return type that is an object.
+
+# Used as exception message
+# {0} = The name of the tool
+CWMCM0026E.duplicate.tool.name=CWMCM0026E: An MCP tool with the {0} name already exists.
+CWMCM0026E.duplicate.tool.name.explanation=Each tool must have a unique name. You cannot register a new tool which has the same name as an existing tool.
+CWMCM0026E.duplicate.tool.name.useraction=Provide a unique name for each MCP tool.
+
+# Used as exception message
+# Do not translate handler, setHandler, asyncHandler, setAsyncHandler, ToolManager, or ToolDefinition
+# {0} = The name of the tool
+CWMCM0027E.provide.one.handler=CWMCM0027E: Either the setHandler method or the setAsyncHandler method must be called for the {0} MCP tool.
+CWMCM0027E.provide.one.handler.explanation=When you register a new tool by using ToolManager, you must provide either a synchronous handler by calling the setHandler method, or an asynchronous handler by calling the setAsyncHandler method. Do not provide both.
+CWMCM0027E.provide.one.handler.useraction=Call either the ToolDefinition.setHandler method or the ToolDefinition.setAsyncHandler method when you register a tool using ToolManager.
+
+# Used as exception message
+# Do not translate MCP
+# {0} = The name of the tool
+CWMCM0028E.invalid.character.tool.name=CWMCM0028E: The {0} MCP tool name is not valid. Tool names must contain only ASCII letters, digits, underscores, or hyphens.
+CWMCM0028E.invalid.character.tool.name.explanation=The tool name doesn't follow the MCP specification for names. Names can contain only ASCII letters, digits, underscores, hyphens, and not any other special character.
+CWMCM0028E.invalid.character.tool.name.useraction=Make sure that tool names contain only ASCII letters, digits, underscores, or hyphens.
+
+# Used as exception message
+# Do not translate MCP
+# {0} = The name of the tool
+CWMCM0029E.invalid.length.tool.name=CWMCM0029E: The {0} MCP tool name is not valid. Tool names must be between 1 and 128 characters in length, inclusive.
+CWMCM0029E.invalid.length.tool.name.explanation=The tool name doesn't follow the MCP specification for names. Names must be between 1 and 128 characters in length, inclusive.
+CWMCM0029E.invalid.length.tool.name.useraction=Make sure that tool names are between 1 and 128 characters, inclusive.
+
+# Used as exception message
+# Do not translate MCP
+# {0} = The name of the tool
+CWMCM0030E.blank.arguments=CWMCM0030E: Cannot add an argument with a blank name to the {0} MCP tool.
+CWMCM0030E.blank.arguments.explanation=Every MCP tool argument must have a non-blank name. 
+CWMCM0030E.blank.arguments.useraction=Provide non-empty names for all tool arguments.
+
+# Used as exception message
+# Do not translate MCP
+# {0} = The name of the tool
+# {1} = The name of the argument
+# {2} = The type of the argument
+CWMCM0031E.missing.toolarg.defaultvalue.converter=CWMCM0031E: The {1} argument of the {0} MCP tool does not have a converter to change its default value into an object of type {2}.
+CWMCM0031E.missing.toolarg.defaultvalue.converter.explanation=One or more arguments have default values without a matching converter to convert the default value to the argument's type.
+CWMCM0031E.missing.toolarg.defaultvalue.converter.useraction=Create a custom converter implementation for the tool argument's type.
+
+# Used as exception message
+# Do not translate MCP
+# {0} = The name of the tool
+# {1} = The name of the argument
+CWMCM0032E.duplicate.argument.name=CWMCM0032E: Cannot add a second argument with the {1} name to the {0} MCP tool.
+CWMCM0032E.duplicate.argument.name.explanation=Each argument of an MCP tool must have a different name.
+CWMCM0032E.duplicate.argument.name.useraction=Give each tool argument a different name.

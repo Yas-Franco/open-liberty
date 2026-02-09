@@ -15,7 +15,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
@@ -30,6 +33,7 @@ import io.openliberty.mcp.internal.encoders.EncoderRegistry;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.HttpResponseException;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCErrorCode;
 import io.openliberty.mcp.internal.exceptions.jsonrpc.JSONRPCException;
+import io.openliberty.mcp.internal.exceptions.jsonrpc.McpResponseException;
 import io.openliberty.mcp.internal.meta.MetaImpl;
 import io.openliberty.mcp.internal.requests.CancellationImpl;
 import io.openliberty.mcp.internal.requests.ExecutionRequestId;
@@ -44,11 +48,12 @@ import io.openliberty.mcp.internal.security.Authorizer;
 import io.openliberty.mcp.internal.sessions.McpSession;
 import io.openliberty.mcp.internal.sessions.McpSessionId;
 import io.openliberty.mcp.internal.sessions.McpSessionStore;
-import io.openliberty.mcp.internal.tools.ToolManager.ToolArguments;
+import io.openliberty.mcp.internal.tools.ToolResponses;
 import io.openliberty.mcp.messaging.Cancellation;
 import io.openliberty.mcp.meta.Meta;
 import io.openliberty.mcp.request.RequestId;
 import io.openliberty.mcp.tools.ToolCallException;
+import io.openliberty.mcp.tools.ToolManager.ToolArguments;
 import io.openliberty.mcp.tools.ToolResponse;
 import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.inject.Inject;
@@ -178,7 +183,7 @@ public class McpServlet extends HttpServlet {
         }
     }
 
-    @FFDCIgnore({ IllegalAccessException.class, IllegalArgumentException.class, ToolCallException.class })
+    @FFDCIgnore(ToolCallException.class)
     private void callTool(McpTransport transport) {
 
         ExecutionRequestId requestId = createOngoingRequestId(transport);
@@ -201,50 +206,53 @@ public class McpServlet extends HttpServlet {
             Authorizer.requireAuthorized(transport, params.getMetadata());
 
             if (params.getMetadata().returnsCompletionStage()) {
-                callToolMethodAndSendResponseAsync(transport, requestId, request, params);
+                callToolAndSendResponseAsync(transport, requestId, request, params);
             } else {
-                callToolSynchronously(transport, requestId, request, params);
+                callToolAndSendResponseSync(transport, requestId, request, params);
             }
-        } catch (IllegalAccessException e) {
-            throw new JSONRPCException(JSONRPCErrorCode.INTERNAL_ERROR, List.of("Could not call " + params.getName()));
-        } catch (IllegalArgumentException e) {
-            throw new JSONRPCException(JSONRPCErrorCode.INVALID_PARAMS, List.of("Incorrect arguments in params"));
-        }
-        //Catch invalid tool args excetion(new type) send back new tool response
-        catch (ToolCallException e) {
-            ToolResponse response = ToolResponse.error(e.getMessage());
+        } catch (ToolCallException e) {
+            // Catch validation errors that occur before calling the tool and should result in a tool call error response
+            ToolResponse response = ToolResponses.createBusinessErrorResponse(e);
             transport.sendResponse(response);
             return;
         }
     }
 
-    private void callToolSynchronously(McpTransport transport,
-                                       ExecutionRequestId requestId,
-                                       McpRequest mcpRequest,
-                                       McpToolCallParams params)
-                    throws IllegalAccessException, IllegalArgumentException {
+    @FFDCIgnore({ McpResponseException.class, ToolCallException.class, Exception.class })
+    private void callToolAndSendResponseSync(McpTransport transport,
+                                             ExecutionRequestId requestId,
+                                             McpRequest mcpRequest,
+                                             McpToolCallParams params) {
 
         ToolArguments toolArgs = createToolArguments(mcpRequest, params);
         if (requestId != null) {
             requestTracker.registerOngoingRequest(requestId, (CancellationImpl) toolArgs.cancellation());
         }
 
+        ToolResponse response;
         try {
             var handler = params.getMetadata().handler();
-
-            ToolResponse response = handler.apply(toolArgs);
-            ToolResponse finalResponse = removeStructuredContentIfNotSupported(response, transport);
-            transport.sendResponse(finalResponse);
+            response = handler.apply(toolArgs);
+        } catch (McpResponseException e) {
+            // These exceptions indicate a specific response should be used
+            throw e;
+        } catch (ToolCallException e) {
+            // ToolCallException is the only business exception type that can be thrown by a handler
+            response = ToolResponses.createBusinessErrorResponse(e);
+        } catch (Exception e) {
+            // Any other exception should be turned into an error tool response
+            response = ToolResponses.createNonBusinessErrorResponse(e, params.getName());
         } finally {
             cleanup(requestId);
         }
+        response = removeStructuredContentIfNotSupported(response, transport);
+        transport.sendResponse(response);
     }
 
-    private void callToolMethodAndSendResponseAsync(McpTransport transport,
-                                                    ExecutionRequestId requestId,
-                                                    McpRequest mcpRequest,
-                                                    McpToolCallParams params)
-                    throws IllegalAccessException, IllegalArgumentException {
+    private void callToolAndSendResponseAsync(McpTransport transport,
+                                              ExecutionRequestId requestId,
+                                              McpRequest mcpRequest,
+                                              McpToolCallParams params) {
         ToolArguments toolArgs = createToolArguments(mcpRequest, params);
 
         if (requestId != null) {
@@ -253,10 +261,33 @@ public class McpServlet extends HttpServlet {
 
         var handler = params.getMetadata().asyncHandler();
 
-        CompletionStage<ToolResponse> response = handler.apply(toolArgs)
-                                                        .thenApply(r -> removeStructuredContentIfNotSupported(r, transport));
+        CompletionStage<ToolResponse> response = callHandlerAndCatchException(handler, toolArgs);
+        response = response.thenApply(r -> removeStructuredContentIfNotSupported(r, transport))
+                           .exceptionally(throwable -> {
+                               if (throwable instanceof CompletionException) {
+                                   throwable = throwable.getCause();
+                               }
+                               if (throwable instanceof McpResponseException responseEx) {
+                                   throw responseEx;
+                               } else if (throwable instanceof ToolCallException toolEx) {
+                                   return ToolResponses.createBusinessErrorResponse(toolEx);
+                               } else {
+                                   return ToolResponses.createNonBusinessErrorResponse(throwable,
+                                                                                       params.getName());
+                               }
+                           });
+
         transport.sendResultAsync(response)
                  .whenComplete((result, throwable) -> cleanup(requestId));
+    }
+
+    @FFDCIgnore(Exception.class)
+    private static <T, R> CompletionStage<R> callHandlerAndCatchException(Function<T, CompletionStage<R>> handler, T arg) {
+        try {
+            return handler.apply(arg);
+        } catch (Exception e) {
+            return CompletableFuture.failedStage(e);
+        }
     }
 
     private ToolResponse removeStructuredContentIfNotSupported(ToolResponse response, McpTransport transport) {

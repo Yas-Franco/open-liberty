@@ -50,11 +50,12 @@ import componenttest.topology.utils.HttpRequest;
  */
 public class McpClient extends ExternalResource {
 
+    private final LibertyServer server;
+    private final String path;
+    private final StateMode mode;
+
     private boolean sessionDeleted = false;
     private String sessionId;
-    private LibertyServer server;
-    private String path;
-    private StateMode mode = StateMode.STATEFUL;
 
     public static enum StateMode {
         // STATEFUL - Uses sessions and session IDs to maintain state across requests
@@ -68,15 +69,18 @@ public class McpClient extends ExternalResource {
      * @param path the base endpoint path for MCP. The full request path will be {@code path + "/mcp"}.
      */
     public McpClient(LibertyServer server, String path) {
-        super();
-        this.server = server;
-        this.path = path;
+        this(server, path, StateMode.STATEFUL);
     }
 
+    /**
+     * @param server the {@link LibertyServer} instance used to send requests
+     * @param path the base endpoint path for MCP. The full request path will be {@code path + "/mcp"}.
+     * @param mode whether to expect the server to be in stateful or stateless mode
+     */
     public McpClient(LibertyServer server, String path, StateMode mode) {
         super();
         this.server = server;
-        this.path = path;
+        this.path = path.startsWith("/") ? path : "/" + path;
         this.mode = mode;
     }
 
@@ -124,9 +128,10 @@ public class McpClient extends ExternalResource {
                         """;
         JSONAssert.assertEquals(expectedResponse, response, JSONCompareMode.LENIENT);
 
-        if (mode.equals(StateMode.STATEFUL)) {
-            sessionId = httpRequest.getResponseHeader(MCP_SESSION_ID);
-            assertNotNull(sessionId);
+        sessionId = httpRequest.getResponseHeader(MCP_SESSION_ID);
+        switch (mode) {
+            case STATEFUL -> assertNotNull(sessionId);
+            case STATELESS -> assertNull(sessionId);
         }
 
         String contentType = httpRequest.getResponseHeader("Content-Type");
@@ -194,6 +199,9 @@ public class McpClient extends ExternalResource {
                .method("POST");
 
         if (mode.equals(StateMode.STATEFUL)) {
+            if (sessionId == null) {
+                throw new IllegalStateException("In stateful mode but don't have a sessionId, did you forget to use @Rule?");
+            }
             request.requestProp(MCP_SESSION_ID, sessionId);
         }
 

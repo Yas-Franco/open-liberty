@@ -19,13 +19,13 @@
  * Based on https://github.com/quarkiverse/quarkus-mcp-server/blob/main/core/runtime/src/main/java/io/quarkiverse/mcp/server/FeatureManager.java
  * Modifications have been made.
  *******************************************************************************/
-package io.openliberty.mcp.internal.features;
+package io.openliberty.mcp.features;
 
 import java.time.Instant;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import io.openliberty.mcp.internal.features.FeatureManager.FeatureInfo;
+import io.openliberty.mcp.features.FeatureManager.FeatureInfo;
 import io.openliberty.mcp.messaging.Cancellation;
 import io.openliberty.mcp.meta.Meta;
 import io.openliberty.mcp.request.RequestId;
