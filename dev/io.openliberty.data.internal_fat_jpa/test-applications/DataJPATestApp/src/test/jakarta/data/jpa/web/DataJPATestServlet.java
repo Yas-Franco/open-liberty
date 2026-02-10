@@ -292,7 +292,8 @@ public class DataJPATestServlet extends FATServlet {
         demographics.write(new DemographicInfo(2002, 4, 30, 112700000, 2582340471146.16, 3402336886067.70));
 
         // TODO remove this workaround for intermittent issue triggered by test ordering once 28078 is fixed
-        testLiteralDouble();
+        if (!isHibernate())
+            testLiteralDouble();
         // To quickly try reproducing the issue, remove the above line and add the following line to tearDown,
         // runTest(server, "DataJPATestApp", "testLiteralDouble");
     }
@@ -1469,7 +1470,7 @@ public class DataJPATestServlet extends FATServlet {
         }
 
         // TODO enable once issue #32204 is fixed in EclipseLink
-        if (false)
+        if (isHibernate())
             assertEquals(List.of(345003450L, 678006780L),
                          taxpayers.findByBankAccountsContains(AccountId.of(26122300, 410224))
                                          .map(t -> t.ssn)
@@ -3386,8 +3387,12 @@ public class DataJPATestServlet extends FATServlet {
      * Use a repository method with a Query that hard codes a literal for a double value in E notation,
      * as is done in an example within the spec.
      */
-    // enable once 28078 is fixed @Test
+    @Test
     public void testLiteralDouble() {
+        // TODO enable for EclipseLink once 28078 is fixed
+        if (!isHibernate())
+            return;
+
         // Clear out data before test
         accounts.deleteByOwnerEndsWith("TestLiteralDouble");
 
