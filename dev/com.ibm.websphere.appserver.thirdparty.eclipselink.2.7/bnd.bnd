@@ -119,7 +119,7 @@ Include-Resource: \
   @\${repo;org.eclipse.persistence:org.eclipse.persistence.jpa.jpql;${eclFullVersion};EXACT}!/!META-INF/maven/*,\
   @\${repo;org.eclipse.persistence:org.eclipse.persistence.jpa.modelgen.processor;${eclFullVersion};EXACT}!/!META-INF/maven/*,\
   org/eclipse/persistence/internal/helper=${bin}/org/eclipse/persistence/internal/helper,\
-  org/eclipse/persistence/expressions=${bin}/org/eclipse/persistence/expressions,\
+  org/eclipse/persistence/platform/database=${bin}/org/eclipse/persistence/platform/database,\
   org/eclipse/persistence/internal/expressions=${bin}/org/eclipse/persistence/internal/expressions
 
 
