@@ -26,7 +26,7 @@ public class MySimpleHandlerActivitor implements BundleActivator {
     @Override
     public void start(BundleContext context) throws Exception {
         System.out.println("in start method in bundle activator");
-        // Test ClientBuilder.newBuilder() - will throw exception if it doesn't work
+        // Test ClientBuilder.newBuilder() - Added to test for problem documented in #34019 
         ClientBuilder builder = ClientBuilder.newBuilder();
         
         final Hashtable<String, Object> handlerProps = new Hashtable<String, Object>();
