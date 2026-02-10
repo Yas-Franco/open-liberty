@@ -9,9 +9,11 @@
  *******************************************************************************/
 package com.ibm.ws.fat.wc.tests;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.logging.Logger;
 
@@ -20,6 +22,7 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -51,7 +54,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
 
     private String testQueryString = null;
     private static final String LENGTH = "Content-Length";
-    private static final String CHUNKED = "Transfer-Encoding";
+    private static final String TRANSFER_ENC = "Transfer-Encoding";
 
     //Use when debug locally!
     private static boolean DISPLAY_OFF = false;
@@ -87,7 +90,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Writer_Small_ASCII() throws IOException, ParseException {
         testQueryString = "data_size=2000";
 
-        LOG.info("====== <test_Writer_Small_ASCII : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Writer_Small_ASCII [" + testQueryString + "] > ======");
         sendRequest(testQueryString, 2010, null, DISPLAY_OFF);
     }
 
@@ -100,7 +103,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Stream_Small_ASCII() throws IOException, ParseException {
         testQueryString = "data_size=2000&write_type=out";
 
-        LOG.info("====== <test_OutPutStream_Small_ASCII : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Stream_Small_ASCII [" + testQueryString + "] > ======");
         sendRequest(testQueryString, 2010, null, DISPLAY_OFF);
     }
 
@@ -113,7 +116,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Writer_Large_ASCII() throws IOException, ParseException {
         testQueryString = "data_size=33000";
 
-        LOG.info("====== <test_Writer_Large_ASCII : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Writer_Large_ASCII [" + testQueryString + "] > ======");
         sendRequest(testQueryString, -1, null, DISPLAY_OFF);
     }
 
@@ -126,7 +129,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Stream_Large_ASCII() throws IOException, ParseException {
         testQueryString = "data_size=33000&write_type=out";
 
-        LOG.info("====== <test_Writer_LargeASCIIData : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Stream_Large_ASCII [" + testQueryString + "] > ======");
         sendRequest(testQueryString, -1, null, DISPLAY_OFF);
     }
 
@@ -139,7 +142,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Writer_Large_ASCII_setCL() throws IOException, ParseException {
         testQueryString = "data_size=33000&set_contentlength=true";
 
-        LOG.info("====== <test_Writer_Large_ASCII_setCL : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Writer_Large_ASCII_setCL [" + testQueryString + "] > ======");
         sendRequest(testQueryString, 33010, null, DISPLAY_OFF);
     }
 
@@ -152,7 +155,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Stream_Large_ASCII_setCL() throws IOException, ParseException {
         testQueryString = "data_size=33000&set_contentlength=true&write_type=out";
 
-        LOG.info("====== <test_Stream_Large_ASCII_setCL : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Stream_Large_ASCII_setCL [" + testQueryString + "] > ======");
         sendRequest(testQueryString, 33010, null, DISPLAY_OFF);
     }
 
@@ -165,7 +168,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Writer_Medium_DBCS() throws IOException, ParseException {
         testQueryString = "data_size=15000&multibyte=true";
 
-        LOG.info("====== <test_Writer_Medium_DBCS : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Writer_Medium_DBCS [" + testQueryString + "] > ======");
         sendRequest(testQueryString, -1, null, DISPLAY_OFF);
     }
 
@@ -178,7 +181,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Stream_Medium_DBCS() throws IOException, ParseException {
         testQueryString = "data_size=15000&multibyte=true&write_type=out";
 
-        LOG.info("====== <test_Stream_Medium_DBCS : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Stream_Medium_DBCS [" + testQueryString + "] > ======");
         sendRequest(testQueryString, -1, null, DISPLAY_OFF);
     }
 
@@ -191,7 +194,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Writer_Small_DBCS() throws IOException, ParseException {
         testQueryString = "data_size=2000&multibyte=true";
 
-        LOG.info("====== <test_Writer_Small_DBCS : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Writer_Small_DBCS [" + testQueryString + "] > ======");
         sendRequest(testQueryString, 6010, null, DISPLAY_OFF);
     }
 
@@ -204,7 +207,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Stream_Small_DBCS() throws IOException, ParseException {
         testQueryString = "data_size=2000&multibyte=true&write_type=out";
 
-        LOG.info("====== <test_Stream_Small_DBCS : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Stream_Small_DBCS [" + testQueryString + "] > ======");
         sendRequest(testQueryString, 6010, null, DISPLAY_OFF);
     }
 
@@ -217,12 +220,12 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Writer_Small_DBCS_flush() throws IOException, ParseException {
         testQueryString = "data_size=2000&multibyte=true&force_flush=true";
 
-        LOG.info("====== <test_Writer_Small_DBCS_flush : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Writer_Small_DBCS_flush [" + testQueryString + "] > ======");
         sendRequest(testQueryString, -1, null, DISPLAY_OFF);
     }
 
     /*
-     * Test medium size DBCS , flush, send 2nd set data
+     * Test medium size DBCS , flushBuffer, send 2nd set data
      * Type - Writer
      * Expecting - Chunked and Additional END data
      */
@@ -230,7 +233,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Writer_DBCS_multi_send() throws IOException, ParseException {
         testQueryString = "data_size=11000&multibyte=true&multi_send=true";
 
-        LOG.info("====== <test_Writer_DBCS_multi_send : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Writer_DBCS_multi_send [" + testQueryString + "] > ======");
         sendRequest(testQueryString, -1, SECOND_END, DISPLAY_OFF);
     }
 
@@ -243,7 +246,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Stream_DBCS_multi_send() throws IOException, ParseException {
         testQueryString = "data_size=11000&multibyte=true&multi_send=true&write_type=out";
 
-        LOG.info("====== <test_Stream_DBCS_multi_send : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Stream_DBCS_multi_send [" + testQueryString + "] > ======");
         sendRequest(testQueryString, -1, SECOND_END, DISPLAY_OFF);
     }
 
@@ -256,7 +259,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Writer_DBCS_setBufferSize_8192() throws IOException, ParseException {
         testQueryString = "data_size=4000&multibyte=true&buffer_size=8192";
 
-        LOG.info("====== <test_Writer_DBCS_setBufferSize_8192 : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Writer_DBCS_setBufferSize_8192 [" + testQueryString + "] > ======");
         sendRequest(testQueryString, -1, null, DISPLAY_OFF);
     }
 
@@ -269,7 +272,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Stream_DBCS_setBufferSize_8192() throws IOException, ParseException {
         testQueryString = "data_size=4000&multibyte=true&buffer_size=8192&write_type=out";
 
-        LOG.info("====== <test_Stream_DBCS_setBufferSize_8192 : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Stream_DBCS_setBufferSize_8192 [" + testQueryString + "] > ======");
         sendRequest(testQueryString, -1, null, DISPLAY_OFF);
     }
 
@@ -282,7 +285,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Writer_DBCS_setBufferSize_16000() throws IOException, ParseException {
         testQueryString = "data_size=4000&multibyte=true&buffer_size=16000";
 
-        LOG.info("====== <test_Writer_DBCS_setBufferSize_16000 : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Writer_DBCS_setBufferSize_16000 [" + testQueryString + "] > ======");
         sendRequest(testQueryString, 12010, null, DISPLAY_OFF);
     }
 
@@ -295,13 +298,13 @@ public class WCResponseContentLengthChunkedEncodingTest {
     public void test_Stream_DBCS_setBufferSize_16000() throws IOException, ParseException {
         testQueryString = "data_size=4000&multibyte=true&buffer_size=16000";
 
-        LOG.info("====== <test_Stream_DBCS_setBufferSize_16000 : [" + testQueryString + "] > ======");
+        LOG.info("====== <test_Stream_DBCS_setBufferSize_16000 [" + testQueryString + "] > ======");
         sendRequest(testQueryString, 12010, null, DISPLAY_OFF);
     }
 
     /**
      * String queryString: test query<p>
-     * int expectedSize: (-1 for CHUNKED) or (integer content-length size) <p>
+     * int expectedSize: (-1 for TRANSFER_ENC) or (integer Content-Length size) <p>
      * String additionalExpectedString : additional expected string (besides "BEGIN_" and "_END" which are always assert on)<p>
      * boolean displayResponse = false when test with LARGE data!<p>
      */
@@ -309,6 +312,7 @@ public class WCResponseContentLengthChunkedEncodingTest {
                              boolean displayResponse) throws IOException, ParseException {
         int responseCL = -1;
         boolean chunkedResponse = false;
+        String responseText = null;
 
         String url = "http://" + server.getHostname() + ":" + server.getHttpDefaultPort() + "/" + APP_NAME + "/" + SERVLET_PATH + "?" + queryString;
         LOG.info("Send Request: [" + url + "]");
@@ -316,8 +320,6 @@ public class WCResponseContentLengthChunkedEncodingTest {
         HttpGet getMethod = new HttpGet(url);
         try (final CloseableHttpClient client = HttpClientBuilder.create().build()) {
             try (final CloseableHttpResponse response = client.execute(getMethod)) {
-                String responseText = EntityUtils.toString(response.getEntity());
-
                 Header[] headers = response.getHeaders();
 
                 LOG.info("\n>>>>>> Response Headers: >>>>>>");
@@ -328,21 +330,37 @@ public class WCResponseContentLengthChunkedEncodingTest {
                         LOG.info("\n Found Content-Length = " + responseCL);
                     }
 
-                    if (header.getName().equalsIgnoreCase(CHUNKED)) {
+                    if (header.getName().equalsIgnoreCase(TRANSFER_ENC)) {
                         chunkedResponse = true;
-                        LOG.info("\n Found " + CHUNKED + " header");
+                        LOG.info("\n Found " + TRANSFER_ENC + " = " + header.getValue());
                     }
                 }
                 LOG.info("\n<<<<<< Response Headers <<<<<<");
 
-                if (displayResponse) {
-                    LOG.info("\n" + "Response Text: \n[" + responseText + "]");
-                }
+                HttpEntity entity = response.getEntity();
 
                 if (expectedSize > 0) {
                     assertTrue("Expected Content-Length size [" + expectedSize + "] but found [" + responseCL + "]", expectedSize == responseCL);
-                } else { //CHUNKED
+
+                    //check the actual body size against the response CL header:
+                    long cl = entity.getContentLength();
+                    byte[] body = EntityUtils.toByteArray(entity);
+                    long actual = body.length;
+
+                    LOG.info("CL header = " + cl + " . Actual body = " + actual);
+                    if (cl != actual) {
+                        assertFalse("Actual body data [" + actual + "] does not match CL header [" + cl + "]", false);
+                    } else {
+                        responseText = new String(body, StandardCharsets.UTF_8);
+                    }
+
+                } else { //TRANSFER_ENC
                     assertTrue("Expected [Transfer-Encoding: Chunked] not found", chunkedResponse);
+                    responseText = EntityUtils.toString(entity);
+                }
+
+                if (displayResponse) {
+                    LOG.info("\n" + "Response Text: \n[" + responseText + "]");
                 }
 
                 assertTrue("Expected string [" + BEGIN + "] not found in the response", responseText.startsWith(BEGIN));

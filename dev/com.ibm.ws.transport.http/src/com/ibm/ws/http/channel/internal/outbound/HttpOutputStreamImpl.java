@@ -81,9 +81,7 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
     protected HttpOutputStreamObserver obs = null;
     protected boolean WCheadersWritten = false;
    
-    private boolean isBufferFlushed= false;
-    private int allocatedWsByteBufferTotal = 0; //just a counter; no decision on this
-    private boolean isBodySent = false;
+    private boolean amountToBufferExceeded= false;
     private boolean wcFinishCommitResponse = false;
 
     /**
@@ -96,10 +94,7 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
             Tr.debug(tc, "HttpOutputStreamImpl constructor , context " + context );
         }
         this.isc = context;
-
-        isBufferFlushed= false;
-        allocatedWsByteBufferTotal = 0;
-        isBodySent = false;
+        amountToBufferExceeded= false;
         wcFinishCommitResponse = false;
     }
 
@@ -346,16 +341,15 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
 
             if (this.bufferedCount >= this.amountToBuffer) {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "writeToBuffers, writing over amountToBuffer , isBufferFlushed = true , flushing"); 
+                    Tr.debug(tc, "writeToBuffers, writing over amountToBuffer , amountToBufferExceeded = true , flushing"); 
                 }
 
                 //If first response has not sent yet, it is now chunked
-                this.isBufferFlushed = true;   
+                this.amountToBufferExceeded = true;   
                 this.ignoreFlush = false;
                 flushBuffers();
             }
         }
-        allocatedWsByteBufferTotal++;
         
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
             Tr.debug(tc, "writeToBuffers RETURN , bufferedCount = " + bufferedCount); 
@@ -535,6 +529,7 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
         HttpResponseMessage responseMessage = null;
         if ((isc != null) && (isc instanceof HttpInboundServiceContextImpl)) { 
             responseMessage = this.isc.getResponse();
+           
         }
         
         if (responseMessage == null) {
@@ -569,7 +564,6 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
         }
         try {
             WsByteBuffer[] content = (writingBody) ? this.output : null;
-
             if (isClosed() || this.isClosing) {
                 if (!hasFinished) { //if we've already called finishResponseMessage - don't call again
                     // on a closed stream, use the final write api
@@ -578,23 +572,21 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
                     this.hasFinished = true;
                 }
             } else {
-
+                boolean headersSent = ((HttpInboundServiceContextImpl) isc).headersSent();
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "flushBuffers , sendResponseBody : bufferedCount = " + bufferedCount 
+                    Tr.debug(tc, "flushBuffers, sendResponseBody : bufferedCount = " + bufferedCount 
                              + " | amountToBuffer = " + amountToBuffer
-                             + " |  isBodySent = " + isBodySent
-                             + " | isBufferFlushed = " + isBufferFlushed
-                             + " | wcFinishCommitResponse = " + wcFinishCommitResponse
-                             + " | allocatedWsByteBufferTotal = " + allocatedWsByteBufferTotal);
+                             + " | headersSent = " + headersSent
+                             + " | amountToBufferExceeded = " + amountToBufferExceeded
+                             + " | wcFinishCommitResponse = " + wcFinishCommitResponse);
                 }
                
-                if (isBodySent || responseMessage.getContentLength() > 0) {
+                if (headersSent || responseMessage.getContentLength() > 0) {
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                        Tr.debug(tc, "flushBuffers, Body sent or Content-Length set");
+                        Tr.debug(tc, "flushBuffers, headers sent or Content-Length set");
                     } 
                 }
-                else if (!isBodySent && !isBufferFlushed && wcFinishCommitResponse) {
-                    //No prior commit() by the time WC response is finish() AND body/flush has NOT happened. CL can be set instead 
+                else if (!headersSent && !amountToBufferExceeded && wcFinishCommitResponse) {
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                         Tr.debug(tc, "flushBuffers, set Content-Length : " + bufferedCount);
                     } 
@@ -604,15 +596,12 @@ public class HttpOutputStreamImpl extends HttpOutputStreamConnectWeb {
                 // else use the partial body api
                 this.isc.sendResponseBody(content);
                 
-                isBodySent = true;
-                
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "flushBuffers , sendResponseBody RETURN : bufferedCount = " + bufferedCount 
+                    Tr.debug(tc, "flushBuffers, sendResponseBody RETURN : bufferedCount = " + bufferedCount 
                              + " | amountToBuffer = " + getBufferSize() 
-                             + " | isBodySent = " + isBodySent
-                             + " | isBufferFlushed = " + isBufferFlushed
-                             + " | wcFinishCommitResponse = " + wcFinishCommitResponse
-                             + " | allocatedWsByteBufferTotal = " + allocatedWsByteBufferTotal);
+                             + " | headersSent = " + ((HttpInboundServiceContextImpl) isc).headersSent()
+                             + " | amountToBufferExceeded = " + amountToBufferExceeded
+                             + " | wcFinishCommitResponse = " + wcFinishCommitResponse);
                 }
             }
         } catch (MessageSentException mse) {
