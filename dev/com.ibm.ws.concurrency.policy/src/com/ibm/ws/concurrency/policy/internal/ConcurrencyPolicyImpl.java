@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2026 IBM Corporation and others.
+ * Copyright (c) 2017 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -12,7 +12,6 @@
  *******************************************************************************/
 package com.ibm.ws.concurrency.policy.internal;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.osgi.service.component.ComponentContext;
@@ -52,7 +51,7 @@ public class ConcurrencyPolicyImpl implements ConcurrencyPolicy {
 
     @Activate
     protected void activate(ComponentContext context, Map<String, Object> props) {
-        this.props = setDefaultMaxPolicy(props);
+        this.props = props;
 
     }
 
@@ -85,28 +84,10 @@ public class ConcurrencyPolicyImpl implements ConcurrencyPolicy {
         PolicyExecutor px;
         synchronized (this) {
             px = executor;
-            this.props = setDefaultMaxPolicy(props);
+            this.props = props;
         }
         if (px != null)
-            px.updateConfig(setDefaultMaxPolicy(props));
+            px.updateConfig(props);
     }
 
-    private Map<String, Object> setDefaultMaxPolicy(Map<String, Object> props) {
-        if ((boolean) props.getOrDefault("virtual", false)) { //virtual threads
-            if (!props.getOrDefault("maxPolicy", "").equals("loose")) {//default to strict for virtual threads
-                props = new HashMap<String, Object>(props);
-                props.put("maxPolicy", "strict");
-            }
-        } else { //platform threads
-            if (!props.getOrDefault("maxPolicy", "").equals("strict")) {
-                //The default value in metatype for maxPolicy was removed with Jakarta Concurrency 3.1 to
-                //accommodate virtual threads. This maintains backward compatibility for platform threads
-                //by keeping the default of maxPolicy=loose
-                props = new HashMap<String, Object>(props);
-                props.put("maxPolicy", "loose");
-            }
-        }
-
-        return props;
-    }
 }

@@ -1535,7 +1535,6 @@ public class PolicyExecutorImpl implements PolicyExecutor {
         Object v;
         int u_expedite = (Integer) props.get("expedite");
         int u_max = null == (v = props.get("max")) ? Integer.MAX_VALUE : (Integer) v;
-        MaxPolicy u_maxPolicy = MaxPolicy.valueOf((String) props.get("maxPolicy"));
         int u_maxQueueSize = null == (v = props.get("maxQueueSize")) ? Integer.MAX_VALUE : (Integer) v;
         long u_maxWaitForEnqueue = (Long) props.get("maxWaitForEnqueue");
         boolean u_runIfQueueFull = (Boolean) props.get("runIfQueueFull");
