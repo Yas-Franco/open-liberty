@@ -66,16 +66,15 @@ public class HAMWithInBuiltTests {
     }
 
     /*
-     * Assert that we find the following message in trace.log:
+     * CustomHAMOne has the most priority with Priority = 100, the in-built HAM's have less priority than custom HAM's.
      *
-     * Order of HttpAuthenticationMechanisms found (the first one will be used if its prioritization is unique -
+     * Assert that we find the following message in trace.log:
      *
      * Order of HttpAuthenticationMechanisms found (the first one will be used if its prioritization is unique -
      *
      * @Priority for application HAMs and HAM type - Oidc/CustomForm/Form/Basic - for in-built HAMs):
      * CustomHAMOne Priority = 100, BasicHttpAuthenticationMechanism
      *
-     * CustomHAMOne has the most priority with Priority = 100, the in-built HAM's have less priority than custom HAM's
      */
     @Test
     public void testCustomHamsWithInBuiltHamPrioritization() throws Exception {
