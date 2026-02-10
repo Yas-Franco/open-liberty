@@ -25,6 +25,7 @@ public class MySimpleHandlerActivitor implements BundleActivator {
 
     @Override
     public void start(BundleContext context) throws Exception {
+        System.out.println("in start method in bundle activator");
         // Test ClientBuilder.newBuilder() - will throw exception if it doesn't work
         ClientBuilder builder = ClientBuilder.newBuilder();
         
