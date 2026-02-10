@@ -2625,9 +2625,21 @@ public class WebAppConfiguratorHelper implements ServletConfiguratorHelper {
      * files before processing the mappings, which is necessary when a servlet-mapping in
      * web.xml references a servlet whose definition is provided in a web-fragment.xml.
      *
-     * @param servletMappings the list of servlet mappings to defer
+     * <p>We only defer mappings for servlets that don't have a definition yet.
+     * If the servlet is already defined (e.g., from an earlier source like annotations annotations or web.xml),
+     * we process the mapping immediately. This 
+     * <ul>
+     * <li>allows processServletMappingConfig() to apply the correct merge rules based on ConfigSource
+     *     (web.xml > web-fragment.xml > annotations)</li>
+     * <li>prevents duplicate mapping attempts that would occur if we deferred all mappings and then
+     *     tried to add them again after annotations have already added them</li>
+     * <li>maintains the existing precedence behavior where earlier sources override later ones</li>
+     * </ul>
+     *
+     * @param servletMappings the list of servlet mappings to process or defer
+     * @throws UnableToAdaptException if servlet mapping processing fails
      */
-    private void storeDeferredServletMappings(List<ServletMapping> servletMappings) {
+    private void storeDeferredServletMappings(List<ServletMapping> servletMappings) throws UnableToAdaptException {
         if (servletMappings == null || servletMappings.isEmpty()) {
             return;
         }
@@ -2636,7 +2648,21 @@ public class WebAppConfiguratorHelper implements ServletConfiguratorHelper {
         String currentLibraryURI = configurator.getLibraryURI();
         
         for (ServletMapping servletMapping : servletMappings) {
-            deferredServletMappings.add(new DeferredServletMapping(servletMapping, currentSource, currentLibraryURI));
+            String servletName = servletMapping.getServletName();
+            Map<String, ConfigItem<ServletConfig>> servletMap = configurator.getConfigItemMap("servlet");
+            
+            // Check if servlet definition exists
+            if (servletMap.get(servletName) == null) {
+                // Servlet not defined yet - defer mapping until all servlet definitions are collected
+                // This handles the case where web.xml has a servlet-mapping but the servlet definition
+                // is in a web-fragment.xml that hasn't been processed yet
+                deferredServletMappings.add(new DeferredServletMapping(servletMapping, currentSource, currentLibraryURI));
+            } else {
+                // Servlet already defined - process mapping immediately to maintain proper precedence
+                // This ensures processServletMappingConfig() can apply merge rules correctly and
+                // prevents duplicate mappings when annotations have already added mappings
+                processServletMappingConfig(servletMapping);
+            }
         }
     }
 
