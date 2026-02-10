@@ -18,6 +18,10 @@ Bundle-SymbolicName: io.openliberty.jakarta.restfulWS.3.0; singleton:=true
 
 Export-Package: jakarta.ws.rs.*; version="3.0.0"
 
+Import-Package: \
+  io.openliberty.org.jboss.resteasy.common.client; resolution:=optional, \
+  *
+
 instrument.disabled: true
 
 publish.wlp.jar.suffix: dev/api/spec

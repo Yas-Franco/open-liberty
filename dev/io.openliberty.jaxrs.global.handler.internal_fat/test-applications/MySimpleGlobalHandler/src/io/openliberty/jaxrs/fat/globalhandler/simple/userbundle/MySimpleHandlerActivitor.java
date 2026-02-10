@@ -4,12 +4,14 @@
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package io.openliberty.jaxrs.fat.globalhandler.simple.userbundle;
 
 import java.util.Hashtable;
+
+import javax.ws.rs.client.ClientBuilder;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -23,8 +25,9 @@ public class MySimpleHandlerActivitor implements BundleActivator {
 
     @Override
     public void start(BundleContext context) throws Exception {
-
-        System.out.println("in start method in bundle activator");
+        // Test ClientBuilder.newBuilder() - will throw exception if it doesn't work
+        ClientBuilder builder = ClientBuilder.newBuilder();
+        
         final Hashtable<String, Object> handlerProps = new Hashtable<String, Object>();
 
         handlerProps.put(HandlerConstants.ENGINE_TYPE, HandlerConstants.ENGINE_TYPE_JAXRS);

@@ -22,6 +22,10 @@ Bundle-SymbolicName: io.openliberty.jakarta.restfulWS.3.1; singleton:=true
 
 Export-Package: jakarta.ws.rs.*; version="3.1.0"
 
+Import-Package: \
+  io.openliberty.org.jboss.resteasy.common.client; resolution:=optional, \
+  *
+
 -includeresource: \
    @\${repo;jakarta.ws.rs:jakarta.ws.rs-api;3.1.0;EXACT}!/!(META-INF/maven/*|module-info.class)
 
