@@ -146,6 +146,6 @@ jmx.rest.client.connection.disconnect=CWWKX0231I: The collective member closed J
 jmx.rest.client.connection.disconnect.explanation=The member disconnected from the controller.
 jmx.rest.client.connection.disconnect.useraction=No action required.
 
-jmx.rest.client.server.result.exception=CWWKX0232E: The server returned a class which is not available to the client: {0}
-jmx.rest.client.server.result.exception.explanation=Any interface or implementing class returned by the server must be available to the client.
-jmx.rest.client.server.result.exception.useraction=Check that all required classes are available on the client's classpath
+jmx.rest.client.server.result.exception=CWWKX0232E: The server returned a class that is not available to the client: {0}
+jmx.rest.client.server.result.exception.explanation=Any interface or implementing class that the server returns must be available to the client.
+jmx.rest.client.server.result.exception.useraction=Check that all required classes are available on the client classpath.
