@@ -406,7 +406,6 @@ public interface UserRegistry extends java.rmi.Remote {
      * @exception EntryNotFoundException  if userSecurityName does not exist.
      * @exception CustomRegistryException if there is any registry specific problem
      **/
-    @Deprecated
     default Map<String, Object> getAttributesForUser(String userSecurityName, Set<String> attributeNames) throws EntryNotFoundException, CustomRegistryException, NotImplementedException {
         throw new NotImplementedException("Reading user attributes is not supported.");
     }
@@ -429,7 +428,6 @@ public interface UserRegistry extends java.rmi.Remote {
      *         <code>null</code> is not returned.
      * @exception CustomRegistryException if there is any UserRegistry specific problem
      **/
-    @Deprecated
     default Result getUsersByAttribute(String attributeName, String value, int limit) throws CustomRegistryException, NotImplementedException {
         throw new NotImplementedException("Finding users from their attributes is not supported.");
     }

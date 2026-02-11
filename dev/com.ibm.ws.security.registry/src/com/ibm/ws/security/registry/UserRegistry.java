@@ -295,7 +295,6 @@ public interface UserRegistry {
      * @exception RegistryException        if there is any UserRegistry specific problem
      * @exception IllegalArgumentException if userSecurityName is <code>null</code> or empty
      **/
-    @Deprecated
     default Map<String, Object> getAttributesForUser(String userSecurityName, Set<String> attributeNames) throws EntryNotFoundException, RegistryException, NotImplementedException {
         throw new NotImplementedException("Reading user attributes is not supported.");
     }
@@ -320,7 +319,6 @@ public interface UserRegistry {
      * @exception IllegalArgumentException if attributeName is <code>null</code> or empty
      * @exception IllegalArgumentException if value is <code>null</code> or empty
      **/
-    @Deprecated
     default SearchResult getUsersByAttribute(String attributeName, String value, int limit) throws RegistryException, NotImplementedException {
         throw new NotImplementedException("Reading user from attributes is not supported.");
     }
