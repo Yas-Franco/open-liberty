@@ -24,6 +24,7 @@ Export-Package: jakarta.ws.rs.*; version="3.1.0"
 
 Import-Package: \
   io.openliberty.org.jboss.resteasy.common.client; resolution:=optional, \
+  org.jboss.resteasy.core.providerfactory; resolution:=optional, \
   *
 
 -includeresource: \

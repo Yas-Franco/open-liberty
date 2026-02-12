@@ -11,7 +11,12 @@ package io.openliberty.jaxrs.fat.globalhandler.simple.userbundle;
 
 import java.util.Hashtable;
 
+import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -28,9 +33,18 @@ public class MySimpleHandlerActivitor implements BundleActivator {
         System.out.println("in start method in bundle activator");
         // Test ClientBuilder.newBuilder() - Added to test for problem documented in #34019 
         ClientBuilder builder = ClientBuilder.newBuilder();
-        
-        final Hashtable<String, Object> handlerProps = new Hashtable<String, Object>();
+        Client client = builder.build();
+        try {
+            WebTarget target = client.target("http://localhost:9080/test");
 
+            Entity<String> entity = Entity.entity("ABC", MediaType.TEXT_PLAIN);
+            Response resp = target.request(MediaType.TEXT_PLAIN).post(entity);
+            String result = resp.readEntity(String.class);
+            resp.close();
+        } finally {
+            client.close();
+        }
+        final Hashtable<String, Object> handlerProps = new Hashtable<String, Object>();
         handlerProps.put(HandlerConstants.ENGINE_TYPE, HandlerConstants.ENGINE_TYPE_JAXRS);
         handlerProps.put(HandlerConstants.FLOW_TYPE, HandlerConstants.FLOW_TYPE_IN);
         handlerProps.put(HandlerConstants.IS_CLIENT_SIDE, true);
@@ -39,7 +53,6 @@ public class MySimpleHandlerActivitor implements BundleActivator {
 
         MySimpleHandler myHandler = new MySimpleHandler();
         serviceRegistration = context.registerService(Handler.class, myHandler, handlerProps);
-
     }
 
     @Override
