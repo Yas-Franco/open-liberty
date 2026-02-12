@@ -12,8 +12,6 @@
  *******************************************************************************/
 package com.ibm.ws.http.dispatcher.internal.channel;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ibm.websphere.channelfw.ChannelData;
@@ -55,9 +53,6 @@ public class HttpDispatcherChannel implements InboundChannel, Discriminator {
 
     /** Flag on whether stop with no quiese has been called after the last start call */
     private volatile boolean stop0Called = false;
-
-    /** Variable to track active connection links for debugging HTTP connection causing quiesce problems */
-    private final ConcurrentHashMap<Integer, HttpDispatcherLink> activeLinks = new ConcurrentHashMap<>();
 
     /**
      * Constructor.
@@ -120,23 +115,6 @@ public class HttpDispatcherChannel implements InboundChannel, Discriminator {
         }
     }
 
-    protected void incrementActiveConns(VirtualConnection conn) {
-        int count = this.activeConnections.incrementAndGet();
-        ConnectionLink connLink = getConnectionLink(conn);
-        if (connLink instanceof HttpDispatcherLink) {
-            HttpDispatcherLink link = (HttpDispatcherLink) connLink;
-            activeLinks.put(link.hashCode(),link); //adding to track the active connections
-            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                Tr.debug(tc, "Increment active, current=" + count + " link hc=" + link.hashCode());
-            }
-        }else{
-            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                Tr.debug(tc, "Increment active, current=" + count + " (link is not HttpDispatcherLink)");
-            }
-        }
-        
-    }
-
     /**
      * Decrement the number of active connections being processed by the dispatcher.
      */
@@ -144,36 +122,6 @@ public class HttpDispatcherChannel implements InboundChannel, Discriminator {
         int count = this.activeConnections.decrementAndGet();
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
             Tr.debug(tc, "Decrement active, current=" + count + " quiescing: " + this.quiescing);
-        }
-        if (0 == count && this.quiescing) {
-            signalNoConnections();
-        }
-    }
-
-    protected void decrementActiveConns(VirtualConnection conn) {
-        int count = this.activeConnections.decrementAndGet();
-        ConnectionLink connLink = getConnectionLink(conn);
-        if (connLink instanceof HttpDispatcherLink) {
-            HttpDispatcherLink link = (HttpDispatcherLink) connLink;
-            activeLinks.remove(link.hashCode());//adding to track the active connections
-            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                Tr.debug(tc, "Decrement active, current=" + count + " quiescing: " + this.quiescing + " link hc=" + link.hashCode());
-            }   
-        } else {
-            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                Tr.debug(tc, "Decrement active, current=" + count + " quiescing=" + this.quiescing + " (link is not HttpDispatcherLink)");
-            }
-        }
-        if (0 == count && this.quiescing) {
-            signalNoConnections();
-        }
-    }
-
-    protected void decrementActiveConns(HttpDispatcherLink link) {
-        int count = this.activeConnections.decrementAndGet();
-        activeLinks.remove(link.hashCode());//adding to track the active connections
-        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-            Tr.debug(tc, "Decrement active, current=" + count + " quiescing: " + this.quiescing + " link hc=" + link.hashCode());
         }
         if (0 == count && this.quiescing) {
             signalNoConnections();
@@ -239,19 +187,7 @@ public class HttpDispatcherChannel implements InboundChannel, Discriminator {
     @Override
     public void stop(long millisec) throws ChannelException {
         if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-            int activeCount = this.activeConnections.get();
             Tr.event(tc, "Stop channel: " + this + " time=" + millisec + " number of active conns is: " + this.activeConnections.get());
-            // Log which connections are still active
-            if(activeCount>0 && !activeLinks.isEmpty()){
-                StringBuilder sb = new StringBuilder("Active connection details: ");
-                for(Map.Entry<Integer, HttpDispatcherLink> entry : activeLinks.entrySet()){
-                    HttpDispatcherLink link = entry.getValue();
-                    sb.append("\n  Link hashCode=").append(entry.getKey())
-                    .append(" vc=").append(link.getVC())
-                    .append(" closeCompleted=").append(link.isCloseCompleted());
-                }
-                Tr.event(tc, sb.toString());
-            }
         }
         if (0L < millisec) {
             this.quiescing = true;
