@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -690,6 +691,7 @@ class SipResolverTcpTransport implements SipResolverTransport {
             if (c_logger.isTraceEntryExitEnabled()) {
                 c_logger.traceEntry(this, "channelInactive remote disconnected: " + ctx.channel().remoteAddress());
             }
+            emptyMessageQueue();
             m_channel = null;
         }
 
@@ -700,8 +702,9 @@ class SipResolverTcpTransport implements SipResolverTransport {
             }
             emptyMessageQueue();
             // Run this out of the eventloop
-            if (ctx.channel().eventLoop().inEventLoop())
-                GenericEndpointImpl.getExecutorService().execute(() -> {
+            ExecutorService executor = GenericEndpointImpl.getExecutorService();
+            if (ctx.channel().eventLoop().inEventLoop() && executor != null)
+                executor.execute(() -> {
                     try {
                         readError((Exception)e);
                     } catch (Exception e2) {
@@ -711,6 +714,9 @@ class SipResolverTcpTransport implements SipResolverTransport {
                     }
                 });
             else {
+                if(executor == null && c_logger.isTraceDebugEnabled()) {
+                    c_logger.traceDebug("exceptionCaught found null executor, running error logic in Netty thread.");
+                }
                 readError((Exception) e);
                 // tell the channel to close; the netty framework will be notified
                 ctx.close();
@@ -748,10 +754,14 @@ class SipResolverTcpTransport implements SipResolverTransport {
                 processingMessage = false;
                 return;
             }
+            if (GenericEndpointImpl.getExecutorService() == null) {
+                // We should not process messages in the event loop of Netty so throw exception here
+                ctx.fireExceptionCaught(new NettyException("Null executor service while processing message!"));
+            }
             GenericEndpointImpl.getExecutorService().execute(() -> {
                 try {
                     try {
-                        readComplete(ctx, msg);
+                        readComplete(ctx, ReferenceCountUtil.retain(msg));
                     } catch(Exception e) {
                         // An exception was caught reading the message. Fire exceptionCaught and
                         // return so that we do not keep processing messages but close properly.

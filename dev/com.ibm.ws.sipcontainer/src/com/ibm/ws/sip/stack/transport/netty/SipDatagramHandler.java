@@ -10,6 +10,7 @@
 package com.ibm.ws.sip.stack.transport.netty;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import com.ibm.websphere.ras.Tr;
@@ -24,6 +25,8 @@ import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import jain.protocol.ip.sip.ListeningPoint;
+
+import io.openliberty.netty.internal.exception.NettyException;
 
 public class SipDatagramHandler extends SimpleChannelInboundHandler<SipMessageEvent> {
 
@@ -78,7 +81,7 @@ public class SipDatagramHandler extends SimpleChannelInboundHandler<SipMessageEv
         SipUdpConnLink connLink = attr.get();
         if (connLink == null) {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                Tr.debug(this, tc, "processNextMessage", "could not associate an incoming message with a SIP channel");
+                Tr.debug(this, tc, "channelRead0", "could not associate an incoming message with a SIP channel");
             }
             throw new IOException("could not associate an incoming message with a SIP channel");
         }
@@ -108,6 +111,10 @@ public class SipDatagramHandler extends SimpleChannelInboundHandler<SipMessageEv
             processingMessage = false;
             return;
         }
+        if (GenericEndpointImpl.getExecutorService() == null) {
+            // We should not process messages in the event loop of Netty so throw exception here
+            ctx.fireExceptionCaught(new NettyException("Null executor service while processing message!"));
+        }
         GenericEndpointImpl.getExecutorService().execute(() -> {
             try {
                 connLink.complete(msg.getSipMsg(), msg.getRemoteAddress());
@@ -128,7 +135,16 @@ public class SipDatagramHandler extends SimpleChannelInboundHandler<SipMessageEv
         SipUdpConnLink connLink = attr.get();
         // clean up from connections table
         if (connLink != null) {
-            GenericEndpointImpl.getExecutorService().execute(() -> connLink.close());
+            ExecutorService executor = GenericEndpointImpl.getExecutorService();
+            if(executor != null) {
+                executor.execute(() -> connLink.close());
+            }
+            else {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(this, tc, "channelInactive", "Running logic in Netty event loop because found null executor for channel: " + ctx.channel());
+                }
+                connLink.close();
+            }
         } else {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(this, tc, "channelInactive", ctx.name() + "could not find a SIP channel");
@@ -146,7 +162,16 @@ public class SipDatagramHandler extends SimpleChannelInboundHandler<SipMessageEv
         if (cause instanceof Exception) {
             SipUdpConnLink connLink = attr.get();
             if (connLink != null) {
-                GenericEndpointImpl.getExecutorService().execute(() -> connLink.close(cause));
+                ExecutorService executor = GenericEndpointImpl.getExecutorService();
+                if(executor != null) {
+                    executor.execute(() -> connLink.close(cause));
+                }
+                else {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(this, tc, "exceptionCaught", "Running logic in Netty event loop because found null executor for channel: " + ctx.channel());
+                    }
+                    connLink.close(cause);
+                }
             } else {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                     Tr.debug(this, tc, "exceptionCaught", "could not find a SIP channel");

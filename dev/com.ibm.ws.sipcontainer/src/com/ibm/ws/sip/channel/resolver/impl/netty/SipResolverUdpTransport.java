@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import com.ibm.sip.util.log.Log;
@@ -635,6 +636,10 @@ class SipResolverUdpTransport implements SipResolverTransport {
                 processingMessage = false;
                 return;
             }
+            if (GenericEndpointImpl.getExecutorService() == null) {
+                // We should not process messages in the event loop of Netty so throw exception here
+                ctx.fireExceptionCaught(new NettyException("Null executor service while processing message!"));
+            }
             GenericEndpointImpl.getExecutorService().execute(() -> {
                 try {
                     try {
@@ -659,8 +664,9 @@ class SipResolverUdpTransport implements SipResolverTransport {
             }
             emptyMessageQueue();
             // Run this out of the eventloop
-            if (ctx.channel().eventLoop().inEventLoop())
-                GenericEndpointImpl.getExecutorService().execute(() -> {
+            ExecutorService executor = GenericEndpointImpl.getExecutorService();
+            if (ctx.channel().eventLoop().inEventLoop() && executor != null) {
+                executor.execute(() -> {
                     try {
                         readError(ctx, e);
                     } catch (Exception e2) {
@@ -669,7 +675,10 @@ class SipResolverUdpTransport implements SipResolverTransport {
                         ctx.close();
                     }
                 });
-            else {
+            } else {
+                if(executor == null && c_logger.isTraceDebugEnabled()) {
+                    c_logger.traceDebug("exceptionCaught found null executor, running error logic in Netty thread.");
+                }
                 readError(ctx, e);
                 // tell the channel to close; the netty framework will be notified
                 ctx.close();
@@ -690,6 +699,7 @@ class SipResolverUdpTransport implements SipResolverTransport {
             if (c_logger.isTraceEntryExitEnabled()) {
                 c_logger.traceEntry(this, "channelInactive remote disconnected: " + ctx.channel().remoteAddress());
             }
+            emptyMessageQueue();
             channel = null;
         }
 
