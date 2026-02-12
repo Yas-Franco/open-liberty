@@ -27,6 +27,8 @@ import io.openliberty.security.jakartasec.fat.tests.MultipleHAMDuplicateTests;
 import io.openliberty.security.jakartasec.fat.tests.MultipleHAMInbuiltQualifiersTests;
 import io.openliberty.security.jakartasec.fat.tests.MultipleHAMInbuiltTests;
 import io.openliberty.security.jakartasec.fat.tests.SingleHAMInbuiltCustomQualifierTests;
+import io.openliberty.security.jakartasec.fat.tests.AppRolesTests;
+import io.openliberty.security.jakartasec.fat.tests.AppBndRolesTests;
 
 @RunWith(Suite.class)
 @SuiteClasses({
@@ -40,8 +42,9 @@ import io.openliberty.security.jakartasec.fat.tests.SingleHAMInbuiltCustomQualif
                 SingleHAMInbuiltCustomQualifierTests.class,
                 MissingCustomHandlerTests.class,
                 InMemoryIdentityStoreELWarningTest.class,
-                InMemoryIdentityStoreEnablementTests.class
+                InMemoryIdentityStoreEnablementTests.class,
+                AppRolesTests.class,
+                AppBndRolesTests.class
 })
-
 public class FATSuite {
 }

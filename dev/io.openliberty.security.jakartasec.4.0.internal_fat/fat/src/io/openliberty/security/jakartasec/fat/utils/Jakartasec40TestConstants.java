@@ -41,6 +41,16 @@ public class Jakartasec40TestConstants {
     public static final String USER_SALLY = "sally"; // AES encoded password
     public static final String USER_THEO = "theo"; // AES encoded password
 
+    // App Roles Users
+    public final static String USER1 = "user1";
+    public final static String USER1_PASSWORD = "user1pwd";
+    public final static String USER2 = "user2";
+    public final static String USER2_PASSWORD = "user2pwd";
+    public final static String USER3 = "user3";
+    public final static String USER3_PASSWORD = "user3pwd";
+    public final static String USER4 = "user4";
+    public final static String USER4_PASSWORD = "user4pwd";
+
     // Users with invalid groups or bad encoding
     public static final String USER_BILL = "bill"; // valid password but wrong groups
     public static final String USER_JOHNNY = "johnny"; // bad XOR encoding
