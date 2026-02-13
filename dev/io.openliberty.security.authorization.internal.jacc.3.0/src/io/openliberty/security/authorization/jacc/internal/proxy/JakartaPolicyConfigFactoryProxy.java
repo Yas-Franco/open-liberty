@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
-import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
 import jakarta.security.jacc.PolicyConfiguration;
@@ -26,27 +25,13 @@ public class JakartaPolicyConfigFactoryProxy extends PolicyConfigurationFactory 
 
     private final Map<String, JakartaPolicyConfigProxy> configMap = new ConcurrentHashMap<>();
 
-    private final PolicyConfigurationFactory providedConfigFactory;
-
-    private static volatile JakartaPolicyConfigFactoryProxy configFactoryProxy = null;
-
-    static JakartaPolicyConfigFactoryProxy getInstance(PolicyConfigurationFactory providedFactory) {
-        if (configFactoryProxy == null || configFactoryProxy.providedConfigFactory != providedFactory) {
-            synchronized (JakartaPolicyConfigFactoryProxy.class) {
-                if (configFactoryProxy == null || configFactoryProxy.providedConfigFactory != providedFactory) {
-                    configFactoryProxy = new JakartaPolicyConfigFactoryProxy(providedFactory);
-                }
-            }
-        }
-        return configFactoryProxy;
-    }
+    private static final JakartaPolicyConfigFactoryProxy configFactoryProxy = new JakartaPolicyConfigFactoryProxy();
 
     public static JakartaPolicyConfigFactoryProxy getInstance() {
         return configFactoryProxy;
     }
 
-    private JakartaPolicyConfigFactoryProxy(PolicyConfigurationFactory providedFactory) {
-        providedConfigFactory = providedFactory;
+    private JakartaPolicyConfigFactoryProxy() {
     }
 
     @Override
@@ -112,11 +97,6 @@ public class JakartaPolicyConfigFactoryProxy extends PolicyConfigurationFactory 
             factory = PolicyConfigurationFactory.get();
         } catch (IllegalStateException ise) {
             // expected if nothing was set up
-            // if the user provided a ConfigurationFactory, set it
-            if (providedConfigFactory != null) {
-                PolicyConfigurationFactory.setPolicyConfigurationFactory(providedConfigFactory);
-                factory = providedConfigFactory;
-            }
         }
         return factory;
     }
@@ -127,11 +107,5 @@ public class JakartaPolicyConfigFactoryProxy extends PolicyConfigurationFactory 
                 policyConfig.ensureInitialized();
             }
         }
-    }
-
-    @Override
-    @Trivial
-    public String toString() {
-        return super.toString() + " " + providedConfigFactory;
     }
 }

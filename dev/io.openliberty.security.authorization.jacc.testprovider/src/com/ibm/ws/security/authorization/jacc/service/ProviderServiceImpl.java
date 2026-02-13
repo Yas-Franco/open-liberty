@@ -22,28 +22,20 @@ import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
 
-import com.ibm.websphere.ras.Tr;
-import com.ibm.websphere.ras.TraceComponent;
-import com.ibm.ws.security.authorization.jacc.provider.JaccPolicyProxy;
 import com.ibm.ws.security.authorization.jacc.provider.PolicyFactoryImpl;
+import com.ibm.ws.security.authorization.jacc.provider.WSPolicyConfigurationFactoryImpl;
 import com.ibm.ws.security.authorization.jacc.role.FileRoleMapping;
-import com.ibm.wsspi.security.authorization.jacc.ProviderService;
 
-import jakarta.security.jacc.Policy;
 import jakarta.security.jacc.PolicyConfigurationFactory;
 import jakarta.security.jacc.PolicyFactory;
 
-@Component(service = ProviderService.class, immediate = true, name = "com.ibm.ws.security.authorization.jacc.provider", configurationPolicy = ConfigurationPolicy.OPTIONAL, property = { "service.vendor=IBM",
-                                                                                                                                                                                         //                        "RequestMethodArgumentsRequired=true",
-                                                                                                                                                                                         "jakarta.security.jacc.PolicyConfigurationFactory.provider=com.ibm.ws.security.authorization.jacc.provider.WSPolicyConfigurationFactoryImpl"
-})
-public class ProviderServiceImpl implements ProviderService {
-    private static final TraceComponent tc = Tr.register(ProviderServiceImpl.class);
-
-    private static final String JACC_FACTORY = PolicyConfigurationFactory.FACTORY_NAME;
-    private static final String JACC_FACTORY_IMPL = "com.ibm.ws.security.authorization.jacc.provider.WSPolicyConfigurationFactoryImpl";
+@Component(immediate = true, name = "com.ibm.ws.security.authorization.jacc.provider", configurationPolicy = ConfigurationPolicy.OPTIONAL, property = { "service.vendor=IBM" })
+public class ProviderServiceImpl {
 
     private static final String CFG_ROLE_MAPPING_FILE = "roleMappingFile";
+
+    private PolicyFactory prevPolicyFactory;
+    private PolicyConfigurationFactory prevConfigFactory;
 
     public ProviderServiceImpl() {
     }
@@ -52,6 +44,19 @@ public class ProviderServiceImpl implements ProviderService {
     protected synchronized void activate(ComponentContext cc, Map<String, Object> props) {
         FileRoleMapping.initialize(getRoleMappingFile(props));
 
+        try {
+            prevPolicyFactory = PolicyFactory.getPolicyFactory();
+        } catch (SecurityException se) {
+        }
+
+        try {
+            prevConfigFactory = PolicyConfigurationFactory.get();
+        } catch (IllegalStateException se) {
+            // expected if there isn't one configured
+        }
+
+        PolicyFactory.setPolicyFactory(new PolicyFactoryImpl());
+        PolicyConfigurationFactory.setPolicyConfigurationFactory(new WSPolicyConfigurationFactoryImpl());
     }
 
     @Modified
@@ -61,38 +66,26 @@ public class ProviderServiceImpl implements ProviderService {
 
     @Deactivate
     protected void deactivate(ComponentContext cc) {
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public PolicyFactory getPolicyFactory() {
-        return new PolicyFactoryImpl();
-    }
-
-    public Policy getPolicy(String contextId) {
-        return new JaccPolicyProxy(contextId);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public PolicyConfigurationFactory getPolicyConfigFactory() {
-        ClassLoader cl = null;
-        PolicyConfigurationFactory pcf = null;
-        if (System.getProperty(JACC_FACTORY) == null) {
-            System.setProperty(JACC_FACTORY, JACC_FACTORY_IMPL);
-        }
+        PolicyFactory currentFactory = null;
         try {
-            cl = Thread.currentThread().getContextClassLoader();
-            Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
-            pcf = PolicyConfigurationFactory.getPolicyConfigurationFactory();
-        } catch (Exception e) {
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "Failed to instantiate PolicyConfigurationFactory class");
-            }
-        } finally {
-            Thread.currentThread().setContextClassLoader(cl);
+            currentFactory = PolicyFactory.getPolicyFactory();
+        } catch (SecurityException se) {
         }
-        return pcf;
+
+        if (currentFactory != null && currentFactory.getClass() == PolicyFactoryImpl.class) {
+            PolicyFactory.setPolicyFactory(prevPolicyFactory);
+        }
+
+        PolicyConfigurationFactory currentConfigFactory = null;
+        try {
+            currentConfigFactory = PolicyConfigurationFactory.get();
+        } catch (IllegalStateException ise) {
+            // expected if it was removed
+        }
+        if (currentConfigFactory != null && currentConfigFactory.getClass() == WSPolicyConfigurationFactoryImpl.class) {
+            PolicyConfigurationFactory.setPolicyConfigurationFactory(prevConfigFactory);
+        }
+
     }
 
     private String getRoleMappingFile(Map<String, Object> props) {
