@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2026 IBM Corporation and others.
+ * Copyright (c) 2011, 2023 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -16,7 +16,6 @@
 //      148426          10/06/14        bitonti                 Give extension default error page precedence in Servlet 3.0
 //      PI67942         10/21/16        zaroman                 encode URI after dispatch
 //      11909           12/11/20        jimblye                 Allow context-root to be overridden in server.xml
-//                      02/06/26.       jimblye                 Defer servlet mappings until webfragment servlet defs processed
 
 package com.ibm.ws.webcontainer.osgi.container.config;
 
@@ -157,24 +156,6 @@ import com.ibm.wsspi.webcontainer.webapp.WebAppConfig;
  * from web.xml, web-fragment.xml and annotations.  Configure them into the WebAppConfiguration.
  */
 public class WebAppConfiguratorHelper implements ServletConfiguratorHelper {
-    
-    /**
-     * Helper class to store servlet mappings for deferred processing.
-     * This allows all servlet definitions to be collected before processing mappings.
-     */
-    private static class DeferredServletMapping {
-        final ServletMapping servletMapping;
-        final ConfigSource source;
-        final String libraryURI;
-        
-        DeferredServletMapping(ServletMapping servletMapping, ConfigSource source, String libraryURI) {
-            this.servletMapping = servletMapping;
-            this.source = source;
-            this.libraryURI = libraryURI;
-        }
-    }
-    
-    private final List<DeferredServletMapping> deferredServletMappings = new ArrayList<>();
     private static final String CLASS_NAME = WebAppConfiguratorHelper.class.getSimpleName();
 
     private static final TraceComponent tc = Tr.register(WebAppConfiguratorHelper.class, WebContainerConstants.TR_GROUP, WebContainerConstants.NLS_PROPS);
@@ -837,9 +818,7 @@ public class WebAppConfiguratorHelper implements ServletConfiguratorHelper {
         
         configureSessionConfig(webApp.getSessionConfig());
         configureServlets(webApp, webApp.getServlets());
-        
-        // Defer servlet mapping processing until all servlet definitions are collected
-        storeDeferredServletMappings(webApp.getServletMappings());
+        configureServletMappings(webApp.getServletMappings());
         configureLocaleEncodingMap(webApp.getLocaleEncodingMappingList());
         configureListener(webApp.getListeners());
         configureEnvEntries(webApp.getEnvEntries());
@@ -877,9 +856,7 @@ public class WebAppConfiguratorHelper implements ServletConfiguratorHelper {
         configureDistributableFromFragment(webFragment.isSetDistributable());
         configureSessionConfig(webFragment.getSessionConfig());
         configureServlets(webFragment, webFragment.getServlets());
-        
-        // Defer servlet mapping processing until all servlet definitions are collected
-        storeDeferredServletMappings(webFragment.getServletMappings());
+        configureServletMappings(webFragment.getServletMappings());
         configureLocaleEncodingMap(webFragment.getLocaleEncodingMappingList());
         configureListener(webFragment.getListeners());
         configureEnvEntries(webFragment.getEnvEntries());
@@ -936,11 +913,7 @@ public class WebAppConfiguratorHelper implements ServletConfiguratorHelper {
     @Override
     public void configureDefaults() throws UnableToAdaptException {
 
-        // Process all deferred servlet mappings now that all servlet definitions have been collected
-        // from web.xml and all web-fragment.xml files
-        processDeferredServletMappings();
-        
-        //I think we need to process specifiedClasses first to find what servlets were defined
+        //I think we need to process specifiedClasses first to find what servlets were defined 
         //in case a filter is mapped to * (all servlets)
         configureSpecifiedClasses();
 
@@ -2591,78 +2564,9 @@ public class WebAppConfiguratorHelper implements ServletConfiguratorHelper {
         }
     }
 
-    /**
-     * Process all deferred servlet mappings after all servlet definitions have been collected.
-     * The deferred mappings retain their original source context for proper merging rules and error messages.
-     *
-     * @throws UnableToAdaptException if servlet mapping processing fails
-     */
-    private void processDeferredServletMappings() throws UnableToAdaptException {
-
-        // Save the current context
-	    ConfigSource savedSource = configurator.getConfigSource();
-        String savedLibraryURI = configurator.getLibraryURI();
-
-        for (DeferredServletMapping deferred : deferredServletMappings) {          
-            try {
-	            // Retrieve the context from for this servlet mapping
-                // Needed for proper merging rules in processServletMappingConfig(...)
-                configurator.setConfigSource(deferred.source);
-                configurator.setLibraryURI(deferred.libraryURI);
-                processServletMappingConfig(deferred.servletMapping);
-            } finally {
-                // Restore the saved context
-                configurator.setConfigSource(savedSource);
-                configurator.setLibraryURI(savedLibraryURI);
-            }
-        }
-        deferredServletMappings.clear();
-    }
-
-    /**
-     * Store servlet mappings for deferred processing.
-     * This allows all servlet definitions to be collected from web.xml and web-fragment.xml
-     * files before processing the mappings, which is necessary when a servlet-mapping in
-     * web.xml references a servlet whose definition is provided in a web-fragment.xml.
-     *
-     * <p>We only defer mappings for servlets that don't have a definition yet.
-     * If the servlet is already defined (e.g., from an earlier source like annotations annotations or web.xml),
-     * we process the mapping immediately. This 
-     * <ul>
-     * <li>allows processServletMappingConfig() to apply the correct merge rules based on ConfigSource
-     *     (web.xml > web-fragment.xml > annotations)</li>
-     * <li>prevents duplicate mapping attempts that would occur if we deferred all mappings and then
-     *     tried to add them again after annotations have already added them</li>
-     * <li>maintains the existing precedence behavior where earlier sources override later ones</li>
-     * </ul>
-     *
-     * @param servletMappings the list of servlet mappings to process or defer
-     * @throws UnableToAdaptException if servlet mapping processing fails
-     */
-    private void storeDeferredServletMappings(List<ServletMapping> servletMappings) throws UnableToAdaptException {
-        if (servletMappings == null || servletMappings.isEmpty()) {
-            return;
-        }
-        
-        ConfigSource currentSource = configurator.getConfigSource();
-        String currentLibraryURI = configurator.getLibraryURI();
-        
+    private void configureServletMappings(List<ServletMapping> servletMappings) throws UnableToAdaptException {
         for (ServletMapping servletMapping : servletMappings) {
-            String servletName = servletMapping.getServletName();
-            Map<String, ConfigItem<ServletConfig>> servletMap = configurator.getConfigItemMap("servlet");
-            
-            // Check if servlet definition exists
-            if (servletMap.get(servletName) == null) {
-                // Servlet not defined yet - defer mapping until all servlet definitions are collected
-                // This handles the case where web.xml has a servlet-mapping but the servlet definition
-                // is in a web-fragment.xml that hasn't been processed yet
-                deferredServletMappings.add(new DeferredServletMapping(servletMapping, currentSource, currentLibraryURI));
-            } else {
-                // Servlet already defined - process mapping immediately to maintain proper precedence
-                // This ensures processServletMappingConfig() can apply merge rules correctly and
-                // prevents duplicate mappings when annotations have already added mappings
-                processServletMappingConfig(servletMapping);
-            }
+            processServletMappingConfig(servletMapping);
         }
     }
 
