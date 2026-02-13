@@ -25,7 +25,6 @@ import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConst
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.WRONG_CRED_ERROR_MSG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
@@ -102,28 +101,15 @@ public class InMemoryIdentityStoreTests {
     public void testInMemStoreWarningAppearsOnce() throws Exception {
         Log.info(c, "testInMemStoreWarningAppearsOnce", "Testing warning message of in-mem identity store appearing only once");
 
-        // Mark the log before first authentication
-        server.setMarkToEndOfLog(); // reset the marks in the log so we are only looking at the output from the second call to the app
-
         // Should get 200 and proceed
         executeGetRequestBasicAuth(url, USER_THEO, VALID_PASSWORD, 200);
-
-        // Check that warning appears
-        assertNotNull("Warning message should appear in log",
-                      server.waitForStringInLogUsingMark(PRODUCTION_USE_WARNING_MSG));
-
-        // Mark log again
-        server.setMarkToEndOfLog();
-
         // Second authentication - warning should NOT appear again
         executeGetRequestBasicAuth(url, USER_LISA, VALID_PASSWORD, 200);
 
         // Wait a bit to ensure no warning appears
         Thread.sleep(2000);
 
-        // Verify warning does not appear again
-        assertNull("Warning should only appear once",
-                   server.waitForStringInLogUsingMark(PRODUCTION_USE_WARNING_MSG));
+        assertEquals("Warning message should appear in log once", 1, server.waitForMultipleStringsInLog(1, PRODUCTION_USE_WARNING_MSG));
 
         Log.info(c, "testInMemStoreWarningAppearsOnce", "Test passed");
     }
