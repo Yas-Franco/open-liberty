@@ -3409,26 +3409,52 @@ public class WebAppConfiguratorHelper implements ServletConfiguratorHelper {
         } else {
             if ((existedServletMapping.getSource() == ConfigSource.WEB_XML && configurator.getConfigSource() == ConfigSource.WEB_XML)
                 || (existedServletMapping.getSource() == ConfigSource.WEB_FRAGMENT && configurator.getConfigSource() == ConfigSource.WEB_FRAGMENT)) {
+                // Same source - add additional mappings (additive within same source)
                 for (String urlPattern : servletMapping.getURLPatterns()) {
                     if (isServletSpecLevel31OrHigher()) {
-                        // Strange to 'put' on error cases.                     
+                        // Strange to 'put' on error cases.
                         String  existingName =  urlToServletNameMap.put(urlPattern,servletName);
                         if ((existingName != null) && !(existingName.equals(servletName))) {
                             Tr.error(tc,"duplicate.url.pattern.for.servlet.mapping", urlPattern, servletName, existingName);
                             throw new UnableToAdaptException( nls.getFormattedMessage("duplicate.url.pattern.for.servlet.mapping",
-                                                                                      new Object[]{urlPattern, servletName, existingName} , 
+                                                                                      new Object[]{urlPattern, servletName, existingName} ,
                                                                                       "servlet-mapping value matches multiple servlets: " + urlPattern));
                         }
                     }
                     webAppConfiguration.addServletMapping(servletName, urlPattern);
                 }
+            } else if (existedServletMapping.getSource() == ConfigSource.WEB_FRAGMENT && configurator.getConfigSource() == ConfigSource.WEB_XML) {
+                // WEB_XML overrides WEB_FRAGMENT - replace the existing mapping
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "servlet-mapping for servlet " + servletName + " from web.xml overrides the value from web-fragment.xml in "
+                                 + existedServletMapping.getLibraryURI());
+                }
+                // Update the servlet mapping map with the new WEB_XML mapping
+                List<String> urlPatterns = servletMapping.getURLPatterns();
+                for (String urlPattern : urlPatterns) {
+                    if (isServletSpecLevel31OrHigher()) {
+                        String existingName = urlToServletNameMap.put(urlPattern, servletName);
+                        if ((existingName != null) && !(existingName.equals(servletName))) {
+                            Tr.error(tc,"duplicate.url.pattern.for.servlet.mapping", urlPattern, servletName, existingName);
+                            throw new UnableToAdaptException(nls.getFormattedMessage("duplicate.url.pattern.for.servlet.mapping",
+                                                                                     new Object[]{urlPattern, servletName, existingName} ,
+                                                                                     "servlet-mapping value matches multiple servlets: " + urlPattern));
+                        }
+                    }
+                    webAppConfiguration.addServletMapping(servletName, urlPattern);
+                }
+                if (urlPatterns.size() > 0) {
+                    servletMappingMap.put(servletName, createConfigItem(urlPatterns));
+                }
             } else if (existedServletMapping.getSource() == ConfigSource.WEB_XML && configurator.getConfigSource() == ConfigSource.WEB_FRAGMENT) {
+                // WEB_XML has precedence - ignore WEB_FRAGMENT
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                     Tr.debug(tc, "servlet-mapping for servlet " + servletName + " is configured in web.xml, the value from web-fragment.xml in "
                                  + configurator.getLibraryURI()
                                  + " is ignored");
                 }
             } else if (existedServletMapping.getSource() == ConfigSource.WEB_FRAGMENT && configurator.getConfigSource() == ConfigSource.ANNOTATION) {
+                // WEB_FRAGMENT has precedence over ANNOTATION - ignore ANNOTATION
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                     Tr.debug(tc, "servlet-mapping for servlet " + servletName + " is configured in web-fragment.xml from " + existedServletMapping.getLibraryURI()
                                  + " , the value from annotation is ignored");
