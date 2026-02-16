@@ -77,6 +77,7 @@ public class CustomHAMHandler implements HttpAuthenticationMechanismHandler {
         return ham;
     }
 
+    @SuppressWarnings("removal")
     @Override
     public AuthenticationStatus validateRequest(HttpServletRequest request, HttpServletResponse response, HttpMessageContext httpMessageContext) throws AuthenticationException {
 
