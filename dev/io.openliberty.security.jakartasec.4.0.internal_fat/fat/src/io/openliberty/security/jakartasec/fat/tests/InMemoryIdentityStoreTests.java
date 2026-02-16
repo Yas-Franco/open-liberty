@@ -103,7 +103,7 @@ public class InMemoryIdentityStoreTests extends BaseJakartaSecurity40Test {
         // Should get 200 and proceed
         executeGetRequest(url, USER_THEO, VALID_PASSWORD, 200);
 
-        // Second authentication - should get 200 and proceed
+        // Second authentication - warning should NOT appear again
         executeGetRequest(url, USER_LISA, VALID_PASSWORD, 200);
 
         // Wait a bit to ensure no warning appears
