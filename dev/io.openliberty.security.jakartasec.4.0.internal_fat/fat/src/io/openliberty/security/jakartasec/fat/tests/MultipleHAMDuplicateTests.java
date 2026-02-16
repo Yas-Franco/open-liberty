@@ -12,12 +12,6 @@
  *******************************************************************************/
 package io.openliberty.security.jakartasec.fat.tests;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.AfterClass;
@@ -43,9 +37,10 @@ import multiple.ham.custom.hams.CustomHAMOneDuplicate;
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
-public class MultipleHAMDuplicateTests {
+public class MultipleHAMDuplicateTests extends BaseJakartaSecurity40Test {
 
-    public static final String SERVER_NAME = "jakartaSec40Server";
+    private static final Class<?> c = MultipleHAMDuplicateTests.class;
+
     public static final String APP_NAME = "CustomHAMApp";
     private static final String CONTEXT_ROOT = "/" + APP_NAME;
     private static final String RESOURCE_PATH = "/resource/test";
@@ -55,8 +50,19 @@ public class MultipleHAMDuplicateTests {
     @Server(SERVER_NAME)
     public static LibertyServer server;
 
+    @Override
+    protected Class<?> getTestClass() {
+        return c;
+    }
+
+    @Override
+    protected LibertyServer getServer() {
+        return server;
+    }
+
     @BeforeClass
     public static void setUp() throws Exception {
+        MultipleHAMDuplicateTests instance = new MultipleHAMDuplicateTests();
         WebArchive multipleHamApp = ShrinkWrap.create(WebArchive.class,
                                                       APP_NAME + ".war").addPackage("multiple.ham.custom").addClass(MultipleHAMProtectedResource.class).addClass(CustomHAMOne.class).addClass(CustomHAMOneDuplicate.class);
 
@@ -65,7 +71,7 @@ public class MultipleHAMDuplicateTests {
 
         ShrinkHelper.exportDropinAppToServer(server, multipleHamApp, DeployOptions.SERVER_ONLY);
 
-        server.startServer();
+        instance.startServer();
     }
 
     /*
@@ -77,28 +83,21 @@ public class MultipleHAMDuplicateTests {
     @ExpectedFFDC({ "jakarta.enterprise.inject.AmbiguousResolutionException" })
     public void testAmbiguousResolutionException() throws Exception {
 
-        // Mark log to check for error message
-        server.setMarkToEndOfLog();
+        // Mark log to check for error message and execute request
+        executeGetRequestWithLogMark(url, 403);
 
-        URL urlObj = new URL(url);
-        HttpURLConnection conn = (HttpURLConnection) urlObj.openConnection();
+        // Check that error messages appear
+        assertStringInLog("AmbiguousResolutionException error message should appear in log",
+                          "Unable to determine which HttpAuthenticationMechanism to handle request.");
 
-        conn.setRequestMethod("GET");
-        conn.setDoInput(true);
-        int responseCode = conn.getResponseCode();
-        assertEquals("Expected status code 403 but got " + responseCode, 403, responseCode);
-
-        // Check that error message appears
-        assertNotNull("AmbiguousResolutionException error message should appear in log",
-                      server.waitForStringInLogUsingMark("Unable to determine which HttpAuthenticationMechanism to handle request."));
-
-        assertNotNull("AmbiguousResolutionException error message should appear in log",
-                      server.waitForStringInLogUsingMark("The following HttpAuthenticationMechanisms have the same priority or Http Authentiation Mechanism Type CustomHAMOne Priority = 100, CustomHAMOneDuplicate Priority = 100"));
+        assertStringInLog("AmbiguousResolutionException error message should appear in log",
+                          "The following HttpAuthenticationMechanisms have the same priority or Http Authentiation Mechanism Type CustomHAMOne Priority = 100, CustomHAMOneDuplicate Priority = 100");
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        server.stopServer("CWWKS2605E");
+        MultipleHAMDuplicateTests instance = new MultipleHAMDuplicateTests();
+        instance.stopServer("CWWKS2605E");
     }
 
 }

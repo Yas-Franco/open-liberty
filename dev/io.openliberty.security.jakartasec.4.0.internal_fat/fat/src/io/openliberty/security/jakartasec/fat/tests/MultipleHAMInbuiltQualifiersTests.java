@@ -12,12 +12,6 @@
  *******************************************************************************/
 package io.openliberty.security.jakartasec.fat.tests;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.AfterClass;
@@ -43,9 +37,10 @@ import multiple.ham.inbuilt.MultipleHAMQualifiersApplication;
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
-public class MultipleHAMInbuiltQualifiersTests {
+public class MultipleHAMInbuiltQualifiersTests extends BaseJakartaSecurity40Test {
 
-    public static final String SERVER_NAME = "jakartaSec40Server";
+    private static final Class<?> c = MultipleHAMInbuiltQualifiersTests.class;
+
     public static final String APP_NAME = "MultipleHAMInbuiltQualifiersApp";
     private static final String CONTEXT_ROOT = "/" + APP_NAME;
     private static final String RESOURCE_PATH = "/resource/test";
@@ -55,8 +50,19 @@ public class MultipleHAMInbuiltQualifiersTests {
     @Server(SERVER_NAME)
     public static LibertyServer server;
 
+    @Override
+    protected Class<?> getTestClass() {
+        return c;
+    }
+
+    @Override
+    protected LibertyServer getServer() {
+        return server;
+    }
+
     @BeforeClass
     public static void setUp() throws Exception {
+        MultipleHAMInbuiltQualifiersTests instance = new MultipleHAMInbuiltQualifiersTests();
         WebArchive multipleHamApp = ShrinkWrap.create(WebArchive.class,
                                                       APP_NAME + ".war").addClass(MultipleHAMQualifiersApplication.class).addPackage("multiple.ham.common.qualifiers").addClass(MultipleHAMProtectedResource.class).addClass(CustomHAMHandler.class);
 
@@ -65,7 +71,7 @@ public class MultipleHAMInbuiltQualifiersTests {
 
         ShrinkHelper.exportDropinAppToServer(server, multipleHamApp, DeployOptions.SERVER_ONLY);
 
-        server.startServer();
+        instance.startServer();
     }
 
     /*
@@ -76,29 +82,20 @@ public class MultipleHAMInbuiltQualifiersTests {
     @Test
     public void testQualifiersInjectionCustomOutput() throws Exception {
 
-        // Mark the trace before making HTTP connection
-        server.setTraceMarkToEndOfDefaultTrace();
-
-        URL urlObj = new URL(url);
-        HttpURLConnection conn = (HttpURLConnection) urlObj.openConnection();
-
-        conn.setRequestMethod("GET");
-        conn.setDoInput(true);
-        int responseCode = conn.getResponseCode();
-        assertEquals("Expected status code 200 but got " + responseCode, 200, responseCode);
+        executeGetRequestWithTraceMark(url, 200);
 
         // Check the injection of adminHAM as inbuilt basic HAM
-        assertNotNull("Output message for adminHAM injection as BasicHA not found",
-                      server.waitForStringInTraceUsingMark(Jakartasec40TestConstants.HAM_BASIC_ADMIN_QUALIFIER_MESSAGE));
+        assertStringInTrace("Output message for adminHAM injection as BasicHA not found",
+                            Jakartasec40TestConstants.HAM_BASIC_ADMIN_QUALIFIER_MESSAGE);
         // Check the injection of userHAM as inbuilt basic HAM
-        assertNotNull("Output message for userHAM injection as BasicHAM not found",
-                      server.waitForStringInTraceUsingMark(Jakartasec40TestConstants.HAM_BASIC_USER_QUALIFIER_MESSAGE));
+        assertStringInTrace("Output message for userHAM injection as BasicHAM not found",
+                            Jakartasec40TestConstants.HAM_BASIC_USER_QUALIFIER_MESSAGE);
         // Check the injection of operatorHAM as inbuilt CustomForm HAM
-        assertNotNull("Output message for operatorHAM injection as CustomFormHAM not found",
-                      server.waitForStringInTraceUsingMark(Jakartasec40TestConstants.HAM_CUSTOM_FORM_OPERATOR_QUALIFIER_MESSAGE));
+        assertStringInTrace("Output message for operatorHAM injection as CustomFormHAM not found",
+                            Jakartasec40TestConstants.HAM_CUSTOM_FORM_OPERATOR_QUALIFIER_MESSAGE);
         // Check the injection of testerHAM as inbuilt Form HAM
-        assertNotNull("Output message for testerHAM injection as FormHAM not found",
-                      server.waitForStringInTraceUsingMark(Jakartasec40TestConstants.HAM_FORM_TESTER_QUALIFIER_MESSAGE));
+        assertStringInTrace("Output message for testerHAM injection as FormHAM not found",
+                            Jakartasec40TestConstants.HAM_FORM_TESTER_QUALIFIER_MESSAGE);
     }
 
     /*
@@ -109,23 +106,17 @@ public class MultipleHAMInbuiltQualifiersTests {
     @Test
     public void testCustomHAMQualifierPriorityOutput() throws Exception {
 
-        // Mark the trace before making HTTP connection
-        server.setTraceMarkToEndOfDefaultTrace();
+        // Mark the trace before making HTTP connection and execute request
+        executeGetRequestWithTraceMark(url, 200);
 
-        URL urlObj = new URL(url);
-        HttpURLConnection conn = (HttpURLConnection) urlObj.openConnection();
-
-        conn.setRequestMethod("GET");
-        conn.setDoInput(true);
-        int responseCode = conn.getResponseCode();
-        assertEquals("Expected status code 200 but got " + responseCode, 200, responseCode);
-        assertNotNull("Output message for custom prioritization on inbuilt HAMs with qualifiers not found",
-                      server.waitForStringInTraceUsingMark(Jakartasec40TestConstants.HAM_CUSTOM_HANDLER_PRIORITY_MESSAGE));
+        assertStringInTrace("Output message for custom prioritization on inbuilt HAMs with qualifiers not found",
+                            Jakartasec40TestConstants.HAM_CUSTOM_HANDLER_PRIORITY_MESSAGE);
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        server.stopServer();
+        MultipleHAMInbuiltQualifiersTests instance = new MultipleHAMInbuiltQualifiersTests();
+        instance.stopServer();
     }
 
 }

@@ -12,12 +12,6 @@
  *******************************************************************************/
 package io.openliberty.security.jakartasec.fat.tests;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.AfterClass;
@@ -41,9 +35,9 @@ import multiple.ham.common.MultipleHAMProtectedResource;
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
-public class MultipleHAMInbuiltTests {
+public class MultipleHAMInbuiltTests extends BaseJakartaSecurity40Test {
+    private static final Class<?> c = MultipleHAMInbuiltTests.class;
 
-    public static final String SERVER_NAME = "jakartaSec40Server";
     public static final String APP_NAME = "MultipleHAMInbuiltApp";
     private static final String CONTEXT_ROOT = "/" + APP_NAME;
     private static final String RESOURCE_PATH = "/resource/test";
@@ -53,8 +47,19 @@ public class MultipleHAMInbuiltTests {
     @Server(SERVER_NAME)
     public static LibertyServer server;
 
+    @Override
+    protected Class<?> getTestClass() {
+        return c;
+    }
+
+    @Override
+    protected LibertyServer getServer() {
+        return server;
+    }
+
     @BeforeClass
     public static void setUp() throws Exception {
+        MultipleHAMInbuiltTests instance = new MultipleHAMInbuiltTests();
         WebArchive multipleHamApp = ShrinkWrap.create(WebArchive.class,
                                                       APP_NAME + ".war").addPackage("multiple.ham.inbuilt").addClass(MultipleHAMProtectedResource.class);
 
@@ -63,7 +68,7 @@ public class MultipleHAMInbuiltTests {
 
         ShrinkHelper.exportDropinAppToServer(server, multipleHamApp, DeployOptions.SERVER_ONLY);
 
-        server.startServer();
+        instance.startServer();
     }
 
     /*
@@ -78,28 +83,20 @@ public class MultipleHAMInbuiltTests {
     @Test
     public void testMultipleHAMInbuiltPrioritization() throws Exception {
 
-        // Mark the trace before making HTTP connection
-        server.setTraceMarkToEndOfDefaultTrace();
+        // Mark the trace before making HTTP connection and execute request
+        executeGetRequestWithTraceMark(url, 200);
 
-        URL urlObj = new URL(url);
-        HttpURLConnection conn = (HttpURLConnection) urlObj.openConnection();
-
-        conn.setRequestMethod("GET");
-        conn.setDoInput(true);
-        int responseCode = conn.getResponseCode();
-        assertEquals("Expected status code 200 but got " + responseCode, 200, responseCode);
-
-        // Check that warning appears
-        assertNotNull("Warning message should appear in log",
-                      server.waitForStringInTraceUsingMark(Jakartasec40TestConstants.HAM_ORDER_FOUND_MESSAGE));
-        // Check that warning appears
-        assertNotNull("Warning message should appear in log",
-                      server.waitForStringInTraceUsingMark(Jakartasec40TestConstants.INBUILT_HAM_PRIORITY_ORDER_MESSAGE));
+        // Check that messages appear in trace
+        assertStringInTrace("Warning message should appear in log",
+                            Jakartasec40TestConstants.HAM_ORDER_FOUND_MESSAGE);
+        assertStringInTrace("Warning message should appear in log",
+                            Jakartasec40TestConstants.INBUILT_HAM_PRIORITY_ORDER_MESSAGE);
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        server.stopServer();
+        MultipleHAMInbuiltTests instance = new MultipleHAMInbuiltTests();
+        instance.stopServer();
     }
 
 }

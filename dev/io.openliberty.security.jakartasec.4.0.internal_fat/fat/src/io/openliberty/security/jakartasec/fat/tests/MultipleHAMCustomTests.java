@@ -41,7 +41,6 @@ public class MultipleHAMCustomTests extends BaseJakartaSecurity40Test {
 
     private static final Class<?> c = MultipleHAMCustomTests.class;
 
-    public static final String SERVER_NAME = "jakartaSec40Server";
     public static final String APP_NAME = "CustomHAMApp";
     private static final String CONTEXT_ROOT = "/" + APP_NAME;
     private static final String RESOURCE_PATH = "/resource/test";
