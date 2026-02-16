@@ -4266,8 +4266,10 @@ public class DataJPATestServlet extends FATServlet {
             // TODO replace the following with the above once #29073 is fixed
             // and correct the repository method return type to match
             // EclipseLink incorrectly returns a stream of Object[]
-            found = cities.ids()
-                            .map(id -> id[0] + ":" + id[1])
+            @SuppressWarnings("unchecked")
+            Stream<CityId> stream = (Stream<CityId>) (Stream<?>) cities.ids();
+            found = stream
+                            .map(id -> id.getStateName() + ":" + id.name)
                             .collect(Collectors.toList());
         }
 
