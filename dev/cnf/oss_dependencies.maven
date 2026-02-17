@@ -609,6 +609,7 @@ org.eclipse.jetty:jetty-util:9.4.39.v20210325
 org.eclipse.jetty:jetty-util:9.4.7.RC0
 org.eclipse.jetty:jetty-websocket:8.2.0.v20160908
 org.eclipse.jnosql.communication:jnosql-communication-semistructured:1.1.12
+org.eclipse.jnosql.mapping:jnosql-mapping-document:1.1.12
 org.eclipse.jnosql.mapping:jnosql-mapping-semistructured:1.1.12
 org.eclipse.microprofile.config:microprofile-config-api:1.1
 org.eclipse.microprofile.config:microprofile-config-api:1.2.1

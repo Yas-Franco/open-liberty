@@ -3068,6 +3068,11 @@
     </dependency>
     <dependency>
       <groupId>org.eclipse.jnosql.mapping</groupId>
+      <artifactId>jnosql-mapping-document</artifactId>
+      <version>1.1.12</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jnosql.mapping</groupId>
       <artifactId>jnosql-mapping-semistructured</artifactId>
       <version>1.1.12</version>
     </dependency>
