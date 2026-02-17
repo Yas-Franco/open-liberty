@@ -16,6 +16,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -119,29 +120,43 @@ public abstract class BaseJakartaSecurity40Test {
      * @param password
      * @param expectedStatusCode
      * @return the response code as String
-     * @throws Exception if an error occurs
      */
-    protected String getResponseFromGetRequest(String url, String username, String password, int expectedStatusCode) throws Exception {
-        HttpURLConnection conn = executeGetRequest(url, username, password, expectedStatusCode);
+    protected String getResponseFromGetRequest(String url, String username, String password, int expectedStatusCode) {
+        HttpURLConnection conn = null;
+        int responseCode = -1;
+        try {
+            conn = executeGetRequest(url, username, password, expectedStatusCode);
 
-        int responseCode = conn.getResponseCode();
-        assertEquals("Expected status code " + expectedStatusCode + " but got " + responseCode,
-                     expectedStatusCode, responseCode);
+            responseCode = conn.getResponseCode();
+            assertEquals("Expected status code " + expectedStatusCode + " but got " + responseCode,
+                         expectedStatusCode, responseCode);
+        } catch (Exception e) {
+            Log.error(getTestClass(), "getResponseFromGetRequest", e);
+            conn.disconnect();
+        }
 
         // Read response
         StringBuilder response = new StringBuilder();
         if (responseCode == 200) {
-            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            String inputLine;
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
+            try {
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                String inputLine;
+
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+
+                in.close();
+
+            } catch (IOException e) {
+                Log.error(getTestClass(), "getResponseFromGetRequest", e);
+                conn.disconnect();
             }
-            in.close();
         }
 
         conn.disconnect();
 
-        Log.info(getTestClass(), "executeGetRequest",
+        Log.info(getTestClass(), "getResponseFromGetRequest",
                  "Request to " + url + " with user " + username + " returned status " + responseCode);
 
         return response.toString();

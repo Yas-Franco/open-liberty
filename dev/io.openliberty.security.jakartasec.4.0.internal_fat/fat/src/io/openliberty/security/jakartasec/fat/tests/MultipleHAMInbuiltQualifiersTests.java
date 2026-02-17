@@ -85,7 +85,7 @@ public class MultipleHAMInbuiltQualifiersTests extends BaseJakartaSecurity40Test
         executeGetRequestWithTraceMark(url, 200);
 
         // Check the injection of adminHAM as inbuilt basic HAM
-        assertStringInTrace("Output message for adminHAM injection as BasicHA not found",
+        assertStringInTrace("Output message for adminHAM injection as BasicHAM not found",
                             Jakartasec40TestConstants.HAM_BASIC_ADMIN_QUALIFIER_MESSAGE);
         // Check the injection of userHAM as inbuilt basic HAM
         assertStringInTrace("Output message for userHAM injection as BasicHAM not found",
