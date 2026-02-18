@@ -21,14 +21,16 @@ import io.openliberty.security.jakartasec.fat.tests.HAMWithInBuiltTests;
 import io.openliberty.security.jakartasec.fat.tests.InMemoryIdentityStoreTests;
 import io.openliberty.security.jakartasec.fat.tests.MultipleHAMCustomTests;
 import io.openliberty.security.jakartasec.fat.tests.MultipleHAMDuplicateTests;
+import io.openliberty.security.jakartasec.fat.tests.MultipleHAMInbuiltQualifiersTests;
+import io.openliberty.security.jakartasec.fat.tests.MultipleHAMInbuiltTests;
 
 @RunWith(Suite.class)
 @SuiteClasses({
                 AlwaysPassesTest.class,
                 MultipleHAMCustomTests.class,
                 MultipleHAMDuplicateTests.class,
-//    MultipleHAMInbuiltTests.class,
-//    MultipleHAMInbuiltQualifiersTests.class,
+                MultipleHAMInbuiltTests.class,
+                MultipleHAMInbuiltQualifiersTests.class,
                 InMemoryIdentityStoreTests.class,
                 HAMWithInBuiltTests.class
 })
