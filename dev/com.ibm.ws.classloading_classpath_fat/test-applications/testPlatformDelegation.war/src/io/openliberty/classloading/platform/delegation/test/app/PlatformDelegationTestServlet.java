@@ -122,7 +122,7 @@ public class PlatformDelegationTestServlet extends FATServlet{
         // look for a resource from java/lang that doesn't exist
         Enumeration<URL> result = getClass().getClassLoader().getResources("java/lang/platform-delegation-test.txt");
         if (result != null && result.hasMoreElements()) {
-            fail("Should not find reslurces: java/lang/platform-delegation-test.txt");
+            fail("Should not find resources: java/lang/platform-delegation-test.txt");
         }
     }
 
@@ -131,7 +131,7 @@ public class PlatformDelegationTestServlet extends FATServlet{
         // look for a resource from java/lang that should exist
         Enumeration<URL> result = getClass().getClassLoader().getResources("java/lang/String.class");
         if (result == null || !result.hasMoreElements()) {
-            fail("Should find reslurces: java/lang/String.class");
+            fail("Should find resources: java/lang/String.class");
         }
 
         int count = Collections.list(result).size();
