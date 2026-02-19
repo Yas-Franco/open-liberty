@@ -17,7 +17,7 @@ import jakarta.ws.rs.ApplicationPath;
 import jakarta.ws.rs.core.Application;
 
 /**
- * JAX-RS Application with multiple custom HAM's
+ * JAX-RS Application with an in-built HAM and custom HAM
  * This is used for testing multiple HAM prioritization scenarios
  */
 @BasicAuthenticationMechanismDefinition(realmName = "basicAuth")
