@@ -94,7 +94,7 @@ CWWKC1121.virtual.invalid.useraction=Update to a newer Java version that support
  virtual threads.
 
 CWWKC1122.mod.unavail=CWWKC1122E: The {0} application or its {1} module is not \
- available. ManagedThreadFactory beans defined in the application or module \
+ available. ManagedThreadFactory beans that are defined in the application or module \
  cannot be obtained.
 CWWKC1122.mod.unavail.explanation=The application and module that define the \
  ManagedThreadFactory configuration must be available to obtain a \
