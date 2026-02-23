@@ -1,14 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2013, 2023 IBM Corporation and others.
+ * Copyright (c) 2013, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
  * 
  * SPDX-License-Identifier: EPL-2.0
- *
- * Contributors:
- *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 package com.ibm.ws.ui.fat.rest.v1;
 
@@ -39,6 +36,8 @@ import com.ibm.ws.ui.fat.rest.CommonRESTTest;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 import componenttest.custom.junit.runner.Mode.TestMode;
+import componenttest.custom.junit.runner.RepeatTestFilter;
+import componenttest.rules.repeater.JakartaEEAction;
 import componenttest.topology.impl.LibertyServer;
 
 /**
@@ -560,6 +559,34 @@ public class ToolboxPersistenceTest extends CommonRESTTest implements APIConstan
 
         // Add Admin Center feature to server.xml; validate that UI started and wait for feature update.
         newFeatures.add(F_UI);
+
+        // Ensure the appropriate features are added back.
+        // This avoid errors in subsequent tests that stop the server which verifies the correct
+        // features are loaded for each repeat. The restConnector-2.0 and empty repeats add the
+        // original servlet and jsp features defined in the server.xml.
+        if (JakartaEEAction.isEE11Active()) {
+            Log.info(c, method.getMethodName(), "The EE11 repeat is active, adding servlet-6.1 and pages-4.0.");
+            newFeatures.add("servlet-6.1");
+            newFeatures.add("pages-4.0");
+        } else if (JakartaEEAction.isEE10Active()) {
+            Log.info(c, method.getMethodName(), "The EE10 repeat is active, adding servlet-6.0 and pages-3.1.");
+            newFeatures.add("servlet-6.0");
+            newFeatures.add("pages-3.1");
+        } else if (JakartaEEAction.isEE9Active()) {
+            Log.info(c, method.getMethodName(), "The EE9 repeat is active, adding servlet-5.0 and pages-3.0.");
+            newFeatures.add("servlet-5.0");
+            newFeatures.add("pages-3.0");
+        } else if (RepeatTestFilter.isRepeatActionActive("restConnector-2.0")) {
+            Log.info(c, method.getMethodName(), "The restConnector-2.0 repeat is active, adding restConnector-2.0, servlet-3.1, and jsp-2.2.");
+            newFeatures.add("restConnector-2.0");
+            newFeatures.add("servlet-3.1");
+            newFeatures.add("jsp-2.2");
+        } else {
+            Log.info(c, method.getMethodName(), "The empty repeat is active, adding servlet-3.1 and jsp-2.2.");
+            newFeatures.add("servlet-3.1");
+            newFeatures.add("jsp-2.2");
+        }
+
         FATSuite.server.changeFeatures(newFeatures);
         validateUIStarted(FATSuite.server);
         setMarkAfterFeatureChange(FATSuite.server);
@@ -586,11 +613,6 @@ public class ToolboxPersistenceTest extends CommonRESTTest implements APIConstan
 
         // Delete the tool from the toolbox
         delete(url + "/bookmarks/" + id, adminUser, adminPassword, 200);
-
-        // reset back to original features
-        newFeatures.add("servlet-5.0");
-        FATSuite.server.changeFeatures(newFeatures);
-        setMarkAfterFeatureChange(FATSuite.server);
     }
 
     /**
