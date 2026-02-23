@@ -12,10 +12,10 @@
 #*******************************************************************************
 
 -include=\
-	jar:${fileuri;\${repo;io.smallrye:jandex;3.2.3;EXACT}}!/META-INF/MANIFEST.MF,\
+	jar:${fileuri;\${repo;io.smallrye:jandex;3.5.3;EXACT}}!/META-INF/MANIFEST.MF,\
 	bnd.overrides
 
 instrument.disabled: true
 
 -buildpath:\
-	io.smallrye:jandex;version=3.2.3;strategy=exact
+	io.smallrye:jandex;version=3.5.3;strategy=exact
