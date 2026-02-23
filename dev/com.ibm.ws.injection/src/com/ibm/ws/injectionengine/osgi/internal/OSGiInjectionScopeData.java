@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2024 IBM Corporation and others.
+ * Copyright (c) 2011, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -14,6 +14,7 @@ package com.ibm.ws.injectionengine.osgi.internal;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -133,13 +134,21 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
     private Map<DeferredReferenceData, Boolean> deferredReferenceDatas;
 
     /**
-     * The result of {@link #processDeferredReferenceData} for the current list of reference
-     * contexts that are registered for deferred processing if a non-java:comp request is made.
-     * This field is initialized lazily and cleared when no longer needed.
+     * The result of {@link #processDeferredReferenceData} for the list of reference contexts
+     * that were registered for deferred processing if a non-java:comp request is made. The
+     * result includes a boolean indicating whether or not deferred reference data was processed
+     * and an expiration for the result (1 minute after completion; nanoseconds).
+     *
+     * This field is initialized lazily and cleared if no reference data was processed or
+     * 1 minute after reference data was processed.
+     *
+     * JNDI lookups are attempted first without deferred reference data and retried if
+     * deferred reference data is processed, so the result should be kept a reasonable
+     * amount of time to cover the time between the first and second attempts.
      *
      * @see #deferredReferenceDatas
      */
-    private CompletableFuture<Boolean> deferredReferenceDatasFuture;
+    private CompletableFuture<Map.Entry<Boolean, Long>> deferredReferenceDatasFuture;
 
     public OSGiInjectionScopeData(J2EEName j2eeName, NamingConstants.JavaColonNamespace namespace, OSGiInjectionScopeData parent, ReentrantReadWriteLock nonCompEnvLock) {
         super(j2eeName);
@@ -523,10 +532,15 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
      */
     private synchronized void disableDeferredReferenceData() {
         deferredReferenceDataEnabled = false;
+
         if (parent != null && deferredReferenceDatas != null) {
             parent.removeDeferredReferenceData(this);
-            deferredReferenceDatas = null;
-            deferredReferenceDatasFuture.complete(false);
+        }
+
+        deferredReferenceDatas = null;
+
+        if (deferredReferenceDatasFuture != null) {
+            deferredReferenceDatasFuture.complete(new SimpleEntry<Boolean, Long>(false, 0L));
             deferredReferenceDatasFuture = null;
         }
     }
@@ -541,7 +555,7 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
 
         if (deferredReferenceDatas == null) {
             deferredReferenceDatas = new LinkedHashMap<DeferredReferenceData, Boolean>();
-            deferredReferenceDatasFuture = new CompletableFuture<Boolean>();
+            deferredReferenceDatasFuture = new CompletableFuture<Map.Entry<Boolean, Long>>();
             if (parent != null && deferredReferenceDataEnabled) {
                 parent.addDeferredReferenceData(this);
             }
@@ -583,7 +597,7 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
         }
 
         Map<DeferredReferenceData, Boolean> deferredReferenceDatas;
-        CompletableFuture<Boolean> currentFuture;
+        CompletableFuture<Map.Entry<Boolean, Long>> currentFuture;
         synchronized (this) {
             deferredReferenceDatas = this.deferredReferenceDatas;
             this.deferredReferenceDatas = null;
@@ -614,10 +628,14 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
                     parent.removeDeferredReferenceData(this);
                 }
 
-                // Unblock any concurrent access and clear the future as is no longer required.
+                // Unblock any concurrent access and clear the future if no longer required.
                 if (deferredReferenceDatasFuture != null) {
-                    deferredReferenceDatasFuture.complete(any);
-                    deferredReferenceDatasFuture = null;
+                    deferredReferenceDatasFuture.complete(new SimpleEntry<Boolean, Long>(any, System.nanoTime() + TimeUnit.SECONDS.toNanos(60)));
+
+                    // If there was no deferred reference data processed, no need to keep future.
+                    if (!any) {
+                        deferredReferenceDatasFuture = null;
+                    }
                 }
             }
         } else if (currentFuture != null) {
@@ -625,7 +643,17 @@ public class OSGiInjectionScopeData extends InjectionScopeData implements Deferr
                 // Wait a reasonable amount of time for deferred processing to complete
                 if (isTraceOn && tc.isDebugEnabled())
                     Tr.debug(tc, "waiting up to 60 seconds for completion of " + currentFuture);
-                any = currentFuture.get(60, TimeUnit.SECONDS);
+                Entry<Boolean, Long> result = currentFuture.get(60, TimeUnit.SECONDS);
+
+                // Return the result for a reasonable amount of time after processing has
+                // completed (60s); then just remove the future as it is no longer needed.
+                if (result.getValue() > System.nanoTime()) {
+                    any = result.getKey();
+                } else {
+                    synchronized (this) {
+                        deferredReferenceDatasFuture = null;
+                    }
+                }
             } catch (Exception e) {
                 if (isTraceOn && tc.isDebugEnabled())
                     Tr.debug(tc, "processDeferredReferenceData failed to complete; assuming something was processed");
