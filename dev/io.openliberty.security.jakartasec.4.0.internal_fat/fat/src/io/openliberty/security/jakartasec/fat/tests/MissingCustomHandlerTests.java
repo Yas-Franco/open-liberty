@@ -67,10 +67,10 @@ public class MissingCustomHandlerTests extends BaseJakartaSecurity40Test {
     }
 
     /*
-     * Tests multiple custom HAM's with qualifiers without a handler
+     * Tests multiple inbuilt HAMs with qualifiers and a custom HAM with a qualifier without a handler
      */
     @Test
-    public void testCustomHAMWithQualifierWithoutHandler() {
+    public void testCustomHAMAndInBuiltWithQualifierWithoutHandler() {
         AppValidator.validateAppOn(server).withClass(MultipleHAMQualifiersApplication.class).withClass(CustomHAMWithQualifier.class).withClass(CustomHAMWithQualifierTwo.class).withClass(MultipleHAMProtectedResource.class).withPackage("multiple.ham.common.qualifiers").failsWith("CWWKS2610E|CWWKZ0002E").run();
     }
 
