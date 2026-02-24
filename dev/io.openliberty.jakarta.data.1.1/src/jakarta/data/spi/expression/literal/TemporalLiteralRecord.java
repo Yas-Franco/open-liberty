@@ -31,6 +31,7 @@ record TemporalLiteralRecord<V extends Temporal & Comparable<? extends Temporal>
                 implements TemporalLiteral<V> {
 
     TemporalLiteralRecord {
+        Messages.requireNonNull(type, "type");
         Messages.requireNonNull(value, "value");
     }
 

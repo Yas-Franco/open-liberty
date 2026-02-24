@@ -26,6 +26,7 @@ record NumericLiteralRecord<N extends Number & Comparable<N>>(
                 implements NumericLiteral<N> {
 
     NumericLiteralRecord {
+        Messages.requireNonNull(type, "type");
         Messages.requireNonNull(value, "value");
     }
 
