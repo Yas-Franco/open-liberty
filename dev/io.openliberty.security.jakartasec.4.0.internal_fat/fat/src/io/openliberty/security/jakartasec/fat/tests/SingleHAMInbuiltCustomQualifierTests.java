@@ -29,20 +29,22 @@ import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
 import io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants;
 import multiple.ham.common.MultipleHAMProtectedResource;
+import multiple.ham.custom.hams.CustomHAMOneOperator;
+import multiple.ham.custom.hams.CustomHAMTwoAdmin;
 import multiple.ham.custom.handlers.BaseHAMHandler;
-import multiple.ham.custom.handlers.CustomHAMHandler;
-import multiple.ham.inbuilt.MultipleHAMQualifiersApplication;
+import multiple.ham.custom.handlers.CustomHAMNoTesterHandler;
+import multiple.ham.inbuilt.SingleHAMQualifierApplication;
 
 /**
  * Tests appSecurity-6.0
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
-public class MultipleHAMInbuiltQualifiersTests extends BaseJakartaSecurity40Test {
+public class SingleHAMInbuiltCustomQualifierTests extends BaseJakartaSecurity40Test {
 
-    private static final Class<?> c = MultipleHAMInbuiltQualifiersTests.class;
+    private static final Class<?> c = SingleHAMInbuiltCustomQualifierTests.class;
 
-    public static final String APP_NAME = "MultipleHAMInbuiltQualifiersApp";
+    public static final String APP_NAME = "SingleHAMInbuiltCustomQualifierApp";
     private static final String CONTEXT_ROOT = "/" + APP_NAME;
     private static final String RESOURCE_PATH = "/resource/test";
 
@@ -63,9 +65,9 @@ public class MultipleHAMInbuiltQualifiersTests extends BaseJakartaSecurity40Test
 
     @BeforeClass
     public static void setUp() throws Exception {
-        MultipleHAMInbuiltQualifiersTests instance = new MultipleHAMInbuiltQualifiersTests();
+        SingleHAMInbuiltCustomQualifierTests instance = new SingleHAMInbuiltCustomQualifierTests();
         WebArchive multipleHamApp = ShrinkWrap.create(WebArchive.class,
-                                                      APP_NAME + ".war").addClass(MultipleHAMQualifiersApplication.class).addPackage("multiple.ham.common.qualifiers").addClass(MultipleHAMProtectedResource.class).addClass(BaseHAMHandler.class).addClass(CustomHAMHandler.class);
+                                                      APP_NAME + ".war").addClass(SingleHAMQualifierApplication.class).addPackage("multiple.ham.common.qualifiers").addClass(MultipleHAMProtectedResource.class).addClass(BaseHAMHandler.class).addClass(CustomHAMNoTesterHandler.class).addClass(CustomHAMOneOperator.class).addClass(CustomHAMTwoAdmin.class);
 
         // The URL is not expected to be modified during this test scope
         url = "http://localhost:" + server.getHttpDefaultPort() + CONTEXT_ROOT + RESOURCE_PATH;
@@ -86,22 +88,19 @@ public class MultipleHAMInbuiltQualifiersTests extends BaseJakartaSecurity40Test
         executeGetRequestWithTraceMark(url, 200);
 
         // Check the injection of adminHAM as inbuilt basic HAM
-        assertStringInTrace("Output message for adminHAM injection as BasicHAM not found",
-                            Jakartasec40TestConstants.HAM_BASIC_ADMIN_QUALIFIER_MESSAGE);
+        assertStringInTrace("Output message for adminHAM injection as CustomHAMTwoAdmin not found",
+                            Jakartasec40TestConstants.CUSTOM_HAM_TWO_ADMIN_QUALIFIER_MESSAGE);
         // Check the injection of userHAM as inbuilt basic HAM
         assertStringInTrace("Output message for userHAM injection as BasicHAM not found",
                             Jakartasec40TestConstants.HAM_BASIC_USER_QUALIFIER_MESSAGE);
         // Check the injection of operatorHAM as inbuilt CustomForm HAM
-        assertStringInTrace("Output message for operatorHAM injection as CustomFormHAM not found",
-                            Jakartasec40TestConstants.HAM_CUSTOM_FORM_OPERATOR_QUALIFIER_MESSAGE);
-        // Check the injection of testerHAM as inbuilt Form HAM
-        assertStringInTrace("Output message for testerHAM injection as FormHAM not found",
-                            Jakartasec40TestConstants.HAM_FORM_TESTER_QUALIFIER_MESSAGE);
+        assertStringInTrace("Output message for operatorHAM injection as CustomHAMOneOperator not found",
+                            Jakartasec40TestConstants.CUSTOM_HAM_ONE_OPERATOR_QUALIFIER_MESSAGE);
     }
 
     /*
      * Assert that the custom HAM prioritization is printed as it is defined on the custom handler.
-     * Since we explicitly prioritized the Admin qualifier on BasicHAM, that should be the expected output.
+     * Since we explicitly prioritized the Admin qualifier on CustomHAMTwoAdmin, that should be the expected output.
      *
      */
     @Test
@@ -110,13 +109,13 @@ public class MultipleHAMInbuiltQualifiersTests extends BaseJakartaSecurity40Test
         // Mark the trace before making HTTP connection and execute request
         executeGetRequestWithTraceMark(url, 200);
 
-        assertStringInTrace("Output message for custom prioritization on inbuilt HAMs with qualifiers not found",
-                            Jakartasec40TestConstants.HAM_CUSTOM_HANDLER_PRIORITY_MESSAGE);
+        assertStringInTrace("Output message for custom prioritization on inbuilt and custom HAMs with qualifiers not found",
+                            Jakartasec40TestConstants.HAM_CUSTOM_HANDLER_NO_TESTER_PRIORITY_MESSAGE);
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        MultipleHAMInbuiltQualifiersTests instance = new MultipleHAMInbuiltQualifiersTests();
+        SingleHAMInbuiltCustomQualifierTests instance = new SingleHAMInbuiltCustomQualifierTests();
         instance.stopServer();
     }
 

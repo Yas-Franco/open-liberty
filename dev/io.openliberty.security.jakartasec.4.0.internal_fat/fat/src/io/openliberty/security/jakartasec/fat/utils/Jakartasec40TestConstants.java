@@ -61,4 +61,12 @@ public class Jakartasec40TestConstants {
     public static final String HAM_CUSTOM_FORM_OPERATOR_QUALIFIER_MESSAGE = "found operatorHAM of \\[com.ibm.ws.security.javaeesec.cdi.beans.CustomFormAuthenticationMechanism";
     public static final String HAM_FORM_TESTER_QUALIFIER_MESSAGE = "found testerHAM of \\[com.ibm.ws.security.javaeesec.cdi.beans.FormAuthenticationMechanism";
     public static final String HAM_CUSTOM_HANDLER_PRIORITY_MESSAGE = "found Highest Priority HttpAuthenticationMechanism: BasicHttpAuthenticationMechanism";
+
+    /**
+     * CustomHAMs with qualifiers
+     */
+    public static final String CUSTOM_HAM_ONE_OPERATOR_QUALIFIER_MESSAGE = "found operatorHAM of \\[multiple.ham.custom.hams.CustomHAMOneOperator";
+    public static final String CUSTOM_HAM_TWO_ADMIN_QUALIFIER_MESSAGE = "found adminHAM of \\[multiple.ham.custom.hams.CustomHAMTwoAdmin";
+    public static final String HAM_CUSTOM_HANDLER_NO_TESTER_PRIORITY_MESSAGE = "found Highest Priority HttpAuthenticationMechanism: CustomHAMTwoAdmin";
+
 }

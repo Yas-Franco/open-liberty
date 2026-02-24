@@ -18,7 +18,6 @@ import jakarta.inject.Inject;
 import jakarta.security.enterprise.authentication.mechanism.http.HttpAuthenticationMechanism;
 import multiple.ham.common.qualifiers.Admin;
 import multiple.ham.common.qualifiers.Operator;
-import multiple.ham.common.qualifiers.Tester;
 import multiple.ham.common.qualifiers.User;
 
 /**
@@ -29,8 +28,9 @@ import multiple.ham.common.qualifiers.User;
 
 @Default
 @ApplicationScoped
-public class CustomHAMHandler extends BaseHAMHandler {
-    private static final Class<?> c = CustomHAMHandler.class;
+public class CustomHAMNoTesterHandler extends BaseHAMHandler {
+
+    private static final Class<?> c = CustomHAMNoTesterHandler.class;
 
     @Inject
     @Admin
@@ -41,9 +41,6 @@ public class CustomHAMHandler extends BaseHAMHandler {
     @Inject
     @Operator
     private HttpAuthenticationMechanism operatorHAM;
-    @Inject
-    @Tester
-    private HttpAuthenticationMechanism testerHAM;
 
     @Override
     protected Class<?> getTestClass() {
@@ -67,7 +64,7 @@ public class CustomHAMHandler extends BaseHAMHandler {
 
     @Override
     protected HttpAuthenticationMechanism getTesterHAM() {
-        return testerHAM;
+        return null;
     }
 
     @Override
@@ -85,8 +82,6 @@ public class CustomHAMHandler extends BaseHAMHandler {
             ham = getUserHAM();
         } else if (getOperatorHAM() != null) {
             ham = getOperatorHAM();
-        } else if (getTesterHAM() != null) {
-            ham = getTesterHAM();
         }
 
         return ham;

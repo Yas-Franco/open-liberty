@@ -9,7 +9,6 @@
  *******************************************************************************/
 package multiple.ham.custom.hams;
 
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.security.enterprise.AuthenticationException;
 import jakarta.security.enterprise.AuthenticationStatus;
@@ -17,13 +16,15 @@ import jakarta.security.enterprise.authentication.mechanism.http.HttpAuthenticat
 import jakarta.security.enterprise.authentication.mechanism.http.HttpMessageContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import multiple.ham.common.qualifiers.Admin;
 
+@Admin
 @ApplicationScoped
-@Priority(200)
-public class CustomHAMTwo implements HttpAuthenticationMechanism {
+public class CustomHAMTwoAdmin implements HttpAuthenticationMechanism {
 
     @Override
     public AuthenticationStatus validateRequest(HttpServletRequest request, HttpServletResponse response, HttpMessageContext httpMessageContext) throws AuthenticationException {
+        // fetch identity store handler, create a user password credential and call identity store handler validate()
         return null;
     }
 
