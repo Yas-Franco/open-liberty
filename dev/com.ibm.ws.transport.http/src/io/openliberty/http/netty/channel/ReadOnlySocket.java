@@ -44,7 +44,6 @@ public class ReadOnlySocket extends Socket{
      */
     public ReadOnlySocket(Channel channel){
         this.nettyChannel = channel;
-
         this.local = (InetSocketAddress) channel.localAddress();
         this.remote = (InetSocketAddress) channel.remoteAddress();
         this.config = channel.config();
