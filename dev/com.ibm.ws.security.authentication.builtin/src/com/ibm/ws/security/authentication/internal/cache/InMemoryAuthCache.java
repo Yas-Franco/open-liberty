@@ -1,10 +1,10 @@
 /*******************************************************************************
- * Copyright (c) 1997, 2022 IBM Corporation and others.
+ * Copyright (c) 1997, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -122,7 +122,7 @@ public class InMemoryAuthCache implements AuthCache, FFDCSelfIntrospectable {
      * Find and return the object associated with the specified key.
      */
     @Override
-    public synchronized Object get(Object key) {
+    public synchronized CacheObject get(Object key) {
         ConcurrentHashMap<Object, Object> tableRef = primaryTable;
         Entry curEntry = (Entry) primaryTable.get(key);
 
@@ -160,7 +160,11 @@ public class InMemoryAuthCache implements AuthCache, FFDCSelfIntrospectable {
                     curEntry = prevEntry; // We lost the race, so use the entry from the other thread
             }
         }
-        return curEntry.value;
+        CacheObject value = curEntry.value;
+
+        // If the CacheObject is not null call the copy method on it to get a new instance
+        // of the Subject so that threads don't synchronize on the same Subject object.
+        return value == null ? null : value.copy();
     }
 
     /**
@@ -261,12 +265,12 @@ public class InMemoryAuthCache implements AuthCache, FFDCSelfIntrospectable {
 
     public static class Entry {
 
-        public Object value;
+        public CacheObject value;
 
         public Entry() {
         }
 
-        public Entry(Object value) {
+        public Entry(CacheObject value) {
             this.value = value;
         }
     }

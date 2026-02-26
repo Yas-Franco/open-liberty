@@ -1,10 +1,10 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2022 IBM Corporation and others.
+ * Copyright (c) 2011, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -90,6 +90,14 @@ public class CacheObject implements Serializable {
      */
     public Subject getSubject() {
         return this.subject;
+    }
+
+    public CacheObject copy() {
+        CacheObject copy = new CacheObject(subject == null ? null : new Subject(subject.isReadOnly(), subject.getPrincipals(), subject.getPublicCredentials(), subject.getPrivateCredentials()));
+        if (!lookupKeys.isEmpty()) {
+            copy.lookupKeys.addAll(lookupKeys);
+        }
+        return copy;
     }
 
     @SuppressWarnings("unchecked")
