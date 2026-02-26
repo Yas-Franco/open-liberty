@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 IBM Corporation and others.
+ * Copyright (c) 2018,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -16,14 +16,25 @@ import java.util.logging.Logger;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import com.ibm.ws.fat.util.SharedServer;
+import com.ibm.ws.tests.anno.JandexV1RepeatAction;
+import com.ibm.ws.tests.anno.JandexV3RepeatAction;
 
+import componenttest.custom.junit.runner.FATRunner;
+import componenttest.rules.repeater.RepeatTests;
+
+@RunWith(FATRunner.class)
 public class JandexAppFalseAppMgrFalseTest extends JandexAppTest {
     private static final Logger LOG = Logger.getLogger(JandexAppFalseAppMgrFalseTest.class.getName());
 
     public static SharedServer SHARED_SERVER = new SharedServer("annoFat_server", false);
+    
+    @ClassRule
+    public static RepeatTests r = RepeatTests.with(new JandexV1RepeatAction()).andWith(new JandexV3RepeatAction());
 
     @Override
     protected SharedServer getSharedServer() {
