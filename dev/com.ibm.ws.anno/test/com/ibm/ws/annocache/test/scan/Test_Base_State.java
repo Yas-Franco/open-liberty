@@ -94,13 +94,13 @@ public class Test_Base_State {
 
     @Before
     public void setUpBase() throws Exception {
-        
         System.setProperty("com.ibm.ws.beta.edition", "true");
         setUpSuite( getBaseCase() ); // 'setUpSuite' throws Exception
     }
 
     @After
     public void tearDown() throws Exception {
+        System.setProperty("com.ibm.ws.beta.edition", "false");
         tearDownSuiteStores();
     }
 
@@ -132,7 +132,6 @@ public class Test_Base_State {
     }
 
     public void setUpCore() throws Exception {
-        System.setProperty("com.ibm.ws.beta.edition", "true");
         setUpFactories(); // throws Exception
         setUpSpecification();
         setUpClassSource(); // throws Exception

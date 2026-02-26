@@ -96,20 +96,32 @@ public class JandexSparseReadTest {
 	
 	@Test
 	public void testReadsVersion11() throws IOException {
+	    try {
 		System.setProperty("com.ibm.ws.beta.edition", "true");
 		testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 11); // throws IOException
+	    } finally {
+	        System.setProperty("com.ibm.ws.beta.edition", "false");
+	    }
 	}
 
 	@Test
 	public void testReadsVersion12() throws IOException {
-		System.setProperty("com.ibm.ws.beta.edition", "true");
-		testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 12); // throws IOException
+	    try {
+                System.setProperty("com.ibm.ws.beta.edition", "true");
+                testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 12); // throws IOException
+            } finally {
+                System.setProperty("com.ibm.ws.beta.edition", "false");
+            }
 	}
 	
 	@Test
 	public void testReadsVersion13() throws IOException {
-		System.setProperty("com.ibm.ws.beta.edition", "true");
-		testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 13); // throws IOException
+	    try {
+                System.setProperty("com.ibm.ws.beta.edition", "true");
+                testReads(SAMPLE_CLASS_NAMES, SAMPLE_RESOURCE_NAMES, 13); // throws IOException
+            } finally {
+                System.setProperty("com.ibm.ws.beta.edition", "false");
+            }
 	}
 
 	//
