@@ -264,7 +264,8 @@ public class InMemoryIdentityStoreTests extends BaseJakartaSecurity40Test {
         // Expected warnings and errors during testing
         instance.stopServer(
                             "CWWKS2600W", // An in-memory identity store was detected within this application
-                            "CWWKS1859E" //  Password decoding error
+                            "CWWKS1859E", //  Password decoding error
+                            "CWWKS1865W" // AES-encrypted passwords without custom encryption key
         );
     }
 }
