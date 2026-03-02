@@ -15,7 +15,7 @@ import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstr
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testGetPlatformResourceDoesNotExist_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testGetPlatformResourcesDoesExist_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testGetPlatformResourcesDoesNotExist_NoFilter8_Filter9;
-import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadKernelClass_NotFound_Filter8_Filter9;
+import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadKernelClass_NotFound_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadLibrary6Class_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadLibrary7Class_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadLibrary8Class_NoFilter8_Filter9;
@@ -90,7 +90,7 @@ public class AppParentDelegationPlatformNullPackagesTest extends AppParentDelega
             case "testLoadPlatformClassDoesNotExist":
                 return testLoadPlatformClassDoesNotExist_NoFilter8_Filter9;
             case "testLoadKernelClass":
-                return testLoadKernelClass_NotFound_Filter8_Filter9;
+                return testLoadKernelClass_NotFound_NoFilter8_Filter9;
             case "testPlatformService":
                 return testPlatformService;
             default:

@@ -85,11 +85,11 @@ public abstract class AppParentDelegationAbstractTest extends FATServletClient {
 
         testGetCommonResourcesOrder_NoFilter8_Filter9(
                                                 "io/openliberty/classloading/test/resources/common.properties",
-                                                FIND_RESOURCE_NOT_FILTERED_MSG, FIND_RESOURCE_FILTERED_MSG),
+                                                FIND_RESOURCES_NOT_FILTERED_MSG, FIND_RESOURCES_FILTERED_MSG),
 
         testGetCommonResourcesOrder_NoFilter8_NoFilter9(
                                                 "io/openliberty/classloading/test/resources/common.properties",
-                                                FIND_RESOURCE_NOT_FILTERED_MSG, FIND_RESOURCE_NOT_FILTERED_MSG),
+                                                FIND_RESOURCES_NOT_FILTERED_MSG, FIND_RESOURCES_NOT_FILTERED_MSG),
 
         testGetPlatformResourceDoesExist("java/lang/String.class", FIND_RESOURCE, FIND_RESOURCE, true),
 
@@ -98,14 +98,14 @@ public abstract class AppParentDelegationAbstractTest extends FATServletClient {
                                                               FIND_RESOURCE_NOT_FILTERED_MSG, FIND_RESOURCE_FILTERED_MSG),
 
         testGetPlatformResourcesDoesExist_NoFilter8_Filter9(
-                                                            "java/lang/platform-delegation-test.txt",
-                                                            FIND_RESOURCE_NOT_FILTERED_MSG, FIND_RESOURCE_FILTERED_MSG,
+                                                            "java/lang/String.class",
+                                                            FIND_RESOURCES_NOT_FILTERED_MSG, FIND_RESOURCES_FILTERED_MSG,
                                                             "testGetPlatformResourcesDoesExist:",
                                                             "count=2", "count=1"),
 
         testGetPlatformResourcesDoesNotExist_NoFilter8_Filter9(
                                                               "java/lang/platform-delegation-test.txt",
-                                                              FIND_RESOURCE_NOT_FILTERED_MSG, FIND_RESOURCE_FILTERED_MSG),
+                                                              FIND_RESOURCES_NOT_FILTERED_MSG, FIND_RESOURCES_FILTERED_MSG),
 
         testLoadPlatformClassDoesExist(
                         "java.util.concurrent.atomic.AtomicReferenceArray", LOAD_CLASS, LOAD_CLASS, true),
@@ -126,9 +126,9 @@ public abstract class AppParentDelegationAbstractTest extends FATServletClient {
                                                       "testLoadKernelClass:",
                                                       "CLASS NOT FOUND", "CLASS NOT FOUND"),
 
-        testLoadKernelClass_NotFound_Filter8_Filter9(
+        testLoadKernelClass_NotFound_NoFilter8_Filter9(
                                                          "com.ibm.wsspi.kernel.embeddable.ServerBuilder",
-                                                         LOAD_CLASS_FILTERED_MSG, LOAD_CLASS_FILTERED_MSG,
+                                                         LOAD_CLASS_NOT_FILTERED_MSG, LOAD_CLASS_FILTERED_MSG,
                                                          "testLoadKernelClass:",
                                                          "CLASS NOT FOUND", "CLASS NOT FOUND"),
 
