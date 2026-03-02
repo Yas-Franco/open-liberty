@@ -30,6 +30,7 @@
 
 	<!-- include location="${server.config.dir}/imports/goodSSLSettings.xml" / -->
 	<include location="${server.config.dir}/imports/signEncryptSSLSettings.xml" />
+	<include location="${server.config.dir}/imports/altAllAlgSSLSettings.xml" />
 
 	<include location="${server.config.dir}/imports/miscNoSslSettings.xml" />
 

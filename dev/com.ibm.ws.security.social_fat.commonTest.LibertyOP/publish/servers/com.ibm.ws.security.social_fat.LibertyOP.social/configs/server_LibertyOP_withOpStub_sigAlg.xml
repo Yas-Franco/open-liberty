@@ -22,6 +22,7 @@
 	<!-- include location="${server.config.dir}/imports/socialSSLSettings.xml" / -->
 	<sslDefault sslRef="ssl_allSigAlg"/>
 	<include location="${server.config.dir}/imports/signEncryptSSLSettings.xml" />
+	<include location="${server.config.dir}/imports/altAllAlgSSLSettings.xml" />
 	
 	<include location="${server.config.dir}/imports/oidcSigningSocialClients.xml" />
 

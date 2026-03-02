@@ -47,7 +47,23 @@
 					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/rs512,
 					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/es256,
 					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/es384,
-					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/es512"
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/es512,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderHS256,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderHS384,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderHS512,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderRS256,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderRS384,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderRS512,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderES256,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderES384,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderES512,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderHSSigAlg,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderRSSigAlg,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderESSigAlg,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeaderHS256RS384ES512,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/FromHeader,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/diff_FromHeaderRS256RS384RS512,
+					https://localhost:${bvt.prop.security_2_HTTP_default.secure}/ibm/api/social-login/redirect/diff_FromHeaderES256ES384ES512"
 				scope="ALL_SCOPES"
 				enabled="true" />
 				
