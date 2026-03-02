@@ -824,19 +824,19 @@ public class QueryInfo {
                         if (v >= Integer.MIN_VALUE && v <= Integer.MAX_VALUE)
                             return n.intValue();
                         else
-                            convertFail(n, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                            throw Fail.outOfRange(this, n, Integer.MIN_VALUE, Integer.MAX_VALUE);
                     } else if (short.class.equals(toType) ||
                                Short.class.equals(toType)) {
                         if (v >= Short.MIN_VALUE && v <= Short.MAX_VALUE)
                             return n.shortValue();
                         else
-                            convertFail(n, Short.MIN_VALUE, Short.MAX_VALUE);
+                            throw Fail.outOfRange(this, n, Short.MIN_VALUE, Short.MAX_VALUE);
                     } else if (byte.class.equals(toType) ||
                                Byte.class.equals(toType)) {
                         if (v >= Byte.MIN_VALUE && v <= Byte.MAX_VALUE)
                             return n.byteValue();
                         else
-                            convertFail(n, Byte.MIN_VALUE, Byte.MAX_VALUE);
+                            throw Fail.outOfRange(this, n, Byte.MIN_VALUE, Byte.MAX_VALUE);
                     } else if (BigInteger.class.equals(toType)) {
                         return BigInteger.valueOf(v);
                     } else if (BigDecimal.class.equals(toType)) {
@@ -930,28 +930,6 @@ public class QueryInfo {
     }
 
     /**
-     * Raises an error for a type conversion failure due to a value being outside of
-     * the specified range.
-     *
-     * @param queryInfo query information for the repository method.
-     * @param value     the value that fails to convert.
-     * @param min       minimum value for range.
-     * @param max       maximum value for range.
-     * @throws MappingException for the type conversion failure.
-     */
-    @Trivial
-    private void convertFail(Number value, long min, long max) {
-        throw exc(MappingException.class,
-                  "CWWKD1047.result.out.of.range",
-                  loggableAppend(value.getClass().getName(), " (", value, ")"),
-                  method.getName(),
-                  repositoryInterface.getName(),
-                  method.getGenericReturnType().getTypeName(),
-                  min,
-                  max);
-    }
-
-    /**
      * Convert the results list into an Iterable of the specified type.
      *
      * @param results      results of a find or save operation.
@@ -1038,7 +1016,7 @@ public class QueryInfo {
                     // ElementCollection attributes instead of rejecting it as
                     // unsupported. Raise an error instead.
                     if (converted == element)
-                        throw excIncompatibleQueryResult(results, query);
+                        throw Fail.resultIncompatible(this, results, query);
                 }
                 list.add(element);
             }
@@ -1426,354 +1404,6 @@ public class QueryInfo {
     }
 
     /**
-     * Create a new UnsupportedOperationException for a conflicting Limit or
-     * PageRequest parameter.
-     *
-     * @param ql                the query.
-     * @param endOfWhereClause  position at which the WHERE clause ends.
-     * @param endsAtOrderClause indicates if this error is being raised because an
-     *                              ORDER BY clause was found in the query.
-     * @return UnsupportedOperationException
-     */
-    @Trivial
-    private UnsupportedOperationException //
-                    excCursorPaginationNotAllowed(String ql,
-                                                  int endOfWhereClause,
-                                                  boolean endsAtOrderClause) {
-
-        if (endsAtOrderClause)
-            throw exc(UnsupportedOperationException.class,
-                      "CWWKD1033.ql.orderby.disallowed",
-                      method.getName(),
-                      repositoryInterface.getName(),
-                      CursoredPage.class.getSimpleName(),
-                      OrderBy.class.getSimpleName(),
-                      ql);
-        else
-            throw exc(UnsupportedOperationException.class,
-                      "CWWKD1034.ql.req.end.in.where",
-                      method.getName(),
-                      repositoryInterface.getName(),
-                      CursoredPage.class.getSimpleName(),
-                      endOfWhereClause,
-                      ql.length(),
-                      ql);
-    }
-
-    /**
-     * Create a new EmptyResultException.
-     *
-     * @return the EmptyResultException.
-     */
-    @Trivial
-    private EmptyResultException excEmptyResult() {
-        return exc(EmptyResultException.class,
-                   "CWWKD1053.empty.result",
-                   method.getGenericReturnType().getTypeName(),
-                   method.getName(),
-                   repositoryInterface.getName(),
-                   List.of(List.class.getSimpleName(),
-                           Optional.class.getSimpleName(),
-                           Page.class.getSimpleName(),
-                           CursoredPage.class.getSimpleName(),
-                           Stream.class.getSimpleName()));
-    }
-
-    /**
-     * Constructs the MappingException for the error where the repository method
-     * defines extra named parameters that are not used by the JDQL or JPQL query.
-     *
-     * @return MappingException.
-     */
-    @Trivial
-    private MappingException excExtraMethodArgNamedParams(Set<String> extras,
-                                                          Set<String> qlRequired) {
-        String firstExtraParam = null;
-        StringBuilder extraParamNames = new StringBuilder();
-        for (String name : extras)
-            if (name.length() > 0) {
-                if (firstExtraParam == null)
-                    firstExtraParam = name;
-                else
-                    extraParamNames.append(", ");
-                extraParamNames.append(name);
-            }
-
-        if (firstExtraParam == null && !extras.isEmpty())
-            // @Param("") with empty String is not valid
-            return exc(MappingException.class,
-                       "CWWKD1104.empty.anno.value",
-                       Param.class.getSimpleName(),
-                       method.getName(),
-                       repositoryInterface.getName());
-
-        boolean isFirst = true;
-        StringBuilder qlParamNames = new StringBuilder();
-        for (String name : qlRequired) {
-            if (!isFirst)
-                qlParamNames.append(", ");
-            qlParamNames.append(':').append(name);
-            isFirst = false;
-        }
-
-        if (qlRequired.isEmpty())
-            return exc(MappingException.class,
-                       "CWWKD1086.named.params.unused",
-                       method.getName(),
-                       repositoryInterface.getName(),
-                       extraParamNames,
-                       method.getAnnotation(Query.class).value(),
-                       ':' + firstExtraParam);
-        else
-            return exc(MappingException.class,
-                       "CWWKD1085.extra.method.params",
-                       method.getName(),
-                       repositoryInterface.getName(),
-                       extraParamNames,
-                       qlParamNames,
-                       method.getAnnotation(Query.class).value());
-    }
-
-    /**
-     * Create a new UnsupportedOperationException for a conflicting Limit or
-     * PageRequest parameter.
-     *
-     * @param param   method parameter that is an instance of Limit or PageRequest.
-     * @param limit   other Limit parameter value. Otherwise null.
-     * @param pageReq other PageRequest parameter value. Otherwise null.
-     * @param method  repository method
-     * @return UnsupportedOperationException
-     */
-    @Trivial
-    private UnsupportedOperationException excIncompatible(Object param,
-                                                          Limit limit,
-                                                          PageRequest pageReq,
-                                                          Method method) {
-        Class<?> type = param instanceof Limit ? Limit.class : PageRequest.class;
-
-        if (limit == null && pageReq == null)
-            // conflicts with First keyword
-            return exc(UnsupportedOperationException.class,
-                       "CWWKD1099.first.keyword.incompat",
-                       method.getName(),
-                       repositoryInterface.getName(),
-                       type.getSimpleName());
-        else if (param instanceof Limit ? limit != null : pageReq != null)
-            // conflicts with another parameter of the same time
-            return exc(UnsupportedOperationException.class,
-                       "CWWKD1017.dup.special.param",
-                       method.getName(),
-                       repositoryInterface.getName(),
-                       type.getSimpleName());
-        else
-            // conflict between Limit and PageRequest parameters
-            throw exc(UnsupportedOperationException.class,
-                      "CWWKD1018.confl.special.param",
-                      method.getName(),
-                      repositoryInterface.getName(),
-                      Limit.class.getSimpleName(),
-                      PageRequest.class.getSimpleName());
-    }
-
-    /**
-     * Constructs an UnsupportedOperationException for an error where the
-     * repository method return type does not match the query results.
-     * On reason this might happen is when EclipseLink returns wrong values
-     * when selecting ElementCollection attributes instead of rejecting
-     * it as unsupported.
-     *
-     * @param results list of at least 1 result.
-     * @param query   jakarta.persistence.Query, a String, or null.
-     * @return UnsupportedOperationException.
-     */
-    @Trivial
-    private UnsupportedOperationException excIncompatibleQueryResult(List<?> results,
-                                                                     Object query) {
-        String r = results.getClass().getName() +
-                   "<" + results.get(0).getClass().getName() + ">";
-
-        if (query == null)
-            return exc(UnsupportedOperationException.class,
-                       "CWWKD1102.incompat.query.result",
-                       method.getName(),
-                       repositoryInterface.getName(),
-                       method.getGenericReturnType().getTypeName(),
-                       r);
-        else
-            return exc(UnsupportedOperationException.class,
-                       "CWWKD1103.incompat.query.result",
-                       method.getName(),
-                       repositoryInterface.getName(),
-                       method.getGenericReturnType().getTypeName(),
-                       query instanceof String ? query : query.getClass().getName(),
-                       r);
-    }
-
-    /**
-     * Check if the cause of the lacking named parameter is a mispositioned
-     * special parameter. If so, raises UnsupportedOperationException.
-     *
-     * Otherwise, constructs a MappingException for the error where one or more
-     * of the named parameters required by a JDQL or JPQL query are not specified
-     * by the method parameters
-     *
-     * @param lacking query named parameters for which no method parameters were
-     *                    found.
-     * @return MappingException for a missing named parameter.
-     * @throws UnsupportedOperationException if there is a mispositioned special
-     *                                           parameter.
-     */
-    @Trivial
-    private MappingException excLackingMethodArgNamedParams(Set<String> lacking) {
-
-        validateParameterPositions();
-
-        String first = null;
-        StringBuilder all = new StringBuilder();
-        for (String name : lacking) {
-            if (first == null)
-                first = name;
-            else
-                all.append(", ");
-            all.append(':').append(name);
-        }
-
-        return exc(MappingException.class,
-                   "CWWKD1084.missing.named.params",
-                   method.getName(),
-                   repositoryInterface.getName(),
-                   all,
-                   method.getAnnotation(Query.class).value(),
-                   "@Param(\"" + first + "\")",
-                   "String " + first);
-    }
-
-    /**
-     * Constructs the MappingException or UnsupportedOoperationException for
-     * the error where a repository method parameter lacks an annotation that
-     * identifies the corresponding entity attribute name.
-     *
-     * @param p position (1-based) of the repository method parameter.
-     * @return MappingException or UnsupportedOperationException.
-     */
-    @Trivial
-    private RuntimeException excMissingParamAnno(int p) {
-        DataVersionCompatibility compat = producer.compat();
-
-        switch (type) {
-            case FIND:
-            case FIND_AND_DELETE:
-                validateParameterPositions();
-                String specParams = type == FIND //
-                                ? compat.specialParamsForFind() //
-                                : compat.specialParamsForFindAndDelete();
-                throw exc(MappingException.class,
-                          "CWWKD1012.fd.missing.param.anno",
-                          p,
-                          method.getName(),
-                          repositoryInterface.getName(),
-                          specParams);
-            case QM_DELETE:
-            case COUNT:
-            case EXISTS:
-                throw exc(MappingException.class,
-                          "CWWKD1013.cde.missing.param.anno",
-                          p,
-                          method.getName(),
-                          repositoryInterface.getName());
-            case QM_UPDATE:
-                throw exc(UnsupportedOperationException.class,
-                          "CWWKD1014.upd.missing.param.anno",
-                          method.getName(),
-                          repositoryInterface.getName(),
-                          method.getParameterCount(),
-                          p,
-                          compat.paramAnnosForUpdate());
-            default: // should be unreachable
-                throw new IllegalStateException(type.name());
-        }
-    }
-
-    /**
-     * Constructs the UnsupportedOperationException for the error where a repository
-     * method intermixed named and positional parameters for a query.
-     *
-     * @return UnsupportedOperationException.
-     */
-    @Trivial
-    private UnsupportedOperationException excMixedQLParamTypes(int methodNPCount) {
-        String firstNamedParam = null;
-        StringBuilder allNamedParams = new StringBuilder().append('(');
-        for (String name : jpqlParamNames) {
-            if (firstNamedParam == null)
-                firstNamedParam = name;
-            else
-                allNamedParams.append(", ");
-            allNamedParams.append(':').append(name);
-        }
-        allNamedParams.append(')');
-
-        Class<?> firstNamedParamType = String.class;
-        for (Parameter p : method.getParameters()) {
-            Param param = p.getAnnotation(Param.class);
-            if (param == null //
-                            ? p.isNamePresent() && firstNamedParam.equals(p.getName()) //
-                            : firstNamedParam.equals(param.value()))
-                firstNamedParamType = p.getType();
-            break;
-        }
-
-        return exc(UnsupportedOperationException.class,
-                   "CWWKD1019.mixed.positional.named",
-                   method.getName(),
-                   repositoryInterface.getName(),
-                   jpqlParamCount - methodNPCount,
-                   methodNPCount,
-                   allNamedParams,
-                   method.getAnnotation(Query.class).value(),
-                   ':' + firstNamedParam,
-                   "@Param(\"" + firstNamedParam + "\")",
-                   firstNamedParamType.getSimpleName() + ' ' + firstNamedParam);
-    }
-
-    /**
-     * Create a new NonUniqueResultException.
-     *
-     * @param numResults number of results.
-     * @return the NonUniqueResultException.
-     */
-    @Trivial
-    private NonUniqueResultException excNonUniqueResult(int numResults) {
-        throw exc(NonUniqueResultException.class,
-                  "CWWKD1054.non.unique.result",
-                  method.getName(),
-                  repositoryInterface.getName(),
-                  method.getGenericReturnType().getTypeName(),
-                  numResults,
-                  List.of(// In a future release: @Find @First findByX(...)
-                          "findFirstByX(...)",
-                          "findByX(..., Limit.of(1))"));
-    }
-
-    /**
-     * Constructs the UnsupportedOperationException for the general error where
-     * a repository method is unrecognized and log the error.
-     *
-     * @return UnsupportedOperationException.
-     */
-    @Trivial
-    private UnsupportedOperationException excUnsupportedMethod() {
-        return exc(UnsupportedOperationException.class,
-                   "CWWKD1011.unknown.method.pattern",
-                   method.getName(),
-                   repositoryInterface.getName(),
-                   Util.operationAnnoNames(producer),
-                   Util.resourceAccessorTypeNames(producer),
-                   Util.methodNamePrefixes(producer),
-                   entityInfo.getExampleMethodNames());
-    }
-
-    /**
      * Execute JPQL for a repository delete or update query.
      *
      * @param em   entity manager.
@@ -1886,7 +1516,7 @@ public class QueryInfo {
                 if (max == 0 && limit == null && pageReq == null)
                     max = (limit = (Limit) param).maxResults();
                 else
-                    throw excIncompatible(param, limit, pageReq, method);
+                    throw Fail.methodParamIncompat(this, param, limit, pageReq);
             } else if (param instanceof Order) {
                 @SuppressWarnings("unchecked")
                 Iterable<Sort<Object>> order = (Iterable<Sort<Object>>) param;
@@ -1895,7 +1525,7 @@ public class QueryInfo {
                 if (max == 0 && pageReq == null && limit == null)
                     max = (pageReq = (PageRequest) param).size();
                 else
-                    throw excIncompatible(param, limit, pageReq, method);
+                    throw Fail.methodParamIncompat(this, param, limit, pageReq);
             } else if (param instanceof Sort) {
                 @SuppressWarnings("unchecked")
                 List<Sort<Object>> newList = supplySorts(sortList, (Sort<Object>) param);
@@ -1926,15 +1556,7 @@ public class QueryInfo {
                               method.getName(),
                               repositoryInterface.getName());
             } else {
-                validateParameterPositions();
-
-                throw exc(DataException.class,
-                          "CWWKD1023.extra.param",
-                          method.getName(),
-                          repositoryInterface.getName(),
-                          specialParamsStartAt,
-                          method.getParameterTypes()[i].getName(),
-                          jpql);
+                throw Fail.extraMethodParam(this, i);
             }
         }
 
@@ -2211,7 +1833,7 @@ public class QueryInfo {
                         } else {
                             // List<Object[]> with multiple Object[] elements
                             // cannot convert to a one dimensional array
-                            throw excNonUniqueResult(size);
+                            throw Fail.nonUniqueResult(this, size);
                         }
                     } else {
                         throw exc(MappingException.class,
@@ -2223,7 +1845,7 @@ public class QueryInfo {
                                   method.getGenericReturnType().getTypeName());
                     }
                 } else if (results.isEmpty()) {
-                    throw excEmptyResult();
+                    throw Fail.emptyResult(this);
                 } else { // single result of other type
                     if (Iterable.class.isAssignableFrom(singleType) &&
                         !(results.get(0) instanceof Iterable))
@@ -2320,7 +1942,7 @@ public class QueryInfo {
                     else if (results.isEmpty())
                         returnValue = null;
                     else
-                        throw excNonUniqueResult(results.size());
+                        throw Fail.nonUniqueResult(this, results.size());
                 else if (multiType.isInstance(results))
                     returnValue = results;
                 else if (Stream.class.equals(multiType))
@@ -2562,7 +2184,7 @@ public class QueryInfo {
         String attribute = methodName.substring(start, endBefore);
 
         if (attribute.length() == 0)
-            throw excUnsupportedMethod();
+            throw Fail.unsupportedMethod(this);
 
         String name = getAttributeName(attribute, true);
 
@@ -3078,7 +2700,7 @@ public class QueryInfo {
                 if (Boolean.TRUE.equals(isNamePresent))
                     name = params[p].getName();
                 else
-                    throw excMissingParamAnno(p + 1);
+                    throw Fail.methodParamLacksAnno(this, p + 1);
             }
             attrNames[p] = getAttributeName(name, true);
         }
@@ -3701,22 +3323,6 @@ public class QueryInfo {
     }
 
     /**
-     * Determine if the index of the text ignoring case if it is the next non-whitespace characters.
-     *
-     * @parma text the text to match.
-     * @param ql      query language.
-     * @param startAt starting position in the query language string.
-     * @return position of the text ignoring case if it is the next non-whitespace characters. Otherwise -1;
-     */
-    @Trivial
-    private static int indexOfAfterWhitespace(String text, String ql, int startAt) {
-        int length = ql.length();
-        while (startAt < length && Character.isWhitespace(ql.charAt(startAt)))
-            startAt++;
-        return ql.regionMatches(true, startAt, text, 0, 2) ? startAt : -1;
-    }
-
-    /**
      * Infer the selection value to use for a COUNT query.
      * Typically, the best we can do is to use the entity identifier variable,
      * For example, COUNT(o). This works for:
@@ -4174,18 +3780,18 @@ public class QueryInfo {
             LinkedHashSet<String> lacking = new LinkedHashSet<>(qlParamNames);
             lacking.removeAll(jpqlParamNames);
             if (!lacking.isEmpty())
-                throw excLackingMethodArgNamedParams(lacking);
+                throw Fail.methodLacksNamedParams(this, lacking);
 
             // Does the method supply any named parameters not needed by the query?
             Set<String> extras = new LinkedHashSet<>(jpqlParamNames);
             extras.removeAll(qlParamNames);
             if (!extras.isEmpty())
-                throw excExtraMethodArgNamedParams(extras, qlParamNames);
+                throw Fail.unusedNamedParamsOnMethod(this, extras, qlParamNames);
         }
 
         // Does the method supply a mixture of named and positional parameters?
         if (paramNamesCount > 0 && paramNamesCount < jpqlParamCount)
-            throw excMixedQLParamTypes(paramNamesCount);
+            throw Fail.mixedQLParamTypes(this, paramNamesCount);
     }
 
     /**
@@ -4279,7 +3885,7 @@ public class QueryInfo {
             type = EXISTS;
             validateReturnForExists();
         } else {
-            throw excUnsupportedMethod();
+            throw Fail.unsupportedMethod(this);
         }
 
         if (trace && tc.isDebugEnabled())
@@ -4687,7 +4293,7 @@ public class QueryInfo {
      * @return loggable value.
      */
     @Trivial
-    private final String loggableAppend(String prefix, Object... possibleSuffix) {
+    final String loggableAppend(String prefix, Object... possibleSuffix) {
         return entityInfo.builder.provider.loggableAppend(repositoryInterface,
                                                           method,
                                                           prefix,
@@ -4708,9 +4314,9 @@ public class QueryInfo {
         if (size == 1)
             return results.get(0);
         else if (size == 0)
-            throw excEmptyResult();
+            throw Fail.emptyResult(this);
         else
-            throw excNonUniqueResult(results.size());
+            throw Fail.nonUniqueResult(this, results.size());
     }
 
     /**
@@ -5071,7 +4677,7 @@ public class QueryInfo {
                             }
                             if (encloseWhereBeginAt > 0) {
                                 if (isCursoredPage)
-                                    throw excCursorPaginationNotAllowed(ql, i, isOrder);
+                                    throw Fail.cursorQueryIncompat(this, ql, i, isOrder);
                                 int p = i - 1;
                                 while (p > 0 && Character.isWhitespace(ql.charAt(p)))
                                     p--;
@@ -6219,7 +5825,7 @@ public class QueryInfo {
     @Trivial
     private void validate(boolean validateNumberOfMethodArgs) {
         if (type == null)
-            throw excUnsupportedMethod();
+            throw Fail.unsupportedMethod(this);
 
         int methodParamCount = method.getParameterCount();
         if (validateNumberOfMethodArgs &&
@@ -6346,34 +5952,6 @@ public class QueryInfo {
                         : iusdce == 1 //
                                         ? (delete != null ? delete : count != null ? count : exists) //
                                         : (q == 1 ? query : f == 1 ? find : null);
-    }
-
-    /**
-     * Confirm that special parameters are positioned after all other parameters.
-     *
-     * @throws UnupportedOperationException if a special parameter is ahead of
-     *                                          a query parameter.
-     */
-    @Trivial
-    private void validateParameterPositions() {
-        DataVersionCompatibility compat = entityInfo.builder.provider.compat;
-
-        Class<?>[] paramTypes = method.getParameterTypes();
-        Set<Class<?>> specParamTypes = compat.specialParamTypes();
-        int specParamIndex = Integer.MAX_VALUE, otherParamIndex = -1;
-        for (int i = 0; i < paramTypes.length; i++)
-            if (specParamTypes.contains(paramTypes[i]))
-                specParamIndex = i < specParamIndex ? i : specParamIndex;
-            else
-                otherParamIndex = i;
-
-        if (specParamIndex < otherParamIndex)
-            throw exc(UnsupportedOperationException.class,
-                      "CWWKD1098.spec.param.position.err",
-                      method.getName(),
-                      repositoryInterface.getName(),
-                      paramTypes[specParamIndex].getName(),
-                      compat.specialParamsForFind());
     }
 
     /**
