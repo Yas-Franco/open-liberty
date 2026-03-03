@@ -34,26 +34,6 @@ public final class SparseIndexReader {
     
     /** Required first four bytes of any Jandex index. */
     public static final int MAGIC = 0xBABE1F15;
-    
-    private static boolean issuedBetaMessage = false;
-
-    private static boolean betaFenceCheck() {
-        // Normally we would throw an UnsupportedOperationException if beta code is invoked. 
-        // However that would result in applications that previously worked (because we can ignore the jandex index if we can't process it)
-        // Failing to startup without the beta flag.
-        
-        // So instead I'll return false, and that will trigger a fallback to the previous behavior where we ignore the index.
-        if (!ProductInfo.getBetaEdition()) { 
-            return false;
-        } else {
-        // Running beta exception, issue message if we haven't already issued one for this class
-            if (!issuedBetaMessage) {
-                Tr.info(tc, "BETA: A beta method has been invoked for the class SparseIndexReader for the first time.");
-                issuedBetaMessage = !issuedBetaMessage;
-           }
-            return true;
-        }
-    }
 
     //
 
@@ -73,7 +53,7 @@ public final class SparseIndexReader {
             return new SparseIndexReaderVersionImpl_V1(input, version);
         } else if ( SparseIndexReaderVersionImpl_V2.accept(version) ) {
             return new SparseIndexReaderVersionImpl_V2(input, version);
-        } else if ( betaFenceCheck() && SparseIndexReaderVersionImpl_V3.accept(version) ) {
+        } else if (SparseIndexReaderVersionImpl_V3.accept(version) ) {
             return new SparseIndexReaderVersionImpl_V3(input, version);
         } else {
             return null;

@@ -161,58 +161,18 @@ public class JandexSparseReadTest {
 
     @Test
     public void testReadsVersion11() throws IOException {
-        String initialValue = System.getProperty("com.ibm.ws.beta.edition");
-        try {
-            System.setProperty("com.ibm.ws.beta.edition", "true");
-            testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 11); // throws IOException
-        } finally {
-            resetSysetmProperty(initialValue);
-        }
+        testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 11); // throws IOException
+        
     }
 
     @Test
     public void testReadsVersion12() throws IOException {
-        String initialValue = System.getProperty("com.ibm.ws.beta.edition");
-        try {
-            System.setProperty("com.ibm.ws.beta.edition", "true");
-            testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 12); // throws IOException
-        } finally {
-            resetSysetmProperty(initialValue);
-        }
+        testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 12); // throws IOException
     }
 
     @Test
     public void testReadsVersion13() throws IOException {
-        String initialValue = System.getProperty("com.ibm.ws.beta.edition");
-        try {
-            System.setProperty("com.ibm.ws.beta.edition", "true");
-            testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 13); // throws IOException
-        } finally {
-            resetSysetmProperty(initialValue);
-        }
-    }
-    
-    @Test
-    public void testReadsVersion13TestBetaGuard() throws IOException {
-
-        String initialValue = System.getProperty("com.ibm.ws.beta.edition");
-        try {
-            System.setProperty("com.ibm.ws.beta.edition", "false");
-            testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 13); // throws IOException
-            Assert.fail("We did not get an error saing v13 is unavailable, we must be running with the beta code enabled");
-        } catch(IllegalArgumentException e) {
-            Assert.assertTrue("expected \"Unsupported index version [ 13 ]\" but got " + e.toString(),  e.toString().contains("Unsupported index version [ 13 ]"));
-        } finally {
-            resetSysetmProperty(initialValue);
-        }
-    }
-    
-    private void resetSysetmProperty(String value) {
-        if (value == null) {
-            System.clearProperty("com.ibm.ws.beta.edition");
-        } else {
-            System.setProperty("com.ibm.ws.beta.edition", value);
-        }
+        testReads(SIMPLE_AND_V13_CLASS_NAMES, SIMPLE_AND_V13_RESOURCE_NAMES, 13); // throws IOException
     }
 
     //
