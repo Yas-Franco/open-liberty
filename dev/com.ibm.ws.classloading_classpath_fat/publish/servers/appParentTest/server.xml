@@ -24,5 +24,6 @@
     <javaPermission codeBase="${server.config.dir}/apps/testPlatformDelegation.war" className="java.lang.RuntimePermission" name="getClassLoader"/>
     <javaPermission codebase="${server.config.dir}/apps/testPlatformDelegation.war" className="java.io.FilePermission" name="ALL FILES" actions="read"/>
     <javaPermission codebase="${server.config.dir}/apps/testPlatformDelegation.war" className="java.lang.RuntimePermission" name="fileSystemProvider" />
+    <javaPermission codebase="${server.config.dir}/apps/testPlatformDelegation.war" className="java.lang.RuntimePermission" name="accessSystemModules"/>
 </server>
 
