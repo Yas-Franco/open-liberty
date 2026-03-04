@@ -107,6 +107,11 @@ public abstract class AppParentDelegationAbstractTest extends FATServletClient {
                                                               "java/lang/platform-delegation-test.txt",
                                                               FIND_RESOURCES_NOT_FILTERED_MSG, FIND_RESOURCES_FILTERED_MSG),
 
+        testLoadPlatformXAException("javax.transaction.xa.XAException",
+                                    LOAD_CLASS_NOT_FILTERED_MSG, LOAD_CLASS_NOT_FILTERED_MSG,
+                                    "testLoadPlatformXAException:",
+                                    "CLASS FOUND", "CLASS FOUND"),
+
         testLoadPlatformClassDoesExist(
                         "java.util.concurrent.atomic.AtomicReferenceArray", LOAD_CLASS, LOAD_CLASS, true),
 

@@ -22,6 +22,7 @@ import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstr
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadLibrary9Class_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadPlatformClassDoesExist;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadPlatformClassDoesNotExist_NoFilter8_Filter9;
+import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadPlatformXAException;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testPlatformService;
 import static io.openliberty.classloading.classpath.fat.FATSuite.APP_PARENT_TEST_SERVER;
 import static io.openliberty.classloading.classpath.fat.FATSuite.TEST_PLATFORM_DELEGATION_APP;
@@ -91,6 +92,8 @@ public class AppParentDelegationDefaultTest extends AppParentDelegationAbstractT
                 return testLoadKernelClass_Found_NoFilter8_NoFilter9;
             case "testPlatformService":
                 return testPlatformService;
+            case "testLoadPlatformXAException":
+                return testLoadPlatformXAException;
             default:
                fail("Unknown test method: " + testMethod);
         }

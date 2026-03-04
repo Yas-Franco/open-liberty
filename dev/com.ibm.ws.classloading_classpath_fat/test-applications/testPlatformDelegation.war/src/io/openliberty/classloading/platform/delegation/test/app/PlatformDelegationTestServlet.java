@@ -106,6 +106,16 @@ public class PlatformDelegationTestServlet extends FATServlet{
     }
 
     @Test
+    public void testLoadPlatformXAException() throws ClassNotFoundException {
+        try {
+            Class.forName("javax.transaction.xa.XAException");
+            System.out.println("testLoadPlatformXAException: CLASS FOUND");
+        } catch (ClassNotFoundException e) {
+            System.out.println("testLoadPlatformXAException: CLASS NOT FOUND");
+        }
+    }
+
+    @Test
     public void testGetPlatformResourceDoesNotExist() {
         // look for a resource from java/lang that doesn't exist
         assertNull("/java/lang/platform-delegation-test.txt", getClass().getResource("/java/lang/platform-delegation-test.txt"));

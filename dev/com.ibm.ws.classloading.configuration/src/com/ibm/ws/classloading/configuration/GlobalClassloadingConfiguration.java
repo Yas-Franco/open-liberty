@@ -24,8 +24,14 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.osgi.util.ManifestElement;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
+import org.osgi.framework.Constants;
+import org.osgi.framework.namespace.AbstractWiringNamespace;
+import org.osgi.framework.namespace.PackageNamespace;
+import org.osgi.framework.wiring.BundleCapability;
+import org.osgi.framework.wiring.BundleWiring;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
@@ -85,7 +91,7 @@ public class GlobalClassloadingConfiguration {
     private final AtomicBoolean issuedClassLoaderParentPackagesBetaMessage = new AtomicBoolean(false);
     private volatile boolean useJarUrls = false;
     private volatile LibraryPrecedence libraryPrecedence = LibraryPrecedence.afterApp;
-    private volatile JVMPackages jvmPackages = new JVMPackages(null, null, null);
+    private volatile JVMPackages jvmPackages = new JVMPackages(null, null, null, null);
 
     @Activate
     protected void activate(BundleContext context, Map<String, Object> properties) {
@@ -101,9 +107,36 @@ public class GlobalClassloadingConfiguration {
                 parentPackagesProp = null;
             }
         }
-        jvmPackages = new JVMPackages(parentProp, parentPackagesProp, context.getProperty(BootstrapConstants.INITPROP_BOOT_PACKAGES));
+        Set<String> mandatoryPackages = findSystemMandatoryPackages(parentPackagesProp, context.getBundle(Constants.SYSTEM_BUNDLE_LOCATION));
+        jvmPackages = new JVMPackages(parentProp, parentPackagesProp, context.getProperty(BootstrapConstants.INITPROP_BOOT_PACKAGES), mandatoryPackages);
 
         modified(properties);
+    }
+
+    /**
+     * @param parentPackagesProp
+     * @return
+     */
+    private Set<String> findSystemMandatoryPackages(String parentPackagesProp, Bundle systemBundle) {
+        BundleWiring systemWiring = systemBundle == null ? null : systemBundle.adapt(BundleWiring.class);
+        if (systemWiring == null) {
+            return Collections.emptySet();
+        }
+        // we only expect one package: javax.transaction.xa
+        Set<String> result = new HashSet<>(1);
+        for (BundleCapability export : systemWiring.getCapabilities(PackageNamespace.PACKAGE_NAMESPACE)) {
+            if (export.getDirectives().get(AbstractWiringNamespace.CAPABILITY_MANDATORY_DIRECTIVE) != null) {
+                // We don't care what the mandatory directive value is.  If it is anything but null
+                // we added the package name to the parent packages list to avoid filtering it.
+                result.add((String) export.getAttributes().get(PackageNamespace.PACKAGE_NAMESPACE));
+            }
+        }
+        if (result.size() == 1) {
+            // optimize the expected case with only javax.transaction.xa
+            result = Collections.singleton(result.iterator().next());
+        }
+        return result;
+
     }
 
     private static String getPropAndIssueBetaMessages(BundleContext context, String propKey, AtomicBoolean issueBetaMessage) {
@@ -170,8 +203,9 @@ public class GlobalClassloadingConfiguration {
         private final ParentConfig parentConfig;
         private final ClassLoader parentCL;
         private final Set<String> parentPackages;
+        private final Set<String> mandatoryPackages;
 
-        public JVMPackages(String parentProp, String parentPackagesProp, String bootPackages) {
+        public JVMPackages(String parentProp, String parentPackagesProp, String bootPackages, Set<String> mandatoryPackages) {
             Set<String> extraPackages = null;
             if (parentPackagesProp != null) {
                 extraPackages = new HashSet<String>();
@@ -193,6 +227,7 @@ public class GlobalClassloadingConfiguration {
             parentConfig = result;
             parentCL = parentConfig == ParentConfig.PLATFORM ? GlobalClassloadingConfiguration.platformClassLoader : ClassLoader.getSystemClassLoader();
             parentPackages = discoverParentPackages(parentConfig, bootPackages, extraPackages);
+            this.mandatoryPackages = mandatoryPackages == null ? Collections.emptySet() : mandatoryPackages;
         }
 
         /**
@@ -354,17 +389,41 @@ public class GlobalClassloadingConfiguration {
                 // filter nothing
                 return false;
             }
-            if (parentPackages.isEmpty()) {
-                // filter everything
-                return true;
-            }
-            // filter any package not in the parentPackages set
             int lastDot = className.lastIndexOf('.');
             if (lastDot > 0) {
                 String packageName = className.substring(0, lastDot);
-                return !parentPackages.contains(packageName);
+                return filterPackage(packageName);
             }
+            // must be the default package; don't filter
             return false;
+        }
+
+        private boolean filterPackageResource(String resName) {
+            if (parentPackages == null) {
+                // filter nothing
+                return false;
+            }
+            int begin = ((resName.length() > 1) && (resName.charAt(0) == '/')) ? 1 : 0;
+            int end = resName.lastIndexOf('/'); /* index of last slash */
+            if (end > begin) {
+                String packageName = resName.substring(begin, end).replace('/', '.');
+                return filterPackage(packageName);
+            }
+            // must be the default package; don't filter
+            return false;
+        }
+
+        private boolean filterPackage(String packageName) {
+            if (mandatoryPackages.contains(packageName)) {
+                // never filter mandatory packages
+                return false;
+            }
+            if (parentPackages.isEmpty()) {
+                // filter everything else
+                return true;
+            }
+            // or filter anything else not in the parentPackages set
+            return !parentPackages.contains(packageName);
         }
 
         public URL getResource(String resName) {
@@ -391,25 +450,6 @@ public class GlobalClassloadingConfiguration {
                 Tr.debug(tc, "getResources: getting resources from gateway parent: " + resName);
             }
             return parentCL.getResources(resName);
-        }
-
-        private boolean filterPackageResource(String resName) {
-            if (parentPackages == null) {
-                // filter nothing
-                return false;
-            }
-            if (parentPackages.isEmpty()) {
-                // filter everything
-                return true;
-            }
-            // filter any package not in the parentPackages set
-            int begin = ((resName.length() > 1) && (resName.charAt(0) == '/')) ? 1 : 0;
-            int end = resName.lastIndexOf('/'); /* index of last slash */
-            if (end > begin) {
-                String packageName = resName.substring(begin, end).replace('/', '.');
-                return !parentPackages.contains(packageName);
-            }
-            return false;
         }
     }
 
