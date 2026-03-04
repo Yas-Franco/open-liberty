@@ -14,7 +14,7 @@ src: \
 	fat/src,\
 	test-applications/concurrent/src
 
-tested.features: concurrent-3.0, servlet-6.0, servlet-6.1
+tested.features: concurrent-3.0, concurrent-3.1, servlet-6.0, servlet-6.1
 
 fat.project: true
 

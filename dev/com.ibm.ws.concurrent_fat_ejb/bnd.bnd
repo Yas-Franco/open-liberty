@@ -23,4 +23,4 @@ fat.project: true
 	com.ibm.websphere.javaee.servlet.3.1;version=latest,\
 	com.ibm.websphere.javaee.transaction.1.1;version=latest
 
-tested.features=concurrent-2.0,servlet-5.0,enterpriseBeansLite-4.0,jndi-1.0,concurrent-3.0,servlet-6.0,servlet-6.1
+tested.features=concurrent-2.0,servlet-5.0,enterpriseBeansLite-4.0,jndi-1.0,concurrent-3.0,servlet-6.0,concurrent-3.1,servlet-6.1
