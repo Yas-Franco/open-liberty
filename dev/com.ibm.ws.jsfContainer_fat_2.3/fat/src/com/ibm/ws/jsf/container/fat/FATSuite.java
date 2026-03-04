@@ -79,7 +79,7 @@ public class FATSuite extends TestContainerSuite {
             // Skip the EE9 repeat on the windows platform when not running locally.
             // For Windows,
             //    if the Java version is = 11 EE10 will be lite mode and EmptyAction and EE10 will be full mode.
-            //        Currently no testing is done with Java versions >11 < 17.
+            //        Currently no testing is done with Java versions > 11 < 17.
             //    if the Java version is >= 17 EE11 will be lite mode and EmptyAction and EE11 will be full mode.
             if (isWindows && !FATRunner.FAT_TEST_LOCALRUN) {
                 repeat = RepeatTests.with(new EmptyAction().fullFATOnly())
