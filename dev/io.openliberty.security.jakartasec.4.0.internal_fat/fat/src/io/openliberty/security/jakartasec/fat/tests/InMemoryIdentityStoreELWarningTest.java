@@ -35,11 +35,12 @@ import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
+import inmemory.identity.store.ELExceptionInMemoryIdentityStoreApplication;
 import inmemory.identity.store.InMemoryIdentityStoreProtectedResource;
-import inmemory.identity.store.InvalidInMemoryIdentityStoreApplication;
 
 /**
- * Tests an invalid priorityExpression in InMemoryIdentityStoreDefinition
+ * Tests the invalid priorityExpression: "SOME RUBBISH" in InMemoryIdentityStoreDefinition
+ * Value cannot be resolved to a property so it throws an ELException in the InMemoryIdentityStoreDefinitionWrapper and should be caught with a warning shown
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
@@ -47,7 +48,7 @@ public class InMemoryIdentityStoreELWarningTest extends BaseJakartaSecurity40Tes
 
     private static final Class<?> c = InMemoryIdentityStoreELWarningTest.class;
 
-    public static final String APP_NAME = "IdentityStore";
+    public static final String APP_NAME = "InvalidIdentityStore";
     private static final String CONTEXT_ROOT = "/" + APP_NAME;
     private static final String RESOURCE_PATH = "/resource/test";
 
@@ -76,7 +77,7 @@ public class InMemoryIdentityStoreELWarningTest extends BaseJakartaSecurity40Tes
 
         // Create the web application
         WebArchive app = ShrinkWrap.create(WebArchive.class,
-                                           APP_NAME + ".war").addClass(InvalidInMemoryIdentityStoreApplication.class).addClass(InMemoryIdentityStoreProtectedResource.class).addAsWebInfResource(new File("test-applications/inmemory/WEB-INF/web.xml"));
+                                           APP_NAME + ".war").addClass(ELExceptionInMemoryIdentityStoreApplication.class).addClass(InMemoryIdentityStoreProtectedResource.class).addAsWebInfResource(new File("test-applications/inmemory/WEB-INF/web.xml"));
 
         ShrinkHelper.exportDropinAppToServer(server, app, DeployOptions.SERVER_ONLY);
 

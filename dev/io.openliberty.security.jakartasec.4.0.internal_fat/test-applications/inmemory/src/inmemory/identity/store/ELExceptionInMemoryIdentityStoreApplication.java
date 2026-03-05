@@ -28,7 +28,7 @@ import jakarta.ws.rs.core.Application;
 @BasicAuthenticationMechanismDefinition(realmName = "InMemoryIdentityStoreRealm")
 @InMemoryIdentityStoreDefinition(
                                  priority = 10,
-                                 priorityExpression = "SOME RUBBISH", // Gives warning and defaults to 1
+                                 priorityExpression = "SOME RUBBISH", // Gives warning and defaults to 1. Cannot be resolved to a property so it throws an ELException in the InMemoryIdentityStoreDefinitionWrapper
                                  useFor = { VALIDATE, PROVIDE_GROUPS },
                                  value = {
                                            // Plain text password - valid groups
@@ -38,5 +38,5 @@ import jakarta.ws.rs.core.Application;
                                                         groups = { "caller", "user" }),
                                  })
 @ApplicationPath("/")
-public class InvalidInMemoryIdentityStoreApplication extends Application {
+public class ELExceptionInMemoryIdentityStoreApplication extends Application {
 }
