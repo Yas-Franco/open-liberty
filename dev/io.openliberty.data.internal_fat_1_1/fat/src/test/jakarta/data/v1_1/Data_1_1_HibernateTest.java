@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025,2026 IBM Corporation and others.
+ * Copyright (c) 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -34,7 +34,7 @@ import test.jakarta.data.v1_1.web.Data_1_1_Servlet;
 
 @RunWith(FATRunner.class)
 @MinimumJavaLevel(javaLevel = 21)
-public class Data_1_1_Test extends FATServletClient {
+public class Data_1_1_HibernateTest extends FATServletClient {
     /**
      * Error messages, typically for invalid repository methods, that are
      * intentionally caused by tests to cover error paths.
@@ -50,7 +50,7 @@ public class Data_1_1_Test extends FATServletClient {
     public static final JdbcDatabaseContainer<?> testContainer = //
                     DatabaseContainerFactory.createLatest();
 
-    @Server("io.openliberty.data.internal.fat.1.1")
+    @Server("io.openliberty.data.internal.fat.1.1.hibernate")
     @TestServlets({ @TestServlet(servlet = Data_1_1_Servlet.class,
                                  contextRoot = "Data_1_1_App")
     })
@@ -67,9 +67,12 @@ public class Data_1_1_Test extends FATServletClient {
 
         WebArchive war = ShrinkHelper
                         .buildDefaultApp("Data_1_1_App",
-                                         "test.jakarta.data.v1_1.eclipselink",
+                                         "test.jakarta.data.v1_1.hibernate",
                                          "test.jakarta.data.v1_1.web");
         ShrinkHelper.exportAppToServer(server, war);
+
+        server.addEnvVar("TEST_HIBERNATE", "true");
+
         server.startServer();
     }
 
