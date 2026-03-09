@@ -43,7 +43,9 @@ public class DSDTest extends FATServletClient {
 
     /*@formatter:off*/
     @ClassRule
-    public static RepeatTests r = RepeatTests.with(FeatureReplacementAction.EE7_FEATURES().fullFATOnly().forServers("com.ibm.ws.injection.fat.DSDServer"))
+    public static RepeatTests r = RepeatTests.with(FeatureReplacementAction.EE7_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("com.ibm.ws.injection.fat.DSDServer"))
                                     .andWith(FeatureReplacementAction.EE8_FEATURES()
                                                     .forServers("com.ibm.ws.injection.fat.DSDServer"))
                                     .andWith(FeatureReplacementAction.EE9_FEATURES()
