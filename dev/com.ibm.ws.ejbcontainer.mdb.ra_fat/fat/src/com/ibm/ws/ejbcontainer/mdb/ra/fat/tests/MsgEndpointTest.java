@@ -49,18 +49,18 @@ public class MsgEndpointTest extends FATServletClient {
     /*@formatter:off*/
     @ClassRule
     public static RepeatTests r = RepeatTests.with(FeatureReplacementAction.EE7_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("ejbcontainer.mdb.ra.fat.MsgEndpointServer"))
-                                   .andWith(FeatureReplacementAction.EE8_FEATURES()
-                                                   .forServers("ejbcontainer.mdb.ra.fat.MsgEndpointServer"))
-                                   .andWith(FeatureReplacementAction.EE9_FEATURES()
-                                                   .conditionalFullFATOnly(FeatureReplacementAction.GREATER_THAN_OR_EQUAL_JAVA_11)
-                                                   .forServers("ejbcontainer.mdb.ra.fat.MsgEndpointServer"))
-                                   .andWith(FeatureReplacementAction.EE10_FEATURES()
-                                                   .conditionalFullFATOnly(FeatureReplacementAction.GREATER_THAN_OR_EQUAL_JAVA_17)
-                                                   .forServers("ejbcontainer.mdb.ra.fat.MsgEndpointServer"))
-                                   .andWith(FeatureReplacementAction.EE11_FEATURES()
-                                                   .forServers("ejbcontainer.mdb.ra.fat.MsgEndpointServer"));
+                                                    .fullFATOnly()
+                                                    .forServers("ejbcontainer.mdb.ra.fat.MsgEndpointServer"))
+                                    .andWith(FeatureReplacementAction.EE8_FEATURES()
+                                                    .forServers("ejbcontainer.mdb.ra.fat.MsgEndpointServer"))
+                                    .andWith(FeatureReplacementAction.EE9_FEATURES()
+                                                    .conditionalFullFATOnly(FeatureReplacementAction.GREATER_THAN_OR_EQUAL_JAVA_11)
+                                                    .forServers("ejbcontainer.mdb.ra.fat.MsgEndpointServer"))
+                                    .andWith(FeatureReplacementAction.EE10_FEATURES()
+                                                    .conditionalFullFATOnly(FeatureReplacementAction.GREATER_THAN_OR_EQUAL_JAVA_17)
+                                                    .forServers("ejbcontainer.mdb.ra.fat.MsgEndpointServer"))
+                                    .andWith(FeatureReplacementAction.EE11_FEATURES()
+                                                    .forServers("ejbcontainer.mdb.ra.fat.MsgEndpointServer"));
     /*@formatter:on*/
 
     @BeforeClass

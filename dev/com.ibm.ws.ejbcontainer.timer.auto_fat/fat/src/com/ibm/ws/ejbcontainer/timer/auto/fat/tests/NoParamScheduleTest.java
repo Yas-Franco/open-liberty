@@ -51,19 +51,19 @@ public class NoParamScheduleTest extends FATServletClient {
     /*@formatter:off*/
     @ClassRule
     public static RepeatTests r = RepeatTests.with(FeatureReplacementAction.EE7_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("AutoNPTimerNoParamServer"))
-                                   .andWith(FeatureReplacementAction.EE8_FEATURES()
-                                                   .forServers("AutoNPTimerNoParamServer"))
-                                   .andWith(FeatureReplacementAction.EE9_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("AutoNPTimerNoParamServer"))
-                                   .andWith(FeatureReplacementAction.EE10_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("AutoNPTimerNoParamServer"))
-                                   .andWith(FeatureReplacementAction.EE11_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("AutoNPTimerNoParamServer"));
+                                                    .fullFATOnly()
+                                                    .forServers("AutoNPTimerNoParamServer"))
+                                    .andWith(FeatureReplacementAction.EE8_FEATURES()
+                                                    .forServers("AutoNPTimerNoParamServer"))
+                                    .andWith(FeatureReplacementAction.EE9_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("AutoNPTimerNoParamServer"))
+                                    .andWith(FeatureReplacementAction.EE10_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("AutoNPTimerNoParamServer"))
+                                    .andWith(FeatureReplacementAction.EE11_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("AutoNPTimerNoParamServer"));
     /*@formatter:on*/
 
     @BeforeClass

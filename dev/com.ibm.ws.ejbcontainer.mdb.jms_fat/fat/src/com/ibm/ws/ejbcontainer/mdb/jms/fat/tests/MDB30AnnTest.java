@@ -41,19 +41,19 @@ public class MDB30AnnTest extends FATServletClient {
     /*@formatter:off*/
     @ClassRule
     public static RepeatTests r = RepeatTests.with(FeatureReplacementAction.EE7_FEATURES()
-                                                   .forServers("ejbcontainer.mdb.jms.fat.mdb30.ann"))
-                                   .andWith(FeatureReplacementAction.EE8_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("ejbcontainer.mdb.jms.fat.mdb30.ann"))
-                                   .andWith(FeatureReplacementAction.EE9_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("ejbcontainer.mdb.jms.fat.mdb30.ann"))
-                                   .andWith(FeatureReplacementAction.EE10_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("ejbcontainer.mdb.jms.fat.mdb30.ann"))
-                                   .andWith(FeatureReplacementAction.EE11_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("ejbcontainer.mdb.jms.fat.mdb30.ann"));
+                                                    .forServers("ejbcontainer.mdb.jms.fat.mdb30.ann"))
+                                    .andWith(FeatureReplacementAction.EE8_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("ejbcontainer.mdb.jms.fat.mdb30.ann"))
+                                    .andWith(FeatureReplacementAction.EE9_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("ejbcontainer.mdb.jms.fat.mdb30.ann"))
+                                    .andWith(FeatureReplacementAction.EE10_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("ejbcontainer.mdb.jms.fat.mdb30.ann"))
+                                    .andWith(FeatureReplacementAction.EE11_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("ejbcontainer.mdb.jms.fat.mdb30.ann"));
     /*@formatter:on*/
 
     @BeforeClass

@@ -51,19 +51,19 @@ public class AutomaticNPTimerContextPropTest extends FATServletClient {
     /*@formatter:off*/
     @ClassRule
     public static RepeatTests r = RepeatTests.with(FeatureReplacementAction.EE7_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("AutoNPTimerContextPropServer"))
-                                   .andWith(FeatureReplacementAction.EE8_FEATURES()
-                                                   .forServers("AutoNPTimerContextPropServer"))
-                                   .andWith(FeatureReplacementAction.EE9_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("AutoNPTimerContextPropServer"))
-                                   .andWith(FeatureReplacementAction.EE10_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("AutoNPTimerContextPropServer"))
-                                   .andWith(FeatureReplacementAction.EE11_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("AutoNPTimerContextPropServer"));
+                                                    .fullFATOnly()
+                                                    .forServers("AutoNPTimerContextPropServer"))
+                                    .andWith(FeatureReplacementAction.EE8_FEATURES()
+                                                    .forServers("AutoNPTimerContextPropServer"))
+                                    .andWith(FeatureReplacementAction.EE9_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("AutoNPTimerContextPropServer"))
+                                    .andWith(FeatureReplacementAction.EE10_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("AutoNPTimerContextPropServer"))
+                                    .andWith(FeatureReplacementAction.EE11_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("AutoNPTimerContextPropServer"));
     /*@formatter:on*/
 
     @BeforeClass

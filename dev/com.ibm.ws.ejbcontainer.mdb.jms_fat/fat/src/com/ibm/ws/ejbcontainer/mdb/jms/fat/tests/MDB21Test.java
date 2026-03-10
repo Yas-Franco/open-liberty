@@ -44,18 +44,18 @@ public class MDB21Test extends FATServletClient {
     /*@formatter:off*/
     @ClassRule
     public static RepeatTests r = RepeatTests.with(FeatureReplacementAction.EE7_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("ejbcontainer.mdb.jms.fat.mdb21"))
-                                   .andWith(FeatureReplacementAction.EE8_FEATURES()
-                                                   .forServers("ejbcontainer.mdb.jms.fat.mdb21"))
-                                   .andWith(FeatureReplacementAction.EE9_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("ejbcontainer.mdb.jms.fat.mdb21"))
-                                   .andWith(FeatureReplacementAction.EE10_FEATURES()
-                                                   .fullFATOnly()
-                                                   .forServers("ejbcontainer.mdb.jms.fat.mdb21"))
-                                   .andWith(FeatureReplacementAction.EE11_FEATURES()
-                                                   .forServers("ejbcontainer.mdb.jms.fat.mdb21"));
+                                                    .fullFATOnly()
+                                                    .forServers("ejbcontainer.mdb.jms.fat.mdb21"))
+                                    .andWith(FeatureReplacementAction.EE8_FEATURES()
+                                                    .forServers("ejbcontainer.mdb.jms.fat.mdb21"))
+                                    .andWith(FeatureReplacementAction.EE9_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("ejbcontainer.mdb.jms.fat.mdb21"))
+                                    .andWith(FeatureReplacementAction.EE10_FEATURES()
+                                                    .fullFATOnly()
+                                                    .forServers("ejbcontainer.mdb.jms.fat.mdb21"))
+                                    .andWith(FeatureReplacementAction.EE11_FEATURES()
+                                                    .forServers("ejbcontainer.mdb.jms.fat.mdb21"));
     /*@formatter:on*/
 
     @BeforeClass
