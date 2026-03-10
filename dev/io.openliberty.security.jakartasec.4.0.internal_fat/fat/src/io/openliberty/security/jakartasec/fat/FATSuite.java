@@ -30,7 +30,6 @@ import io.openliberty.security.jakartasec.fat.tests.SingleHAMInbuiltCustomQualif
 
 @RunWith(Suite.class)
 @SuiteClasses({
-
                 AlwaysPassesTest.class,
                 MultipleHAMCustomTests.class,
                 MultipleHAMDuplicateTests.class,

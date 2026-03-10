@@ -43,7 +43,7 @@ import componenttest.topology.impl.LibertyServer;
 
 /**
  * Tests for InMemoryIdentityStore enabling element on server configuration.
- * Tests several scenarios of server configuration files
+ * Tests several scenarios with specific server configuration files
  * (missing element, existing element set to false/true).
  */
 @RunWith(FATRunner.class)
@@ -105,10 +105,11 @@ public class InMemoryIdentityStoreEnablementTests extends BaseJakartaSecurity40T
     }
 
     /**
-     * Test that the specified in-memory identity store is enabled when having the required element in the config file.
-     * A custom server configuration is used with allowInMemoryIdentityStores = true
+     * Test that the the specified in-memory identity store is only involved in the authentication work flow
+     * if it is explicitly enabled in the server.xml via the new attribute allowInMemoryIdentityStores
+     * under the existing webAppSecurity element.
+     * A custom server configuration is used with allowInMemoryIdentityStores = true.
      * Test the log file output for in-memory store usage warning for sanity.
-     * This should only ever appear once upon the first invocation of authentication against the in memory identity store data.
      */
     @Test
     public void testInMemStoreIsAllowed() throws Exception {
@@ -122,34 +123,36 @@ public class InMemoryIdentityStoreEnablementTests extends BaseJakartaSecurity40T
     }
 
     /**
-     * Test that the specified in-memory identity store is not enable (by default) when the required element is missing in the config.
-     * A custom server configuration is used with no such element specified
+     * Test that the specified in-memory identity store is not used during the authentication process
+     * when the use of this store is not enabled via server XML configuration.
+     * A custom server configuration is used with no such element specified (defaulted to false if missing)
      */
     //@Test
     public void testInMemStoreNotAllowedIfElementIsAbsent() throws Exception {
-        logInfo("testInMemStoreNotAllowedIfElementIsAbsent", "Testing that in-mem identity store is not enabled when element is missing");
+        logInfo("testInMemStoreNotAllowedIfElementIsAbsent", "Testing that in-mem identity store is not allowed when element is missing");
 
         // Replace the server configuration file with the test case
         updateServerConfiguration(SERVER_XML_ID_STORE_MISSING_ELEMENT);
 
-        // Should get 401 since in-memory id-store is not enabled
+        // Should get 401 since in-memory id-store is not involved in authentication
         executeGetRequest(url, USER_THEO, VALID_PASSWORD, 401);
 
         logInfo("testInMemStoreNotAllowedIfElementIsAbsent", "Test passed");
     }
 
     /**
-     * Test that a specified server configuration will restrict the use of the store
-     * A custom server configuration is used with allowInMemoryIdentityStores = false
+     * Test that the specified in-memory identity store is not used during the authentication process
+     * when the use of this store is not enabled via server XML configuration.
+     * A custom server configuration is used with allowInMemoryIdentityStores = false.
      */
     //@Test
     public void testInMemStoreCustomConfigIsNotAllowed() throws Exception {
-        logInfo("testInMemStoreCustomConfigIsNotAllowed", "Testing that in-mem identity store is not allow by the custom config file");
+        logInfo("testInMemStoreCustomConfigIsNotAllowed", "Testing that in-mem identity store is not allowed when element is set to false");
 
         // Replace the server configuration file with the test case
         updateServerConfiguration(SERVER_XML_ID_STORE_DISABLED);
 
-        // Perform successful authentication
+        // Should get 401 since in-memory id-store is not involved in authentication
         executeGetRequest(url, USER_JASMINE, VALID_PASSWORD, 401);
 
         // Check that no unexpected error messages appear
@@ -162,7 +165,7 @@ public class InMemoryIdentityStoreEnablementTests extends BaseJakartaSecurity40T
 //                       logContent.contains(PRODUCTION_USE_WARNING_MSG));
 //        }
 
-        logInfo("testInMemStoreCustomConfigIsNotAllowed", "Test passed - no unexpected errors");
+        logInfo("testInMemStoreCustomConfigIsNotAllowed", "Test passed");
     }
 
     /**
