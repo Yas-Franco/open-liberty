@@ -9,6 +9,8 @@
  *******************************************************************************/
 package com.ibm.ws.jpa.jpa32;
 
+import java.util.HashSet;
+
 import org.jboss.shrinkwrap.api.Filters;
 import org.jboss.shrinkwrap.api.GenericArchive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -20,6 +22,11 @@ import org.junit.runner.RunWith;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import com.ibm.websphere.simplicity.ShrinkHelper;
+import com.ibm.websphere.simplicity.config.Application;
+import com.ibm.websphere.simplicity.config.ClassloaderElement;
+import com.ibm.websphere.simplicity.config.ConfigElementList;
+import com.ibm.websphere.simplicity.config.ServerConfiguration;
+import com.ibm.ws.testtooling.database.DatabaseVendor;
 import com.ibm.ws.jpa.FATSuite;
 
 import componenttest.annotation.MinimumJavaLevel;
@@ -55,6 +62,8 @@ public class JakartaDataRecreateTest {
     public static void setUp() throws Exception {
         PrivHelper.generateCustomPolicy(server, PrivHelper.JAXB_PERMISSION);
 
+        server.addEnvVar("repeat_phase", AbstractFATSuite.repeatPhase);
+
         //Get driver name
         server.addEnvVar("DB_DRIVER", DatabaseContainerType.valueOf(testContainer).getDriverName());
 
@@ -74,7 +83,25 @@ public class JakartaDataRecreateTest {
         app.merge(ShrinkWrap.create(GenericArchive.class).as(ExplodedImporter.class).importDirectory(resPath).as(GenericArchive.class),
                   "/",
                   Filters.includeAll());
-        ShrinkHelper.exportDropinAppToServer(server, app);
+        ShrinkHelper.exportAppToServer(server, app);
+        
+        Application appRecord = new Application();
+        appRecord.setLocation(APP_NAME + "_" + specLevel + ".war");
+        appRecord.setName(APP_NAME + "_" + specLevel);
+
+        // setup the thirdparty classloader for Hibernate
+        if (AbstractFATSuite.repeatPhase != null && AbstractFATSuite.repeatPhase.contains("hibernate")) {
+            ConfigElementList<ClassloaderElement> cel = appRecord.getClassloaders();
+            ClassloaderElement loader = new ClassloaderElement();
+            loader.getCommonLibraryRefs().add("HibernateLib");
+            cel.add(loader);
+        }
+        
+        ServerConfiguration sc = server.getServerConfiguration();
+        sc.getApplications().add(appRecord);
+        server.updateServerConfiguration(sc);
+        server.saveServerConfiguration();
+
     }
 
     @AfterClass

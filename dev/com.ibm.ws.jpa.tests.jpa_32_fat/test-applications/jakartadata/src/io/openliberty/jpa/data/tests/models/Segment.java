@@ -9,6 +9,8 @@
  *******************************************************************************/
 package io.openliberty.jpa.data.tests.models;
 
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Embedded;
@@ -27,11 +29,17 @@ public class Segment {
     public Long id;
 
     @Embedded
-    @Column(nullable = false)
+    @AttributeOverrides({
+        @AttributeOverride(name = "x", column = @Column(name = "pointA_x", nullable = false)),
+        @AttributeOverride(name = "y", column = @Column(name = "pointA_y", nullable = false))
+    })
     public Point pointA;
 
     @Embedded
-    @Column(nullable = false)
+    @AttributeOverrides({
+        @AttributeOverride(name = "x", column = @Column(name = "pointB_x", nullable = false)),
+        @AttributeOverride(name = "y", column = @Column(name = "pointB_y", nullable = false))
+    })
     public Point pointB;
 
     @Embeddable
