@@ -217,6 +217,20 @@ public abstract class AbstractJPAProviderIntegration implements JPAProviderInteg
                         Tr.debug(this, tc, "Unable to provide JtaPlatform for Liberty TransactionManager to Hibernate", x);
                 }
             }
+            /*
+             * Disable Hibernate's dirty tracking enhancement for JPA 3.2 to make use of snapshot comparison.
+             * Only set this property if not already configured by the user in persistence.xml or server.xml.
+             */
+            if(JPAAccessor.getJPAComponent().getJPAVersion().equals(JPAVersion.JPA32)){
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                    Tr.debug(this, tc, "Current JPA version is JPA 3.2");
+                Properties properties = puInfo.getProperties();
+                if (null!= properties && !properties.containsKey("hibernate.enhancer.enableDirtyTracking")) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                    Tr.debug(this, tc, "Setting hibernate.enhancer.enableDirtyTracking to false for JPA 3.2");
+                    props.put("hibernate.enhancer.enableDirtyTracking", "false");
+                }
+            }  
         }
 
         // Log third party provider name and version info once per provider
