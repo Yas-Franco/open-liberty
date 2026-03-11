@@ -237,7 +237,6 @@ public class LibertyServiceImpl extends ServiceImpl {
             }
         }
         if(loggingFeatureNotAdded && !(TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()))       {
-            Tr.debug(tc, "Common:Trace is disabled through interceptors.");
             AbstractLoggingInterceptor.setDisableLogging(true);
         } else {
             Tr.debug(tc, "Common:Trace is enabled through interceptors.");

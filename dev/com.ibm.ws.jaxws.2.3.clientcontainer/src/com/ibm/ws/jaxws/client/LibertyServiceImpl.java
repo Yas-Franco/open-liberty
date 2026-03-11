@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -130,7 +130,7 @@ public class LibertyServiceImpl extends ServiceImpl {
 
     /**
      * Add the LibertyCustomizeBindingOutInterceptor in the out interceptor chain.
-     * 
+     *
      * @param client
      * @param portName
      */
@@ -153,10 +153,9 @@ public class LibertyServiceImpl extends ServiceImpl {
         }
 
         if (!(TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())) {
-            Tr.info(tc, "Client:Trace is disabled through interceptors.");
             AbstractLoggingInterceptor.setDisableLogging(true);
         } else {
-            Tr.info(tc, "Client:Trace is enabled through interceptors.");
+            Tr.debug(tc, "Client:Trace is enabled through interceptors.");
             AbstractLoggingInterceptor.setDisableLogging(false);
         }
 
@@ -229,7 +228,7 @@ public class LibertyServiceImpl extends ServiceImpl {
 
     /**
      * merge the serviceRef properties and port properties, and update the merged properties in the configAdmin service.
-     * 
+     *
      * @param configAdmin
      * @param serviceRefProps
      * @param portProps
@@ -276,10 +275,10 @@ public class LibertyServiceImpl extends ServiceImpl {
 
     /**
      * Extract the properties according to the property prefix.
-     * 
+     *
      * @param propertyPrefix
      * @param properties
-     * @param removeProps if is true, will remove the properties that have be extracted.
+     * @param removeProps    if is true, will remove the properties that have be extracted.
      * @return
      */
     protected Map<String, String> extract(String propertyPrefix, Map<String, String> properties, boolean removeProps) {
@@ -306,7 +305,7 @@ public class LibertyServiceImpl extends ServiceImpl {
 
     /**
      * Extract the properties according to the property prefix, will remove the extracted properties from original properties.
-     * 
+     *
      * @param propertyPrefix
      * @param properties
      * @return

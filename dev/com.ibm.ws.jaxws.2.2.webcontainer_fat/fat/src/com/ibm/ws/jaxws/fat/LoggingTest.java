@@ -97,13 +97,13 @@ public class LoggingTest {
         String result = null;
         // Positive test proxy
         result = invokeServlet("proxy");
-        assertTrue("Expected response is not received, obtained result: " + result, result.equals("Hello World"));
-        assertNotNull("Logging Feature enablement is failed for proxy!", server.waitForStringInLog("<return>Hello World</return>"));
+        assertTrue("Proxy with trace: Expected response is not received, obtained result: " + result, result.equals("Hello World"));
+        assertNotNull("Proxy with trace: Logging Feature enablement failed!", server.waitForStringInLog("<return>Hello World</return>"));
 
         // Positive test dispatch
         result = invokeServlet("dispatch");
-        assertTrue("Dispatch invoke failed, obtained result: " + result, result.equals("Dispatch invoke success: true"));
-        assertNotNull("Logging Feature enablement is failed for dispatch!", server.waitForStringInLog("<return>Hello from dispatch World</return>"));
+        assertTrue("Dispatch with trace: Expected response is not received, obtained result: " + result, result.equals("Dispatch invoke success: true"));
+        assertNotNull("Dispatch with trace: Logging Feature enablement failed!", server.waitForStringInLog("<return>Hello from dispatch World</return>"));
 
         // *********************
         // *** Disable trace ***
@@ -113,13 +113,13 @@ public class LoggingTest {
 
         // Negative test proxy
         result = invokeServlet("proxy");
-        assertTrue("Expected response is not received testing dynamic logging, obtained result: " + result, result.equals("Hello World"));
-        assertNull("Dynamic configuration for proxy failed!", server.waitForStringInLog("<return>Hello World</return>"));
+        assertTrue("Proxy without trace: Expected response is not received testing dynamic logging, obtained result: " + result, result.equals("Hello World"));
+        assertNull("Proxy without trace: Dynamic configuration failed!", server.waitForStringInLog("<return>Hello World</return>"));
 
         // Negative test dispatch
         result = invokeServlet("dispatch");
-        assertTrue("Dynamic configuration dispatch invoke failed, obtained result: " + result, result.equals("Dispatch invoke success: true"));
-        assertNull("Dynamic configuration for dispatch failed!", server.waitForStringInLog("<return>Hello World</return>"));
+        assertTrue("Dispatch without trace: Expected response is not received testing dynamic logging, obtained result: " + result, result.equals("Dispatch invoke success: true"));
+        assertNull("Dispatch without trace: Dynamic configuration failed!", server.waitForStringInLog("<return>Hello World</return>"));
 
         // ****************************************************************
         // *** Test enableLoggingInOutInterceptor without trace enabled ***
@@ -129,13 +129,17 @@ public class LoggingTest {
 
         // enableLoggingInOutInterceptor test web service reference
         result = invokeServlet("wsref");
-        assertTrue("Expected response is not received testing enableLoggingInOutInterceptor, obtained result: " + result, result.equals("Hello World"));
-        assertNotNull("EnableLoggingInOutInterceptor configuration for proxy failed", server.waitForStringInLog("<return>Hello World</return>"));
+        assertTrue("Proxy with enableLoggingInOutInterceptor: Expected response is not received, obtained result: " + result,
+                   result.equals("Hello World"));
+        assertNotNull("Proxy with enableLoggingInOutInterceptor: EnableLoggingInOutInterceptor enablement failed!",
+                      server.waitForStringInLog("<return>Hello World</return>"));
 
         // enableLoggingInOutInterceptor test dispatch
         result = invokeServlet("dispatch");
-        assertTrue("EnableLoggingInOutInterceptor configuration dispatch invoke failed, obtained result: " + result, result.equals("Dispatch invoke success: true"));
-        assertNotNull("EnableLoggingInOutInterceptor configuration for dispatch failed!", server.waitForStringInLog("<return>Hello World</return>"));
+        assertTrue("Dispatch with enableLoggingInOutInterceptor: Expected response is not received, obtained result: " + result,
+                   result.equals("Dispatch invoke success: true"));
+        assertNotNull("Dispatch with enableLoggingInOutInterceptor: EnableLoggingInOutInterceptor enablement is failed!",
+                      server.waitForStringInLog("<return>Hello World</return>"));
 
         // ***********************************************************************************
         // *** Test without enableLoggingInOutInterceptor set to true and no trace enabled ***
@@ -145,14 +149,17 @@ public class LoggingTest {
 
         // enableLoggingInOutInterceptor test web service reference
         result = invokeServlet("wsref");
-        assertTrue("Expected response is not received testing enableLoggingInOutInterceptor dynamic configuration, obtained result: " + result, result.equals("Hello World"));
-        assertNull("enableLoggingInOutInterceptor configuration for proxy failed!", server.waitForStringInLog("<return>Hello World</return>"));
+        assertTrue("Proxy without enableLoggingInOutInterceptor: Expected response is not received testing dynamic logging, obtained result: "
+                   + result, result.equals("Hello World"));
+        assertNull("Proxy without enableLoggingInOutInterceptor: Dynamic configuration failed!",
+                   server.waitForStringInLog("<return>Hello World</return>"));
 
         // enableLoggingInOutInterceptor test dispatch
         result = invokeServlet("dispatch");
-        assertTrue("EnableLoggingInOutInterceptor configuration dispatch invoke failed!" + result, result.equals("Dispatch invoke success: true"));
-        assertNull("EnableLoggingInOutInterceptor configuration for dispatch failed!", server.waitForStringInLog("<return>Hello World</return>"));
-
+        assertTrue("Dispatch without enableLoggingInOutInterceptor: Expected response is not received testing dynamic logging, obtained result:" + result,
+                   result.equals("Dispatch invoke success: true"));
+        assertNull("Dispatch without enableLoggingInOutInterceptor: Dynamic configuration failed!",
+                   server.waitForStringInLog("<return>Hello World</return>"));
     }
 
     private String invokeServlet(String webServiceType) throws ProtocolException, IOException {
