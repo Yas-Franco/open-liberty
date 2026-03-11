@@ -114,11 +114,12 @@ public class ZipkinOtelCollectorTest {
 
         // Service + BSP batching config
         server.addEnvVar(TestConstants.ENV_OTEL_SERVICE_NAME, "Test service");
-        server.addEnvVar(TestConstants.ENV_OTEL_BSP_SCHEDULE_DELAY, "100");
         server.addEnvVar(TestConstants.ENV_OTEL_BSP_MAX_EXPORT_BATCH_SIZE, "1");
         server.addEnvVar(TestConstants.ENV_OTEL_SDK_DISABLED, "false");
         server.addEnvVar(TestConstants.ENV_OTEL_TRACES_SAMPLER, "always_on");
 
+        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "30000"); //Add delays and extend timeouts
+        server.addEnvVar(TestConstants.ENV_OTEL_BSP_SCHEDULE_DELAY, "5000");
         // Deploy app
         WebArchive spanTest = ShrinkWrap.create(WebArchive.class, "spanTest.war")
                                         .addPackage(TestResource.class.getPackage());
