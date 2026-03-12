@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, 2026 IBM Corporation and others.
+ * Copyright (c) 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -12,6 +12,6 @@
  */
 @org.osgi.annotation.versioning.Version("1.0")
 @TraceOptions(traceGroup = "Security.Authorization", messageBundle = "com.ibm.ws.security.authorization.jacc.internal.resources.JaccAuthorizationMessages")
-package io.openliberty.security.authorization.jacc.internal.web;
+package io.openliberty.security.authorization.jacc.internal.proxy;
 
 import com.ibm.websphere.ras.annotation.TraceOptions;
