@@ -71,6 +71,7 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import io.openliberty.http.options.HttpOption;
+import io.openliberty.http.options.TcpOption;
 import io.openliberty.netty.internal.BootstrapExtended;
 import io.openliberty.netty.internal.ChannelInitializerWrapper;
 import io.openliberty.netty.internal.exception.NettyException;
@@ -109,12 +110,14 @@ public class NettyHttpRequestorWsoc10 implements HttpRequestor {
     private final Map<String, List<String>> parameterMap = new HashMap<String, List<String>>();
 
     protected Map<String, Object> httpOptions;
+    protected Map<String, Object> tcpOptions;
 
     public NettyHttpRequestorWsoc10(WsocAddress endpointAddress, ClientEndpointConfig config, ParametersOfInterest things) {
         this.endpointAddress = endpointAddress;
         this.config = config;
         this.things = things;
         httpOptions = WsocOutboundChain.getCurrentHttpOptions();
+        tcpOptions = WsocOutboundChain.getCurrentTcpOptions();
     }
 
     @Override
@@ -157,7 +160,7 @@ public class NettyHttpRequestorWsoc10 implements HttpRequestor {
 
     @Override
     public void sendRequest(ParametersOfInterest poi) throws IOException, MessageSentException {
-        access.setTCPConnectionContext(new NettyTCPConnectionContext(connection, null));
+        access.setTCPConnectionContext(new NettyTCPConnectionContext(connection, null, TcpOption.INACTIVITY_TIMEOUT.parse(tcpOptions)));
         access.setDeviceConnLink(new NettyOutboundConnectionLink(connection));
 
         String uriPath = endpointAddress.getURI().getPath();

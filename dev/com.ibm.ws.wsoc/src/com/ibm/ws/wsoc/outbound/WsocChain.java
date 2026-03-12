@@ -212,6 +212,7 @@ public class WsocChain {
         if (currentConfig == null)
             return;
         owner.currentHttpOptions = null;
+        owner.currentTcpOptions = null;
         if (isHttps) {
             owner.secureBootstrap = null;
             owner.currentSSLOptions = null;
@@ -383,6 +384,7 @@ public class WsocChain {
         try {
             nettyBootstrap = nettyBundle.createTCPBootstrapOutbound(tcpOptions);
             owner.currentHttpOptions = httpOptions;
+            owner.currentTcpOptions = tcpOptions;
             if (isHttps) {
                 owner.secureBootstrap = nettyBootstrap;
                 owner.currentSSLOptions = sslOptions;

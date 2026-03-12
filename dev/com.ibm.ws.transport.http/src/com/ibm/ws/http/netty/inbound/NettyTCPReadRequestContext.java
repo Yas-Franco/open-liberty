@@ -69,14 +69,14 @@ public class NettyTCPReadRequestContext implements TCPReadRequestContext {
     private int jitAllocateSize = 0;
 
     private VirtualConnection vc = null;
+    private int channelTimeout;
 
     private volatile Socket cachedSocket;
 
-    public NettyTCPReadRequestContext(NettyTCPConnectionContext connectionContext, Channel nettyChannel) {
-
+    public NettyTCPReadRequestContext(NettyTCPConnectionContext connectionContext, Channel nettyChannel, int channelTimeout) {
         this.connectionContext = connectionContext;
         this.nettyChannel = nettyChannel;
-
+        this.channelTimeout = channelTimeout;
     }
 
     @Override
@@ -181,7 +181,7 @@ public class NettyTCPReadRequestContext implements TCPReadRequestContext {
             if (timeout == NO_TIMEOUT)
                 return readFuture.get();
             else if (timeout == USE_CHANNEL_TIMEOUT)
-                return readFuture.get(60000, TimeUnit.MILLISECONDS);
+                return readFuture.get(channelTimeout, TimeUnit.MILLISECONDS);
             else
                 return readFuture.get(timeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {

@@ -73,6 +73,7 @@ public class WsocOutboundChain {
     protected static BootstrapExtended secureBootstrap;
     protected static Map<String, Object> currentSSLOptions;
     protected static Map<String, Object> currentHttpOptions;
+    protected static Map<String, Object> currentTcpOptions;
 
     public static VirtualConnection getVCFactory(WsocAddress addr) throws ChainException, ChannelException {
         if (addr.isSecure()) {
@@ -100,6 +101,10 @@ public class WsocOutboundChain {
 
     public static Map<String, Object> getCurrentHttpOptions() {
         return currentHttpOptions;
+    }
+
+    public static Map<String, Object> getCurrentTcpOptions() {
+        return currentTcpOptions;
     }
 
     /**

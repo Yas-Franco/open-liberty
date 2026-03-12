@@ -43,12 +43,12 @@ public class NettyTCPConnectionContext implements TCPConnectionContext {
     private final Channel nettyChannel;
     private SSLConnectionContext sslContext;
 
-    public NettyTCPConnectionContext(Channel channel, VirtualConnection vc) {
+    public NettyTCPConnectionContext(Channel channel, VirtualConnection vc, int channelTimeout) {
 
         this.vc = vc;
         this.nettyChannel = channel;
 
-        this.readContext = new NettyTCPReadRequestContext(this, nettyChannel);
+        this.readContext = new NettyTCPReadRequestContext(this, nettyChannel, channelTimeout);
         this.readContext.setVC(this.vc);
         this.writeContext = new NettyTCPWriteRequestContext(this, nettyChannel);
         this.writeContext.setVC(this.vc);
