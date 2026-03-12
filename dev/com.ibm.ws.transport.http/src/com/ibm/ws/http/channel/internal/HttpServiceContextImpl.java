@@ -3108,6 +3108,11 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
                          + headers);
         }
 
+        DefaultFullHttpRequest newRequest = new DefaultFullHttpRequest(nettyRequest.protocolVersion(), HttpMethod.GET, uri);
+        newRequest.headers().set(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text(), nextPromisedStreamId);
+        newRequest.headers().set(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme);
+        HttpUtil.setContentLength(newRequest, 0);
+
         this.nettyContext.channel().eventLoop().execute(() -> {
             ChannelFuture promise = handler.encoder().writePushPromise(nettyContext, currentStreamId, nextPromisedStreamId, headers, 0,
                                                                        new VoidChannelPromise(nettyContext.channel(), true));
@@ -3115,23 +3120,9 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
                         if (future.isSuccess()){
                             // Should we process the new request here when we ensure we wrote out a push promise?
                             // Follow up issue https://github.com/OpenLiberty/open-liberty/issues/31439
+                            nettyContext.pipeline().get(HttpDispatcherHandler.class).channelRead(nettyContext, newRequest);
                         }
                     });
-        });
-
-        DefaultFullHttpRequest newRequest = new DefaultFullHttpRequest(nettyRequest.protocolVersion(), HttpMethod.GET, uri);
-        newRequest.headers().set(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text(), nextPromisedStreamId);
-        newRequest.headers().set(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme);
-        HttpUtil.setContentLength(newRequest, 0);
-
-        HttpDispatcher.getExecutorService().execute(() -> {
-            try {
-                nettyContext.pipeline().get(HttpDispatcherHandler.class).channelRead(nettyContext, newRequest);
-            } catch (Exception e) {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "handleNettyPreload(): Unable to dispatch push request: " + e.getMessage(), e);
-                }
-            }
         });
     }
 
