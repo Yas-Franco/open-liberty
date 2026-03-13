@@ -78,7 +78,7 @@ public class HeaderHandler {
             }
         } else if (!HttpUtil.isContentLengthSet(response) && !headers.contains(HttpConversionUtil.ExtensionHeaderNames.STREAM_ID.text())) {
             if (response.status().equals(HttpResponseStatus.SWITCHING_PROTOCOLS)) {
-                headers.remove(HttpHeaderNames.CONTENT_LENGTH);
+                headers.set(HttpHeaderKeys.HDR_CONTENT_LENGTH.getName(), 0);
 
                 //from HttpUtil.setTransferEncodingChunked false case
                 List<String> encodings = headers.getAll(HttpHeaderNames.TRANSFER_ENCODING);
@@ -101,6 +101,7 @@ public class HeaderHandler {
                 }
             } else {
                 headers.set(HttpHeaderKeys.HDR_TRANSFER_ENCODING.getName(), HttpHeaderValues.CHUNKED);
+                headers.remove(HttpHeaderNames.CONTENT_LENGTH);
             }
         } else if (HttpUtil.isContentLengthSet(response)) { //set camel case
             headers.set(HttpHeaderKeys.HDR_CONTENT_LENGTH.getName(), HttpUtil.getContentLength(response));
