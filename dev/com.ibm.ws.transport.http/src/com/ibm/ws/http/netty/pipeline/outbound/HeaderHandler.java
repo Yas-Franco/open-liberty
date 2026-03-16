@@ -101,11 +101,9 @@ public class HeaderHandler {
                 }
             } else {
                 headers.set(HttpHeaderKeys.HDR_TRANSFER_ENCODING.getName(), HttpHeaderValues.CHUNKED);
-                headers.remove(HttpHeaderNames.CONTENT_LENGTH);
+                headers.remove(HttpHeaderKeys.HDR_CONTENT_LENGTH.getName());
             }
-        } else if (HttpUtil.isContentLengthSet(response)) { //set camel case
-            headers.set(HttpHeaderKeys.HDR_CONTENT_LENGTH.getName(), HttpUtil.getContentLength(response));
-        }
+        } 
 
         if (config.removeServerHeader()) {
             if (headers.contains(HttpHeaderKeys.HDR_SERVER.getName())) {
