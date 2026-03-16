@@ -19,7 +19,7 @@ fat.minimum.java.level=17
 # Define additional tested features that are NOT present in any XML files in this bucket.
 tested.features:\
   databaseRotation,\
-  cdi-4.1
+  cdi-4.1,\
   expressionlanguage-6.0,\
   pages-4.0,\
   servlet-6.1

@@ -20,6 +20,6 @@ fat.minimum.java.level=17
 tested.features:\
   databaseRotation,\
   cdi-4.1,\
-  expressionlanguage-6.0
+  expressionlanguage-6.0,\
   pages-4.0,\
   servlet-6.1
