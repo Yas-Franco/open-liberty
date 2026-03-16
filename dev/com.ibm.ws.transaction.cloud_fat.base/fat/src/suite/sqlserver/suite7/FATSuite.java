@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021, 2025 IBM Corporation and others.
+ * Copyright (c) 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
-package suite.sqlserver.suite0;
+package suite.sqlserver.suite7;
 
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
@@ -18,6 +18,8 @@ import com.ibm.ws.transaction.fat.util.TxTestContainerSuite;
 import com.ibm.ws.transaction.fat.util.TxTestDB;
 
 import componenttest.custom.junit.runner.AlwaysPassesTest;
+import componenttest.rules.repeater.FeatureReplacementAction;
+import componenttest.rules.repeater.RepeatTests;
 import componenttest.topology.database.container.DatabaseContainerType;
 import tests.DBRotationTest;
 
@@ -31,4 +33,7 @@ public class FATSuite extends TxTestContainerSuite {
 
     @ClassRule
     public static TxTestDB p = new TxTestDB(DatabaseContainerType.SQLServer);
+
+    @ClassRule
+    public static RepeatTests r = RepeatTests.with(FeatureReplacementAction.EE11_FEATURES().forServers(DBRotationTest.serverNames));
 }
