@@ -88,6 +88,8 @@ import test.jakarta.data.errpaths.web.Voters.NameAndZipCode;
                  unitName = "VoterPersistenceUnit")
 @Resource(name = "java:app/jdbc/env/DSForInvalidEntityRecordWithJPAAnnoRef",
           lookup = "java:module/jdbc/DataSourceForInvalidEntity")
+@Resource(name = "java:app/jdbc/env/DSForInvalidEntityRecordWithValAnnoRef",
+          lookup = "java:module/jdbc/DataSourceForInvalidEntity")
 @Resource(name = "java:comp/jdbc/env/DSForInvalidEntityClassWithoutAnnoRef",
           lookup = "java:module/jdbc/DataSourceForInvalidEntity")
 @SuppressWarnings("serial")
@@ -105,6 +107,9 @@ public class DataErrPathsTestServlet extends FATServlet {
 
     @Inject
     Inventions errEntityMissingIdRepo;
+
+    @Inject
+    Islands errValidationAnnoRepo;
 
     @Inject
     InvalidNonJNDIRepo errIncorrectDataStoreName;
@@ -2183,6 +2188,34 @@ public class DataErrPathsTestServlet extends FATServlet {
             if (x.getMessage() == null ||
                 !x.getMessage().startsWith("CWWKD1109E:") ||
                 !x.getMessage().contains("jakarta.persistence.Column"))
+                throw x;
+        }
+
+    }
+
+    /**
+     * Verify an error is raised when an entity class has Jakarta Validation
+     * annotations on its members.
+     */
+    @Test
+    public void testRecordEntityWithJakartaValidationAnno() {
+        Island maui = new Island(1, "maui");
+
+        Arrays.asList(maui.getClass().getMethods()).forEach(m -> {
+            System.out.println("Method: " + m);
+            Arrays.asList(m.getAnnotations()).forEach(a -> {
+                System.out.println("  Anno: " + a);
+            });
+        });
+        try {
+            errValidationAnnoRepo.add(maui);
+
+            fail("Used a record entity that has a Jakarta Validation annotation" +
+                 " on a record component.");
+        } catch (MappingException x) {
+            if (x.getMessage() == null ||
+                !x.getMessage().startsWith("CWWKD1109E:") ||
+                !x.getMessage().contains("jakarta.validation.constraints.NotBlank"))
                 throw x;
         }
     }
