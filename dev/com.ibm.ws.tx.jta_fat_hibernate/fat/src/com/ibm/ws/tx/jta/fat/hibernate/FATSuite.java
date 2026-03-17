@@ -26,23 +26,32 @@ public class FATSuite {
 
     @ClassRule
     public static RepeatTests r = RepeatTests.withoutModification()
-                    .andWith(FeatureReplacementAction.EE8_FEATURES().removeFeature("jdbc-4.1").addFeature("jdbc-4.2"))
-                    .andWith(FeatureReplacementAction.EE9_FEATURES()) /* test EE9 with jdbc-4.2 */
-                    .andWith(FeatureReplacementAction.EE9_FEATURES().removeFeature("jdbc-4.2").addFeature("jdbc-4.3").withMinJavaLevel(SEVersion.JAVA11)) /*
-                                                                                                                                                           * test EE9+jdbc4.3.
-                                                                                                                                                           * Jdbc4.3 reqs. JSE11
-                                                                                                                                                           */
-                    .andWith(FeatureReplacementAction.EE10_FEATURES()) /* test EE10 with jdbc-4.2 */
-                    .andWith(FeatureReplacementAction.EE10_FEATURES().removeFeature("jdbc-4.2").addFeature("jdbc-4.3")) /*
-                                                                                                                         * test EE10+jdbc4.3.
-                                                                                                                         * Jdbc4.3 reqs.
-                                                                                                                         * JSE11
-                                                                                                                         */
-                    .andWith(FeatureReplacementAction.EE11_FEATURES()) /* test EE11 with jdbc-4.2 */
-                    .andWith(FeatureReplacementAction.EE11_FEATURES().removeFeature("jdbc-4.2").addFeature("jdbc-4.3")) /*
-                                                                                                                         * test EE11+jdbc4.3.
-                                                                                                                         * Jdbc4.3 reqs.
-                                                                                                                         * JSE11
-                                                                                                                         */
+                    .andWith(FeatureReplacementAction.EE8_FEATURES()
+                                    .removeFeature("jdbc-4.1")
+                                    .addFeature("jdbc-4.2"))
+                    .andWith(FeatureReplacementAction.EE9_FEATURES()
+                                    .removeFeature("jdbc-4.1")
+                                    .addFeature("jdbc-4.2")) // test EE9 with jdbc-4.2
+                    .andWith(FeatureReplacementAction.EE9_FEATURES()
+                                    .removeFeature("jdbc-4.1")
+                                    .removeFeature("jdbc-4.2")
+                                    .addFeature("jdbc-4.3")
+                                    .withMinJavaLevel(SEVersion.JAVA11)) // test EE9+jdbc4.3. Jdbc4.3 reqs. JSE11
+                    .andWith(FeatureReplacementAction.EE10_FEATURES()
+                                    .removeFeature("jdbc-4.1")
+                                    .removeFeature("jdbc-4.3")
+                                    .addFeature("jdbc-4.2")) // test EE10 with jdbc-4.2
+                    .andWith(FeatureReplacementAction.EE10_FEATURES()
+                                    .removeFeature("jdbc-4.1")
+                                    .removeFeature("jdbc-4.2")
+                                    .addFeature("jdbc-4.3")) // test EE10+jdbc4.3. Jdbc4.3 reqs. JSE11
+                    .andWith(FeatureReplacementAction.EE11_FEATURES()
+                                    .removeFeature("jdbc-4.1")
+                                    .removeFeature("jdbc-4.3")
+                                    .addFeature("jdbc-4.2")) // test EE11 with jdbc-4.2
+                    .andWith(FeatureReplacementAction.EE11_FEATURES()
+                                    .removeFeature("jdbc-4.1")
+                                    .removeFeature("jdbc-4.2")
+                                    .addFeature("jdbc-4.3")) // test EE11+jdbc4.3. Jdbc4.3 reqs. JSE11
     ;
 }
