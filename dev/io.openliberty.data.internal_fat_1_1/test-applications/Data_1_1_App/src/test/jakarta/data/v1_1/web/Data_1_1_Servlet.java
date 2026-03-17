@@ -1173,6 +1173,63 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Use a repository method that imposes restrictions on a Query By Method Name
+     * count method that has no constraints indicated by the method name.
+     */
+    @Test
+    public void testRestrictedCount() {
+
+        Restriction<Fraction> filter = _Fraction.denominator
+                        .in(// 1/18, 2/19, 3/20:
+                            _Fraction.numerator.plus(17),
+                            // 2/3, 3/8, 4/15:
+                            _Fraction.numerator.plus(1)
+                                            .times(_Fraction.numerator.minus(1)),
+                            // One Ninth
+                            // Two Tenths
+                            // Six Tenths
+                            // Two Twelfths
+                            // Six Twelfths
+                            // Ten Twelfths
+                            // One Fourteenth
+                            // Four Fifteenths (duplicate of 4/15 from above)
+                            // Five Fifteenths
+                            // Nine Fifteenths
+                            // Three Sixteenths
+                            // Seven Sixteenths
+                            // Eight Sixteenths
+                            // Four Seventeenths
+                            // Five Seventeenths
+                            // Nine Seventeenths
+                            // Eleven Eighteenths
+                            // Twelve Eighteenths
+                            // Fifteen Nineteenths
+                            // Sixteen Nineteenths
+                            // Seventeen Twentieths:
+                            _Fraction.name.length());
+
+        assertEquals(Long.valueOf(26),
+                     fractions.count(filter));
+    }
+
+    /**
+     * Use a repository method that imposes restrictions on a Query By Method Name
+     * count method that has a Between constraint from its method name.
+     */
+    @Test
+    public void testRestrictedCountBy() {
+
+        Restriction<Fraction> filter = //
+                        Restrict.all(_Fraction.reduced.isTrue(),
+                                     _Fraction.denominator
+                                                     .minus(_Fraction.numerator)
+                                                     .lessThanEqual(3));
+
+        assertEquals(8L, // 1/3, 2/3, 1/4, 3/4, 2/5, 3/5, 4/5, 5/6
+                     fractions.countByDenominatorBetween(3, 6, filter));
+    }
+
+    /**
      * Use a repository method that imposes restrictions and constraints on
      * deletion.
      */
@@ -1269,6 +1326,16 @@ public class Data_1_1_Servlet extends FATServlet {
 
             assertEquals(3, // 4/21, 5/21, 5/22
                          fractions.deleteByNameStartsWith("F", restriction));
+
+            // If the assertions above complete successfully, the following remain:
+            //  1/21 One Twenty-first
+            // 16/21 Sixteen Twenty-firsts
+            // 17/21 Seventeen Twenty-firsts
+            //  1/22 One Twenty-second
+            //  3/22 Three Twenty-seconds
+            //  7/22 Seven Twenty-seconds
+            // 15/22 Fifteen Twenty-seconds
+            // 17/22 Seventeen Twenty-seconds
         } finally {
             // Ensure no fractions with deninators above 20 are left around
             fractions.discard(AtLeast.min(21),
