@@ -964,14 +964,33 @@ public class DataErrPathsTestServlet extends FATServlet {
     public void testExistsAsPage() {
         try {
             LocalDate today = LocalDate.of(2025, Month.FEBRUARY, 18);
-            Page<Boolean> page = voters.existsByBirthday(today,
-                                                         PageRequest.ofSize(5));
+            Page<Boolean> page = voters.existsByBirthday(today);
             fail("Should not be able to use an exists query that returns a" +
                  " Page rather than boolean. Page is: " + page);
         } catch (UnsupportedOperationException x) {
             if (x.getMessage() == null ||
                 !x.getMessage().startsWith("CWWKD1003E:") ||
                 !x.getMessage().contains("Page<java.lang.Boolean>"))
+                throw x;
+        }
+    }
+
+    /**
+     * Verify an error is raised when an exists Query by Method Name method
+     * tries to supply a PageRequest parameter.
+     */
+    @Test
+    public void testExistsRequestsPage() {
+        try {
+            LocalDate today = LocalDate.of(2025, Month.FEBRUARY, 18);
+            boolean exists = voters.existsAnyByBirthday(today,
+                                                        PageRequest.ofSize(5));
+            fail("Should not be able to use an exists query that receives a " +
+                 " PageRequest. Reuslt is: " + exists);
+        } catch (UnsupportedOperationException x) {
+            if (x.getMessage() == null ||
+                !x.getMessage().startsWith("CWWKD1020E:") ||
+                !x.getMessage().contains("PageRequest"))
                 throw x;
         }
     }

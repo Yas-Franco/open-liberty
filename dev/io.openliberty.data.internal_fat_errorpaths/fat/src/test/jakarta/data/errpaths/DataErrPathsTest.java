@@ -76,6 +76,7 @@ public class DataErrPathsTest extends FATServletClient {
                                    "CWWKD1018E.*occupying", // intermixed Limit and PageRequest
                                    "CWWKD1019E.*livingAt", // mix of named/positional parameters
                                    "CWWKD1019E.*residingAt", // unused parameters
+                                   "CWWKD1020E.*existsAnyByBirthday", // existsBy with PageRequest param
                                    "CWWKD1020E.*discardLimited", // Limit parameter on Delete method
                                    "CWWKD1020E.*discardOrdered", // Order parameter on Delete method
                                    "CWWKD1020E.*discardPage", // Delete operation with a PageRequest
