@@ -70,7 +70,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpUtil;
-import io.openliberty.http.options.TcpOption;
 
 /**
  * Service context specific to an inbound HTTP message.
@@ -126,7 +125,7 @@ public class HttpInboundServiceContextImpl extends HttpServiceContextImpl implem
         super();
         nettyContext = context;
 
-        TCPConnectionContext tsc = new NettyTCPConnectionContext(context.channel(), vc, (int) config.get(TcpOption.INACTIVITY_TIMEOUT));
+        TCPConnectionContext tsc = new NettyTCPConnectionContext(context.channel(), vc, config);
 
         super.init(tsc, context);
 
