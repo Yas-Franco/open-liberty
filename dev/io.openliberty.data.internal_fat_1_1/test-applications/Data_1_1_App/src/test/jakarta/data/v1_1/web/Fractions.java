@@ -49,6 +49,13 @@ import jakarta.data.restrict.Restriction;
  */
 @Repository(dataStore = "java:app/env/data/dbref")
 public interface Fractions {
+
+    Long count(Restriction<Fraction> filter);
+
+    long countByDenominatorBetween(int min,
+                                   int max,
+                                   Restriction<Fraction> filter);
+
     int deleteByNameStartsWith(String prefix,
                                Restriction<Fraction> filter);
 
