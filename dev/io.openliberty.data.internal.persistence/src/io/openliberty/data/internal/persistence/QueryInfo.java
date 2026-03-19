@@ -1395,9 +1395,8 @@ public class QueryInfo {
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "exists");
 
-        TypedQuery<?> query = em.createQuery(jpql, Object.class);
+        jakarta.persistence.Query query = createQuery(em, Object.class, args);
         query.setMaxResults(1);
-        setParameters(query, args, NO_CONSTRAINTS_DEFERRED, null); // TODO 1.1 constraints
 
         List<?> results = query.getResultList();
         boolean found = !results.isEmpty();
