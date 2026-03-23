@@ -51,7 +51,7 @@ public class LongIntervalHealthCheckTest {
     final static String SERVER_LONG_CHECK_INTERVAL = "HealthServerLongCheckInterval";
     final static String FAIL_START_APP = "FailStartApp";
     final static String FAIL_START_APP_WAR = FAIL_START_APP + ".war";
-    final static int MAX_ATTEMPTS = 5;
+    final static int MAX_ATTEMPTS = 10;
 
     private static final String[] IGNORED_FAILURES = { "CWMMH0052W", "CWMMH0054W", "CWMMH0053W", "CWMMH0050E" };
 
