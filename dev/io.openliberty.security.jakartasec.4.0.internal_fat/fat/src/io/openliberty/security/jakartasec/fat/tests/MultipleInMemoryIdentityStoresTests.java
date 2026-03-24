@@ -41,9 +41,7 @@ import inmemory.identity.store.InMemoryIdentityStoreHighestPriorityApplication;
 import inmemory.identity.store.InMemoryIdentityStoreProtectedResource;
 
 /**
- * Tests for InMemoryIdentityStoreDefinition with various password encoding schemes.
- * Tests positive scenarios (plain, XOR, AES, Hash passwords) and negative scenarios
- * (bad passwords, bad encoding, insufficient groups).
+ * Tests for multiple in-memory id stores with various password encoding schemes.
  */
 @RunWith(FATRunner.class)
 @Mode(TestMode.LITE)
