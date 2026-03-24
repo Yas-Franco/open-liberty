@@ -24,9 +24,9 @@ import javax.sql.DataSource;
 
 import com.ibm.websphere.ras.annotation.Trivial;
 
-import io.openliberty.data.internal.persistence.AttributeConstraint;
-import io.openliberty.data.internal.persistence.DataVersionCompatibility;
-import io.openliberty.data.internal.persistence.QueryType;
+import io.openliberty.data.internal.AttributeConstraint;
+import io.openliberty.data.internal.DataVersionCompatibility;
+import io.openliberty.data.internal.QueryType;
 import jakarta.data.Limit;
 import jakarta.data.Order;
 import jakarta.data.Sort;

@@ -33,9 +33,9 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Trivial;
 
-import io.openliberty.data.internal.persistence.AttributeConstraint;
-import io.openliberty.data.internal.persistence.DataVersionCompatibility;
-import io.openliberty.data.internal.persistence.QueryType;
+import io.openliberty.data.internal.AttributeConstraint;
+import io.openliberty.data.internal.DataVersionCompatibility;
+import io.openliberty.data.internal.QueryType;
 import io.openliberty.data.repository.Count;
 import io.openliberty.data.repository.Exists;
 import io.openliberty.data.repository.IgnoreCase;

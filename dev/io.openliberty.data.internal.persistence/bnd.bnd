@@ -60,13 +60,12 @@ Import-Package: \
   *
 
 Private-Package: \
-  io.openliberty.data.internal.*, \
-  io.openliberty.data.internal.persistence.*,\
-  io.openliberty.data.internal.persistence.cdi.*,\
-  io.openliberty.data.internal.persistence.resources.*,\
+  io.openliberty.data.internal.*,\
+  io.openliberty.data.internal.cdi.*,\
+  io.openliberty.data.internal.resources.*,\
   io.openliberty.data.internal.v1_0.*,\
   io.openliberty.data.internal.v1_1.*,\
-  io.openliberty.data.internal.persistence.validation.*
+  io.openliberty.data.internal.validation.*
 
 Include-Resource:\
   OSGI-INF=resources/OSGI-INF
@@ -74,9 +73,9 @@ Include-Resource:\
 -cdiannotations:
 
 -dsannotations: \
-  io.openliberty.data.internal.persistence.DataProvider
+  io.openliberty.data.internal.DataProvider
 
-instrument.classesExcludes: io/openliberty/data/internal/persistence/resources/*.class
+instrument.classesExcludes: io/openliberty/data/internal/resources/*.class
 
 -buildpath: \
 	com.ibm.tx.jta.jakarta;version=latest,\
