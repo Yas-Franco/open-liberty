@@ -144,8 +144,6 @@ public class LongIntervalHealthCheckTest {
                 before();
             }
 
-            Log.info(getClass(), METHOD_NAME, "Attempt: " + attempts);
-
             WebArchive testWAR = ShrinkWrap
                             .create(WebArchive.class, FAIL_START_APP_WAR)
                             .addAsWebInfResource(new File("test-applications/FileHealthCheckApp/resources/WEB-INF/web.xml"))
@@ -240,9 +238,13 @@ public class LongIntervalHealthCheckTest {
             }
         }
 
-        assertTrue("The difference expected should be 29s or greater (but no more than 32). We offer extra 2 seconds for potential slowness.", diffInRange);
+        if(!diffInRange) {
+            Log.info(getClass(), METHOD_NAME, "Failed after " + attempts + " attempts.");
+        } else {
+            Log.info(getClass(), METHOD_NAME, "Passed after " + attempts + " attempts.");
+        }
 
-        Log.info(getClass(), METHOD_NAME, "Passed after " + attempts + " attempts.");
+        assertTrue("The difference expected should be 29s or greater (but no more than 32). We offer extra 2 seconds for potential slowness.", diffInRange);
 
         assertNotNull(serverLongStart.waitForStringInTraceUsingMark(".*Startup phase for local health check functionality completed.*"));
 
@@ -312,8 +314,6 @@ public class LongIntervalHealthCheckTest {
                 after();
                 before();
             }
-
-            Log.info(getClass(), METHOD_NAME, "Attempt: " + attempts);
 
             WebArchive testWAR = ShrinkWrap
                             .create(WebArchive.class, FAIL_START_APP_WAR)
@@ -406,9 +406,13 @@ public class LongIntervalHealthCheckTest {
             }
         }
 
-        assertTrue("Difference between create time and initial modified time is too great for the ready file.", readyCreatedModifiedTimeDiffInRange);
+        if(!readyUpdateDiffInRange) {
+            Log.info(getClass(), METHOD_NAME, "Failed after " + attempts + " attempts.");
+        } else {
+            Log.info(getClass(), METHOD_NAME, "Passed after " + attempts + " attempts.");
+        }
 
-        Log.info(getClass(), METHOD_NAME, "Passed after " + attempts + " attempts.");
+        assertTrue("Difference between create time and initial modified time is too great for the ready file.", readyCreatedModifiedTimeDiffInRange);
         
         assertTrue("The modified time is out of bounds(ms): " + readyUpdateDiff, readyUpdateDiffInRange); //Allow for 29.5-32 range to allow for quickness or slowness of system.
 
