@@ -1,5 +1,5 @@
 -include= ~${workspace}/cnf/resources/bnd/feature.props
-symbolicName=io.openliberty.jdbc4.2.internal.ee-9.0
+symbolicName=io.openliberty.jdbc.internal.ee-9.0
 singleton=true
 -features=\
  com.ibm.websphere.appserver.transaction-2.0

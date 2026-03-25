@@ -1,5 +1,5 @@
 -include= ~${workspace}/cnf/resources/bnd/feature.props
-symbolicName=io.openliberty.jdbc4.1.internal.ee-6.0
+symbolicName=io.openliberty.jdbc.internal.ee-7.0
 singleton=true
 WLP-DisableAllFeatures-OnConflict: false
 -features=\
