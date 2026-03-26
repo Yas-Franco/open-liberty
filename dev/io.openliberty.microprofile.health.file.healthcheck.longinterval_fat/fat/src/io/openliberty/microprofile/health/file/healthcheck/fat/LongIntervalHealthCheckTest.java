@@ -53,6 +53,12 @@ public class LongIntervalHealthCheckTest {
     final static String FAIL_START_APP_WAR = FAIL_START_APP + ".war";
     final static int MAX_ATTEMPTS = 10;
 
+    // Health check timing constants (in milliseconds)
+    private static final long MIN_UPDATE_INTERVAL_MS = 29500L;
+    private static final long MAX_UPDATE_INTERVAL_MS = 32000L;
+    private static final int MIN_UPDATE_INTERVAL = 29;
+    private static final int MAX_UPDATE_INTERVAL = 32;
+
     private static final String[] IGNORED_FAILURES = { "CWMMH0052W", "CWMMH0054W", "CWMMH0053W", "CWMMH0050E" };
 
     @ClassRule
@@ -136,8 +142,10 @@ public class LongIntervalHealthCheckTest {
         File serverRootDirFile = null;
         int attempts = 0;
 
-        while (!diffInRange && attempts++ < MAX_ATTEMPTS) {
+        while (!diffInRange) {
 
+            assertTrue("Maximum number of attempts is exceeded", attempts++ < MAX_ATTEMPTS);
+            
             Log.info(getClass(), METHOD_NAME, "Attempt: " + attempts);
 
             // If the difference is not in range, try again as the CPU may have been busy, so restart/cleanup the servers.
@@ -232,21 +240,24 @@ public class LongIntervalHealthCheckTest {
              * The traces are not "truly" exact on timing. And when we Convert the difference in duration into seconds, we get 29 seconds difference.
              */
 
-            diffInRange = (diff >= 29 && diff <= 32);
+            diffInRange = (diff >= MIN_UPDATE_INTERVAL && diff <= MAX_UPDATE_INTERVAL);
 
             // If the difference is not in range, try again as the CPU may have been busy.
             if (!diffInRange) {
-                Log.info(getClass(), METHOD_NAME, "The difference in time between the two timestamps is (in seconds): " + diff + " but should be 29s or greater (but no more than 32).");
+                Log.info(getClass(), METHOD_NAME,
+                         "The difference in time between the two timestamps is (in seconds): " + diff + " but should be " + MIN_UPDATE_INTERVAL + "s or greater (but no more than "
+                                                  + MAX_UPDATE_INTERVAL + "s).");
             }
         }
 
-        if(!diffInRange) {
+        if (!diffInRange) {
             Log.info(getClass(), METHOD_NAME, "Failed after " + attempts + " attempts.");
         } else {
             Log.info(getClass(), METHOD_NAME, "Passed after " + attempts + " attempts.");
         }
 
-        assertTrue("The difference expected should be 29s or greater (but no more than 32). We offer extra 2 seconds for potential slowness.", diffInRange);
+        assertTrue("The difference expected should be " + MIN_UPDATE_INTERVAL + "s or greater (but no more than " + MAX_UPDATE_INTERVAL
+                   + "s). We offer extra 2 seconds for potential slowness.", diffInRange);
 
         assertNotNull(serverLongStart.waitForStringInTraceUsingMark(".*Startup phase for local health check functionality completed.*"));
 
@@ -302,14 +313,22 @@ public class LongIntervalHealthCheckTest {
     public void HealthCheckTestLongCheckInterval() throws Exception {
         final String METHOD_NAME = "HealthCheckTestLongCheckInterval";
 
+        long readyCreatedTime = 0;
+        long readyCreateModifiedTime = 0;
         long readyCreatedModifiedTimeDiff = 0;
         boolean readyCreatedModifiedTimeDiffInRange = false;
+        long readyModifiedTime = 0;
         long readyUpdateDiff = 0;
         boolean readyUpdateDiffInRange = false;
         File serverRootDirFile = null;
         int attempts = 0;
 
-        while ((!readyCreatedModifiedTimeDiffInRange || !readyUpdateDiffInRange) && attempts++ < MAX_ATTEMPTS) {
+        while ((!readyCreatedModifiedTimeDiffInRange || !readyUpdateDiffInRange)) {
+
+            readyCreatedModifiedTimeDiffInRange = false;
+            readyUpdateDiffInRange = false;
+
+            assertTrue("Maximum number of attempts is exceeded", attempts++ < MAX_ATTEMPTS);
 
             Log.info(getClass(), METHOD_NAME, "Attempt: " + attempts);
 
@@ -360,8 +379,8 @@ public class LongIntervalHealthCheckTest {
              * The underlying logic/mechanism is duplicated for updating the ready and live healht-check files.
              */
 
-            long readyCreateModifiedTime = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
-            long readyCreatedTime = HealthFileUtils.getCreatedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
+            readyCreateModifiedTime = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
+            readyCreatedTime = HealthFileUtils.getCreatedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
             readyCreatedModifiedTimeDiff = readyCreateModifiedTime - readyCreatedTime;
 
             Log.info(getClass(), METHOD_NAME, "Debug: ready file creation time's modified time(ms): " + readyCreateModifiedTime);
@@ -381,7 +400,7 @@ public class LongIntervalHealthCheckTest {
             Log.info(getClass(), METHOD_NAME, "Time remaining in the 30 second interval(ms): " + timeRemaining);
 
             TimeUnit.MILLISECONDS.sleep(timeRemaining / 2);
-            long readyModifiedTime = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
+            readyModifiedTime = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
             Log.info(getClass(), METHOD_NAME, "The ready file's `new` modified time(ms): " + readyModifiedTime);
 
             /*
@@ -397,27 +416,35 @@ public class LongIntervalHealthCheckTest {
              */
             TimeUnit.MILLISECONDS.sleep((timeRemaining / 2) + 1500);
             readyModifiedTime = HealthFileUtils.getLastModifiedTime(HealthFileUtils.getReadyFile(serverRootDirFile));
-            assertTrue("The last modified time of ready should have been updated, but was still: " + readyModifiedTime, readyModifiedTime != readyCreateModifiedTime);
+
+            if (readyModifiedTime == readyCreateModifiedTime) {
+                Log.info(getClass(), METHOD_NAME, "The last modified time of ready should have been updated, but was still: " + readyModifiedTime);
+                continue;
+            }
+
             Log.info(getClass(), METHOD_NAME, "The ready file's `new` modified time(ms):" + readyModifiedTime);
 
             readyUpdateDiff = readyModifiedTime - readyCreatedTime;
-            readyUpdateDiffInRange = readyUpdateDiff >= 29500 && readyUpdateDiff <= 32000;
+            readyUpdateDiffInRange = readyUpdateDiff >= MIN_UPDATE_INTERVAL_MS && readyUpdateDiff <= MAX_UPDATE_INTERVAL_MS;
             Log.info(getClass(), METHOD_NAME, "The difference between creation time and the ready update is (ms) : " + readyUpdateDiff);
 
             // If the difference is not in range, try again as the CPU may have been busy.
             if (!readyUpdateDiffInRange) {
                 Log.info(getClass(), METHOD_NAME, "The modified time is out of bounds(ms): " + readyUpdateDiff);
+                continue;
             }
         }
 
-        if(!readyUpdateDiffInRange) {
+        if (!readyUpdateDiffInRange) {
             Log.info(getClass(), METHOD_NAME, "Failed after " + attempts + " attempts.");
         } else {
             Log.info(getClass(), METHOD_NAME, "Passed after " + attempts + " attempts.");
         }
 
+        assertTrue("The last modified time of ready should have been updated, but was still: " + readyModifiedTime, readyModifiedTime != readyCreateModifiedTime);
+
         assertTrue("Difference between create time and initial modified time is too great for the ready file.", readyCreatedModifiedTimeDiffInRange);
-        
+
         assertTrue("The modified time is out of bounds(ms): " + readyUpdateDiff, readyUpdateDiffInRange); //Allow for 29.5-32 range to allow for quickness or slowness of system.
 
     }
