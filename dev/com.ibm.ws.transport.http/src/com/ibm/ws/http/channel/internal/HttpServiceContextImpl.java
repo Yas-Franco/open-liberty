@@ -314,7 +314,7 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
 
     private final CopyOnWriteArrayList<Frame> framesToWrite = new CopyOnWriteArrayList<Frame>();
 
-    private ChannelHandlerContext nettyContext;
+    protected ChannelHandlerContext nettyContext;
     private FullHttpRequest nettyRequest;
     private io.netty.handler.codec.http.HttpResponse nettyResponse;
 
@@ -330,6 +330,10 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
 
     public void setNettyContext(ChannelHandlerContext ctx) {
         this.nettyContext = ctx;
+    }
+
+    public ChannelHandlerContext getNettyContext() {
+        return this.nettyContext;
     }
 
     public void setNettyRequest(FullHttpRequest request) {
@@ -1036,8 +1040,9 @@ public abstract class HttpServiceContextImpl implements HttpServiceContext, FFDC
         }
     }
 
-    public void init(TCPConnectionContext tsc, ChannelHandlerContext context) {
+    public void init(TCPConnectionContext tsc, ChannelHandlerContext context, HttpChannelConfig config) {
         this.setNettyContext(context);
+        this.setHttpConfig(config);
 
         if (null != tsc) {
             this.myTSC = tsc;

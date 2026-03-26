@@ -102,7 +102,6 @@ public class HttpInboundServiceContextImpl extends HttpServiceContextImpl implem
     private boolean suppress0ByteChunk = false;
     private long bytesWritten;
 
-    private ChannelHandlerContext nettyContext;
     private FullHttpRequest nettyRequest;
     private io.netty.handler.codec.http.HttpResponse nettyResponse;
     private NettyRequestMessage requestMessage;
@@ -123,15 +122,13 @@ public class HttpInboundServiceContextImpl extends HttpServiceContextImpl implem
 
     public HttpInboundServiceContextImpl(ChannelHandlerContext context, VirtualConnection vc, NettyHttpChannelConfig config) {
         super();
-        nettyContext = context;
 
         TCPConnectionContext tsc = new NettyTCPConnectionContext(context.channel(), vc, config);
 
-        super.init(tsc, context);
+        super.init(tsc, context, config);
 
         this.setHeadersParsed();
         setVC(vc);
-        setHttpConfig(config);
     }
 
     /**
@@ -197,10 +194,6 @@ public class HttpInboundServiceContextImpl extends HttpServiceContextImpl implem
 
     public HttpResponse getNettyResponse() {
         return this.nettyResponse;
-    }
-
-    public ChannelHandlerContext getNettyContext() {
-        return this.nettyContext;
     }
 
     /*
