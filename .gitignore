@@ -33,3 +33,6 @@
 
 # Ignore direnv files - for quickly switching between JDK levels between projects
 .envrc
+
+# Ignore any MCP configuration for Bob
+./bob/mcp.json
