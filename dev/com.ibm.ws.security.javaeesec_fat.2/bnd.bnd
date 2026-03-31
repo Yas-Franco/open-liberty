@@ -25,6 +25,8 @@ tested.features: \
     ejblite-4.0,\
     jaxrsclient-3.0,\
     pages-3.0,\
+    pages-3.1,\
+    pages-4.0,\
     jaxrs-3.0,\
     enterprisebeanslite-4.0,\
     faces-3.0,\
