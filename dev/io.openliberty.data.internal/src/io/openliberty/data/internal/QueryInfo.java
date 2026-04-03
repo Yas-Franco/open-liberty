@@ -18,13 +18,11 @@ import static io.openliberty.data.internal.QueryType.COUNT;
 import static io.openliberty.data.internal.QueryType.EXISTS;
 import static io.openliberty.data.internal.QueryType.FIND;
 import static io.openliberty.data.internal.QueryType.FIND_AND_DELETE;
-import static io.openliberty.data.internal.QueryType.INSERT;
 import static io.openliberty.data.internal.QueryType.LC_DELETE;
 import static io.openliberty.data.internal.QueryType.LC_UPDATE;
 import static io.openliberty.data.internal.QueryType.LC_UPDATE_MERGE;
 import static io.openliberty.data.internal.QueryType.QM_DELETE;
 import static io.openliberty.data.internal.QueryType.QM_UPDATE;
-import static io.openliberty.data.internal.QueryType.SAVE;
 import static io.openliberty.data.internal.Util.SORT_PARAM_TYPES;
 import static io.openliberty.data.internal.cdi.DataExtension.exc;
 import static jakarta.data.repository.By.ID;
@@ -62,7 +60,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.stream.BaseStream;
-import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -88,11 +85,9 @@ import jakarta.data.page.PageRequest;
 import jakarta.data.repository.By;
 import jakarta.data.repository.Delete;
 import jakarta.data.repository.Find;
-import jakarta.data.repository.Insert;
 import jakarta.data.repository.OrderBy;
 import jakarta.data.repository.Param;
 import jakarta.data.repository.Query;
-import jakarta.data.repository.Save;
 import jakarta.data.repository.Update;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
@@ -159,12 +154,12 @@ public abstract class QueryInfo {
     /**
      * Information about the type of entity to which the query pertains.
      */
-    EntityInfo entityInfo;
+    protected EntityInfo entityInfo;
 
     /**
      * Type of the first parameter if a life cycle method, otherwise null.
      */
-    private final Class<?> entityParamType;
+    protected final Class<?> entityParamType;
 
     /**
      * Entity identifier variable name if an identifier variable is used.
@@ -258,7 +253,7 @@ public abstract class QueryInfo {
      * Repository method annotation indicating the type of method.
      * Null if the repository method is not annotated Delete, Find, Insert, Query, ...
      */
-    private Annotation methodTypeAnno;
+    protected Annotation methodTypeAnno;
 
     /**
      * The type of data structure that returns multiple results for this query.
@@ -297,7 +292,7 @@ public abstract class QueryInfo {
      * A query that returns List<ArrayList<String>> has singleType ArrayList<String>.
      * A query that returns Optional<String[]> has singleType String[].
      */
-    final Class<?> singleType;
+    protected final Class<?> singleType;
 
     /**
      * Element type of singleType when singleType is an array or collection.
@@ -1199,7 +1194,7 @@ public abstract class QueryInfo {
     @Trivial
     Object delete(Object arg, EntityManager em) throws Exception {
         arg = arg instanceof Stream //
-                        ? ((Stream<?>) arg).sequential().collect(Collectors.toList()) //
+                        ? ((Stream<?>) arg).sequential().toList() //
                         : arg;
 
         final boolean trace = TraceComponent.isAnyTracingEnabled();
@@ -1319,6 +1314,39 @@ public abstract class QueryInfo {
         if (trace && tc.isEntryEnabled())
             Tr.exit(this, tc, "deleteOne", numDeleted);
         return numDeleted;
+    }
+
+    /**
+     * Detaches entities from the persistence context.
+     *
+     * @param arg the entity or array/Iterable/Stream of entity
+     * @param em  the entity manager
+     * @throws Exception if an error occurs.
+     */
+    @Trivial
+    Void detach(Object arg, EntityManager em) throws Exception {
+        arg = arg instanceof Stream //
+                        ? ((Stream<?>) arg).sequential().toList() //
+                        : arg;
+
+        final boolean trace = TraceComponent.isAnyTracingEnabled();
+        if (trace && tc.isEntryEnabled())
+            Tr.entry(this, tc, "detach", loggable(arg));
+
+        if (arg instanceof Iterable) {
+            for (Object e : ((Iterable<?>) arg))
+                em.detach(e);
+        } else if (entityParamType.isArray()) {
+            int length = Array.getLength(arg);
+            for (int i = 0; i < length; i++)
+                em.detach(Array.get(arg, i));
+        } else {
+            em.detach(arg);
+        }
+
+        if (trace && tc.isEntryEnabled())
+            Tr.exit(this, tc, "detach");
+        return null;
     }
 
     /**
@@ -1798,7 +1826,7 @@ public abstract class QueryInfo {
                 results.add(findAndUpdateOne(Array.get(arg, i), em));
         } else {
             arg = arg instanceof Stream //
-                            ? ((Stream<?>) arg).sequential().collect(Collectors.toList()) //
+                            ? ((Stream<?>) arg).sequential().toList() //
                             : arg;
 
             results = new ArrayList<>();
@@ -2359,38 +2387,33 @@ public abstract class QueryInfo {
         if (o != THIS)
             q.append(' ').append(o);
 
-        if (method.getParameterCount() == 0) {
-            type = QM_DELETE;
-            hasWhere = false;
-        } else {
-            setType(Delete.class, LC_DELETE);
-            hasWhere = true;
+        hasWhere = true;
 
-            q.append(" WHERE (");
+        q.append(" WHERE (");
 
-            String idName = entityInfo.attributeNames.get(ID);
-            if (idName == null && entityInfo.idClassAttributeAccessors != null) {
-                // IdClass cannot be a single query parameter because there is
-                // no way to obtain an IdClass object from an entity instance.
-                boolean first = true;
-                for (String name : entityInfo.idClassAttributeAccessors.keySet()) {
-                    if (first)
-                        first = false;
-                    else
-                        q.append(" AND ");
+        String idName = entityInfo.attributeNames.get(ID);
+        if (idName == null && entityInfo.idClassAttributeAccessors != null) {
+            // IdClass cannot be a single query parameter because there is
+            // no way to obtain an IdClass object from an entity instance.
+            boolean first = true;
+            for (String name : entityInfo.idClassAttributeAccessors.keySet()) {
+                if (first)
+                    first = false;
+                else
+                    q.append(" AND ");
 
-                    name = entityInfo.attributeNames.get(name);
-                    q.append(o_).append(name).append("=?").append(++jpqlParamCount);
-                }
-            } else {
-                q.append(o_).append(idName).append("=?").append(++jpqlParamCount);
+                name = entityInfo.attributeNames.get(name);
+                q.append(o_).append(name).append("=?").append(++jpqlParamCount);
             }
-
-            if (entityInfo.versionAttributeName != null)
-                q.append(" AND ").append(o_).append(entityInfo.versionAttributeName).append("=?").append(++jpqlParamCount);
-
-            q.append(')');
+        } else {
+            q.append(o_).append(idName).append("=?").append(++jpqlParamCount);
         }
+
+        if (entityInfo.versionAttributeName != null)
+            q.append(" AND ").append(o_).append(entityInfo.versionAttributeName) //
+                            .append("=?").append(++jpqlParamCount);
+
+        q.append(')');
 
         return q;
     }
@@ -2765,7 +2788,6 @@ public abstract class QueryInfo {
     private StringBuilder generateSelectClause() {
         StringBuilder q = new StringBuilder(200);
         String o = entityVar;
-        String o_ = entityVar_;
 
         String[] cols, selections = entityInfo.builder.provider.compat.getSelections(method);
         if (selections.length == 0) {
@@ -2924,10 +2946,7 @@ public abstract class QueryInfo {
         String o_ = entityVar_;
         StringBuilder q;
 
-        if (entityInfo.attributeNamesForEntityUpdate != null &&
-            Util.UPDATE_COUNT_TYPES.contains(singleType)) {
-            setType(Update.class, LC_UPDATE);
-
+        if (type == LC_UPDATE) {
             q = new StringBuilder(100) //
                             .append("UPDATE ").append(entityInfo.name);
             if (o != THIS)
@@ -2943,11 +2962,10 @@ public abstract class QueryInfo {
 
                 q.append(o_).append(name).append("=?").append(++jpqlParamCount);
             }
-        } else {
+        } else { // type == LC_UPDATE_MERGE
             // Update that returns an entity. And also used when an entity has a
             // version attribute or relation attribute that requires using em.merge.
             // Perform a find operation first so that em.merge can be used.
-            setType(Update.class, LC_UPDATE_MERGE);
 
             q = new StringBuilder(100) //
                             .append("SELECT ").append(o) //
@@ -3212,6 +3230,16 @@ public abstract class QueryInfo {
     }
 
     /**
+     * Value (representing a JPQL or JCQL query) from the Query annotation or
+     * from the similar Jakarta Persistence annotation that supplies JPQL to a
+     * repository method.
+     *
+     * @return JPQL or JCQL value of a query annotation. Null if the repository
+     *         method does not have a query annotation.
+     */
+    protected abstract String getQueryAnnoValue();
+
+    /**
      * Creates a Sort instance with the corresponding entity attribute name
      * or returns the existing instance if it already matches.
      *
@@ -3229,6 +3257,12 @@ public abstract class QueryInfo {
                             ? sort.ignoreCase() ? Sort.ascIgnoreCase(name) : Sort.asc(name) //
                             : sort.ignoreCase() ? Sort.descIgnoreCase(name) : Sort.desc(name);
     }
+
+    /**
+     * Identifies the repository method type based on life cycle annotations.
+     * For example (Insert, Update, Save, Delete, Detach, Merge, ...).
+     */
+    protected abstract void identifyType();
 
     /**
      * Infer the selection value to use for a COUNT query.
@@ -3332,52 +3366,27 @@ public abstract class QueryInfo {
             StringBuilder q = null;
             boolean validateNumberOfMethodArgs = true;
 
-            String queryAnnoValue;
-            if (methodTypeAnno instanceof Query query) // @Query annotation
-                queryAnnoValue = query.value();
-            else // TODO query annotations from Jakarta Persistence
-                queryAnnoValue = null;
+            String queryAnnoValue = getQueryAnnoValue();
 
-            if (queryAnnoValue != null) {
+            if (type == null && queryAnnoValue == null)
+                identifyType();
+
+            if (queryAnnoValue != null) { // query language methods
                 initQueryLanguage(queryAnnoValue,
                                   entityInfos,
                                   repository.primaryEntityInfoFuture,
                                   compat);
-            } else if (methodTypeAnno instanceof Insert) { // @Insert annotation
-                setType(Insert.class, INSERT);
-            } else if (methodTypeAnno instanceof Save) { // @Save annotation
-                setType(Save.class, SAVE);
-            } else if (entityParamType != null) {
-                if (methodTypeAnno instanceof Update) { // @Update annotation
-                    q = generateUpdateEntity();
-                } else if (methodTypeAnno instanceof Delete) { // @Delete annotation
+            } else if (type != null && type.isLifeCycleMethod) {
+                if (type == LC_DELETE)
                     q = generateDeleteEntity();
-                } else {
-                    // TODO 1.1 rewrite the following using the superclass and
-                    // move it out of the entityParamType != null block for better
-                    // error checking
-                    Class<? extends Annotation> c = methodTypeAnno.annotationType();
-                    if (c.getSimpleName().equals("Detach"))
-                        setType(c, QueryType.DETACH);
-                    else if (c.getSimpleName().equals("Merge"))
-                        setType(c, QueryType.MERGE);
-                    else if (c.getSimpleName().equals("Persist"))
-                        setType(c, QueryType.PERSIST);
-                    else if (c.getSimpleName().equals("Refresh"))
-                        setType(c, QueryType.REFRESH);
-                    else if (c.getSimpleName().equals("Remove"))
-                        setType(c, QueryType.REMOVE);
-                    else
-                        // should be unreachable
-                        throw new UnsupportedOperationException("The " + method.getName() + " method of the " +
-                                                                repository.repositoryInterface.getName() +
-                                                                " repository interface must be annotated with one of " +
-                                                                "(Delete, Insert, Save, Update)" +
-                                                                " because the method's parameter accepts entity instances. The following" +
-                                                                " annotations were found: " + Arrays.toString(method.getAnnotations()));
-                }
+                else if (type == LC_UPDATE || type == LC_UPDATE_MERGE)
+                    q = generateUpdateEntity();
+                // other life cycle methods don't use JPQL
             } else {
-                if (methodTypeAnno != null) {
+                if (methodTypeAnno == null) {
+                    // Query by Method Name
+                    q = initQueryByMethodName(countPages);
+                } else {
                     // Query by Parameters
                     q = initQueryByParameters(countPages,
                                               NO_CONSTRAINTS_DEFERRED,
@@ -3386,9 +3395,6 @@ public abstract class QueryInfo {
                     // Only validate if Constraint parameters correspond one-to-one
                     // with JPQL parameters.
                     validateNumberOfMethodArgs = jpqlParamCount == specialParamsStartAt;
-                } else {
-                    // Query by Method Name
-                    q = initQueryByMethodName(countPages);
                 }
 
                 if (type == FIND_AND_DELETE
@@ -3500,8 +3506,6 @@ public abstract class QueryInfo {
                                    Map<String, CompletableFuture<EntityInfo>> entityInfos,
                                    CompletableFuture<EntityInfo> primaryEntityInfoFuture,
                                    DataVersionCompatibility compat) {
-        final boolean trace = TraceComponent.isAnyTracingEnabled();
-
         // Find out how many parameters the method supplies to the query
         // versus which method parameters are special parameters.
         boolean addsToWHERE = false;
@@ -3855,7 +3859,7 @@ public abstract class QueryInfo {
     @Trivial
     Object insert(Object arg, EntityManager em) throws Exception {
         arg = arg instanceof Stream //
-                        ? ((Stream<?>) arg).sequential().collect(Collectors.toList()) //
+                        ? ((Stream<?>) arg).sequential().toList() //
                         : arg;
 
         final boolean trace = TraceComponent.isAnyTracingEnabled();
@@ -4751,7 +4755,6 @@ public abstract class QueryInfo {
                         ? null //
                         : entityInfo.recordClass.getSimpleName();
         final int rLen = recordName == null ? 0 : recordName.length();
-        final int eLen = entityInfo.name.length();
         final int qlLen = ql.length();
 
         // for editing the main query
@@ -4958,7 +4961,7 @@ public abstract class QueryInfo {
     @Trivial // avoid logging customer data
     Object save(Object arg, EntityManager em) throws Exception {
         arg = arg instanceof Stream //
-                        ? ((Stream<?>) arg).sequential().collect(Collectors.toList()) //
+                        ? ((Stream<?>) arg).sequential().toList() //
                         : arg;
 
         final boolean trace = TraceComponent.isAnyTracingEnabled();
@@ -5184,7 +5187,6 @@ public abstract class QueryInfo {
                        Map<Object, Object> addedJPQLParams) {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         final int numArgs = args == null ? 0 : args.length;
-        final DataVersionCompatibility compat = producer.compat();
 
         if (trace && tc.isDebugEnabled()) {
             Object addedLoggable = loggable(addedJPQLParams);
@@ -5292,8 +5294,8 @@ public abstract class QueryInfo {
      * @param annoClass     Insert, Update, Save, or Delete annotation class.
      * @param operationType corresponding operation type.
      */
-    private void setType(Class<? extends Annotation> annoClass,
-                         QueryType operationType) {
+    protected void setType(Class<? extends Annotation> annoClass,
+                           QueryType operationType) {
         type = operationType;
         if (entityParamType == null) {
             int paramCount = method.getParameterCount();
@@ -5552,7 +5554,7 @@ public abstract class QueryInfo {
     @Trivial
     Object update(Object arg, EntityManager em) throws Exception {
         arg = arg instanceof Stream //
-                        ? ((Stream<?>) arg).sequential().collect(Collectors.toList()) //
+                        ? ((Stream<?>) arg).sequential().toList() //
                         : arg;
 
         final boolean trace = TraceComponent.isAnyTracingEnabled();
