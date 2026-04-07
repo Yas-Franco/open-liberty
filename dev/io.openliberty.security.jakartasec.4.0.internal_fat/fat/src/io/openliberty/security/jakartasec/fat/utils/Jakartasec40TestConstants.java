@@ -62,6 +62,14 @@ public class Jakartasec40TestConstants {
     public static final String PASSWORD_XOR_INVALID = "{xor}LLTxlkwjljsdforbg=";
 
     /**
+     * Multiple Identity Stores - Database store users
+     */
+    public static final String DB_USER_ALICE = "alice";
+    public static final String DB_USER_RORY = "rory";
+    public static final String DB_USER_CHARLIE = "charlie";
+    public static final String DB_PASSWORD = "dbpassw0rd123";
+
+    /**
      * Multiple HAMs
      */
     public static final String HAM_ORDER_FOUND_MESSAGE = "Order of HttpAuthenticationMechanisms found";
