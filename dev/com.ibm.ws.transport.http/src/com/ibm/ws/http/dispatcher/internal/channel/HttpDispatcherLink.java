@@ -154,13 +154,11 @@ public class HttpDispatcherLink extends InboundApplicationLink implements HttpIn
     private boolean WebConnCanClose = true;
     private final String h2InitError = "com.ibm.ws.transport.http.http2InitError";
 
-    private final AtomicBoolean decrementNeeded = new AtomicBoolean(false);
+    private final AtomicBoolean decrementNeededForUpgradedConnection = new AtomicBoolean(false);
 
     private final AtomicBoolean closeCompleted = new AtomicBoolean(false);
 
     private volatile boolean destroyed = false; //New variable to track if the connection objects are destroyed during concurrent operations
-    
-    private final AtomicBoolean connectionCountDecremented = new AtomicBoolean(false); //Dedicated variable to track connection count decrement
 
     private final AtomicInteger activeFinishOperations = new AtomicInteger(0); //Tracks active finish() operations for HTTP/2 connections to prevent race between GOAWAY frame processing calling the close on the connection and request completion calling close concurrently.
     
@@ -324,14 +322,13 @@ public class HttpDispatcherLink extends InboundApplicationLink implements HttpIn
         if (finalVc == null) {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "close, Connection must be already closed since vc is null");
-                Tr.debug(tc, "Getting the values of the atomic booleans for the connection decrement: decrementNeeded: "+decrementNeeded.get() +" closeCompleted: "+closeCompleted.get() +" hc: " + this.hashCode());
+                Tr.debug(tc, "Getting the values of the atomic booleans for the connection decrement: decrementNeededForUpgradedConnection: "+decrementNeededForUpgradedConnection.get() +" closeCompleted: "+closeCompleted.get() +" hc: " + this.hashCode());
             }
             // closeCompleted check is for the close, destroy, close order scenario.
             // Without this check, this second close (after the destroy) would decrement the connection again and produce a quiesce error.
-            if (this.decrementNeeded.compareAndSet(true, false)) {
+            if (this.decrementNeededForUpgradedConnection.compareAndSet(true, false)) {
                 // ^ set back to false in case close is called more than once after destroy is called (highly unlikely)
                 this.myChannel.decrementActiveConns();
-                connectionCountDecremented.set(true);
             }
 
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
@@ -453,7 +450,6 @@ public class HttpDispatcherLink extends InboundApplicationLink implements HttpIn
                     Tr.debug(tc, "close, decrement active connection count");
                 }
                 this.myChannel.decrementActiveConns();
-                connectionCountDecremented.set(true);
             }
             closeCompleted.compareAndSet(false, true);
         }
@@ -510,9 +506,9 @@ public class HttpDispatcherLink extends InboundApplicationLink implements HttpIn
             Tr.debug(tc, "isH2HttpLink: " + isH2HttpLink);
         }
         if (upgraded != null && !isH2HttpLink) {
-            if (this.decrementNeeded.compareAndSet(false, true)) { // i.e. this is called first
+            if (this.decrementNeededForUpgradedConnection.compareAndSet(false, true)) { // i.e. this is called first
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "decrementNeeded set to true");
+                    Tr.debug(tc, "decrementNeededForUpgradedConnection set to true");
                 }
             }
         }
@@ -672,8 +668,6 @@ public class HttpDispatcherLink extends InboundApplicationLink implements HttpIn
             Tr.debug(tc, "Received HTTP connection: " + inVC + " hc: " + this.hashCode() + " , this link: " + this);
             Tr.debug(tc, "increment active connection count");
         }
-
-        this.connectionCountDecremented.set(false); // Reset the decrement flag for this new request
 
         this.myChannel.incrementActiveConns();
         init(inVC);
@@ -1651,18 +1645,18 @@ public class HttpDispatcherLink extends InboundApplicationLink implements HttpIn
                         ic.sendResponse(StatusCodes.INTERNAL_ERROR, new Exception("Dispatch error", t), true);
                     }
                 }
-                if (ic.decrementNeeded.compareAndSet(true, false)) {
+                if (ic.decrementNeededForUpgradedConnection.compareAndSet(true, false)) {
                     //  ^ set back to false in case close is called more than once after destroy is called (highly unlikely)
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                        Tr.debug(tc, "decrementNeeded was true: decrement active connection");
+                        Tr.debug(tc, "decrementNeededForUpgradedConnection was true: decrement active connection");
                     }
                     ic.myChannel.decrementActiveConns();
-                    ic.connectionCountDecremented.set(true);
+                    ic.closeCompleted.set(true);
                 }
 
-                if (ic.connectionCountDecremented.compareAndSet(false, true)) {
+                if (!ic.closeCompleted.get()) {
                     if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                        Tr.debug(tc, "connectionCountDecremented was false: decrement active connection");
+                        Tr.debug(tc, "closeCompleted was false: decrement active connection");
                     }
                     ic.myChannel.decrementActiveConns();
                 }
