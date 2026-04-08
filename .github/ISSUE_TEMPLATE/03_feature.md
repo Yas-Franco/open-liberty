@@ -114,7 +114,9 @@ The personnel working in these areas use these issues to prioritize and track wo
 ### **Design**
 - [ ] POC Design / UFO review scheduled.
   - Follow the instructions in the [README in the POC-Forum repo](https://github.ibm.com/websphere/POC-Forum?tab=readme-ov-file#adding-an-agenda-item).
+  - Schedule a design review only if the feature has already been prioritized.
 - [ ] POC Design / UFO review completed.
+  - Feature owner adds label `Design Socialized`
 - [ ] POC / UFO Review follow-ons completed.
 - [ ] POC Design / UFO approval requested.
   - Feature owner adds label `Design Approval Request`
