@@ -101,6 +101,16 @@ Design preliminaries determine whether a formal design, which will be provided b
 - [ ] SVT requirements identified, or N/A. (Feature owner and [SVT focal point](https://github.com/orgs/OpenLiberty/teams/svt-approvers))
 - [ ] Performance testing requirements identified, or N/A. (Feature owner and [Performance focal point](https://github.com/orgs/OpenLiberty/teams/performance-approvers))
 
+#### Governance requests
+
+If work is required in any the following areas for the feature, a [request for the Governance Team](https://github.ibm.com/WAS-CD-Area/WAS-CD-Area/issues/new/choose) must be opened for each respective area:
+- UI
+- ID
+- SVT
+- Performance
+
+The personnel working in these areas use these issues to prioritize and track work.
+
 ### **Design**
 - [ ] POC Design / UFO review scheduled.
   - Follow the instructions in the [README in the POC-Forum repo](https://github.ibm.com/websphere/POC-Forum?tab=readme-ov-file#adding-an-agenda-item).
