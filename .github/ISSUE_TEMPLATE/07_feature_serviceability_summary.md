@@ -9,7 +9,7 @@ assignees: ''
 
 ## Feature Serviceability Summary
 
-Issue that covers the serviceability details of a feature for the [Serviceability Approvers](https://github.com/orgs/OpenLiberty/teams/serviceability-approvers/members) to review. When opened, please link this issue to the feature issue.
+Issue that covers the serviceability details of a feature for the @OpenLiberty/serviceability-approvers to review. When opened, please link this issue to the feature issue.
 
 ### UFO
 

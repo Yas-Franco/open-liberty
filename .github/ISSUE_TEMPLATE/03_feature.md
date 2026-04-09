@@ -104,7 +104,7 @@ Design preliminaries determine whether a formal design, which will be provided b
 
 #### Governance requests
 
-If work is required in any the following areas for the feature, a [request for the Governance Team](https://github.ibm.com/WAS-CD-Area/WAS-CD-Area/issues/new/choose) must be opened for each respective area:
+If work is required in any the following areas for the feature, a request for the Governance Team must be opened for each respective area:
 - UI
 - ID
 - SVT
