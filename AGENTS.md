@@ -37,8 +37,8 @@ $ ./gradlew assemble
 $ ./gradlew releaseNeeded
 ```
 
-This task releases all projects to the local releaseRepo. The final `openliberty` zip can be found in:
-> open-liberty/dev/cnf/release/dev/openliberty/<version>/openliberty-xxx.zip
+This task releases all projects to the local releaseRepo. The final zip can be found in:
+> open-liberty/dev/cnf/release/dev/openliberty/<version>/openliberty-<version>.zip
 
 ### Building a single project
 
@@ -72,7 +72,7 @@ Co-authored-by-AI: <Agent Name> <Agent Version> (<Model Version>)
 
 - **Agent Name**: The name of the AI tool
 - **Agent Version**: The version of the AI tool used (e.g., 1.0.0, 1.2.3)
-- **Model Version**: The underlying LLM model and version used by the AI tool (e.g., Claude Sonnet 4.6, GPT-5.4, Llama 3.2 90B)
+- **Model Version**: The underlying LLM model and version used by the AI tool (e.g., Claude Sonnet 4.6, GPT-5.4, Llama 3.2 90B). This value is optional but must list all models that were known to be used.
 
 ### Examples
 
