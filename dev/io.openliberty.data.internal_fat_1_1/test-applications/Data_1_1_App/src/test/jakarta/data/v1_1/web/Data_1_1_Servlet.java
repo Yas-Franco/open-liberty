@@ -25,6 +25,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.Resource;
@@ -61,6 +64,12 @@ import test.jakarta.data.v1_1.web.Fraction.Decimal;
 @SuppressWarnings("serial")
 @WebServlet("/*")
 public class Data_1_1_Servlet extends FATServlet {
+
+    /**
+     * Maximum number of seconds that a test waits for an asynchronous
+     * operation to complete.
+     */
+    static final long TIMEOUT_S = TimeUnit.MINUTES.toSeconds(2);
 
     @Inject
     Advertisements ads;
@@ -1695,6 +1704,62 @@ public class Data_1_1_Servlet extends FATServlet {
                                      .sorted()
                                      .limit(15)
                                      .collect(Collectors.toList()));
+    }
+
+    /**
+     * Invoke methods on a stateful repository while running on an unmanaged
+     * thread that is not part of any request scope.
+     */
+    @Test
+    public void testStatefulOnUnmanagedThread() throws Exception {
+
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                boolean removed = false;
+                try {
+                    tx.begin();
+                    statefulFractionRepo.write(Fraction.of(13, 23));
+                    tx.commit();
+
+                    tx.begin();
+                    Fraction f = statefulFractions.fetch(13, 23).orElseThrow();
+                    f.decimal = Decimal.of(1, 23);
+                    statefulFractionRepo.restore(f);
+                    f.reduced = false;
+                    statefulFractions.flush();
+                    statefulFractions.detach(f);
+                    f.numerator = 1;
+                    tx.commit();
+
+                    tx.begin();
+                    f = statefulFractions.fetch(13, 23).orElseThrow();
+                    // first 4 decimals of 13/23
+                    assertEquals(BigDecimal.valueOf(5652, 4),
+                                 f.decimal.truncated());
+                    assertEquals(false,
+                                 f.reduced);
+                    assertEquals(13,
+                                 f.numerator);
+                    statefulFractionRepo.remove(f);
+                    tx.commit();
+                    removed = true;
+                } finally {
+                    if (tx.getStatus() != Status.STATUS_NO_TRANSACTION)
+                        tx.rollback();
+
+                    if (!removed)
+                        fractions.discard(AtLeast.min(23),
+                                          AtMost.max(Integer.MAX_VALUE),
+                                          Restrict.unrestricted());
+                }
+            } catch (RuntimeException x) {
+                throw x;
+            } catch (Exception x) {
+                throw new CompletionException(x);
+            }
+            return "testStatefulOnUnmanagedThread async operations completed";
+        }).get(TIMEOUT_S, TimeUnit.SECONDS);
+
     }
 
     /**

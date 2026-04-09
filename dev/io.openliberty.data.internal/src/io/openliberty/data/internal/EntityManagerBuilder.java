@@ -96,7 +96,8 @@ public abstract class EntityManagerBuilder {
 
     /**
      * Map of Transaction to EntityManager that allows stateful repositories to
-     * reuse the same EnityManager within a transaction.
+     * reuse the same EnityManager within a transaction when there is no request
+     * scope. Otherwise, the EntityManager life cycle is tied to the request scope.
      */
     private final Map<Transaction, EntityManager> entityManagerPerTx = //
                     new ConcurrentHashMap<>();
@@ -464,24 +465,49 @@ public abstract class EntityManagerBuilder {
      * @return the EntityManager.
      * @throws Exception if an error occurs.
      */
+    @FFDCIgnore(IllegalStateException.class) // CDI not available on unmanaged thread
     EntityManager getEntityManager(boolean stateful) throws Exception {
         EntityManager em;
 
         if (stateful) {
-            Instance<StatefulPersistenceContext> instance = //
-                            CDI.current().select(StatefulPersistenceContext.class);
-            if (instance.isResolvable()) {
+            Instance<StatefulPersistenceContext> instance;
+            try {
+                instance = CDI.current().select(StatefulPersistenceContext.class);
+            } catch (IllegalStateException x) {
+                // raised by CDI.current() when on unmanaged thread
+                instance = null;
+            }
+            if (instance == null || !instance.isResolvable()) {
+                // Use an EntityManager that follows the life cycle of the current
+                // transaction.
+                Transaction tx = provider.tranMgr.getTransaction();
+                if (tx == null) {
+                    // TODO NLS message. Can mention using RequestContextController
+                    // .activate()/deactivate() around repository operations to
+                    // establish a request scope context.
+                    throw new IllegalStateException("The {0} method of the {1}" +
+                                                    " stateful repository must be" +
+                                                    " used within a request scope" +
+                                                    " or a transaction so that the" +
+                                                    " persistence context can" +
+                                                    " follow its life cycle.");
+                } else {
+                    em = entityManagerPerTx.get(tx);
+                    if (em == null) {
+                        em = createEntityManager();
+                        em.joinTransaction();
+                        tx.registerSynchronization(new EntityManagerCleanup(tx));
+                        entityManagerPerTx.put(tx, em);
+                    }
+                }
+            } else {
+                // Use an EnityManager that follows the life cycle of the current
+                // request scope.
                 StatefulPersistenceContext bean = instance.get();
                 em = bean.get(this);
                 if (!em.isJoinedToTransaction() &&
                     provider.tranMgr.getStatus() != Status.STATUS_NO_TRANSACTION)
                     em.joinTransaction();
-            } else {
-                // TODO NLS message indicating that the operation must be invoked
-                // within a request scope. Can mention alternative of explictly
-                // invoking RequestContextController.activate()/deactivate() around
-                // repository operations to establish a request scope context.
-                throw new IllegalStateException();
             }
         } else {
             em = createEntityManager();
@@ -630,7 +656,8 @@ public abstract class EntityManagerBuilder {
         }
 
         if (!entityManagerPerTx.isEmpty()) {
-            writer.println(indent + "  stateless entity manager per transaction:");
+            writer.println(indent + "  stateless entity manager per transaction" +
+                           " and not within a request scope:");
             entityManagerPerTx.forEach((tx, em) -> writer //
                             .println(indent + "    " + tx + " -> " + em));
         }
@@ -663,8 +690,11 @@ public abstract class EntityManagerBuilder {
         @Override
         public void afterCompletion(int status) {
             EntityManager em = entityManagerPerTx.remove(tx);
-            if (em != null)
+            if (em != null) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                    Tr.debug(this, tc, "close " + em);
                 em.close();
+            }
         }
 
         @Override
