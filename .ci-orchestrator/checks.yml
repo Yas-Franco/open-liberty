@@ -27,16 +27,6 @@ steps:
   properties:
     githubPRApi: "https://api.github.com/repos/OpenLiberty/open-liberty/pulls/${githubPRNumber}"  
 
-- stepName: Detect Secrets Scan
-  workType: Jenkins
-  projectName: detectSecretsScan
-  timeoutInMinutes: 1440
-  properties:
-    repoToScan: "open-liberty"
-    repoSSHURL: "git@github.com:${github_pr_user}/open-liberty.git"
-    branchToScan: ${github_pr_branch}
-    githubPRApi: ${github_pr_api}
-
 - stepName: Prohibited Terms Check
   workType: Jenkins
   projectName: prohibitedTermsCheck
