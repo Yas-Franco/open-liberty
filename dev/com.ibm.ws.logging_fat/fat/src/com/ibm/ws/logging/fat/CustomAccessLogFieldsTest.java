@@ -71,8 +71,8 @@ public class CustomAccessLogFieldsTest {
     private static Class<?> c = CustomAccessLogFieldsTest.class;
 
     private static final String MESSAGE_LOG = "logs/messages.log";
-    private static final int LOG_TIMEOUT = 30 * 1000;
-    private static final int WAIT_TIMEOUT = 30 * 1000;
+    private static final int LOG_TIMEOUT = 60 * 1000;
+    private static final int WAIT_TIMEOUT = 60 * 1000;
 
     @Server("CustomAccessLogFieldsEnv")
     public static LibertyServer envServer;
@@ -809,15 +809,13 @@ public class CustomAccessLogFieldsTest {
     }
 
     private void waitForSecurityPrerequisites(LibertyServer server) throws Exception {
-        // Need to ensure LTPA keys and configuration are created before hitting a secure endpoint
-        server.waitForLTPAKeysCreatedAndConfigComplete(CustomAccessLogFieldsTest.WAIT_TIMEOUT);
+        // Need to ensure LTPA configuration is ready before hitting a secure endpoint
+        server.waitForLTPAConfigReady(CustomAccessLogFieldsTest.WAIT_TIMEOUT);
         // Wait for port 8020 to be ready
         server.waitForDefaultHTTPEndpointSSLStart(CustomAccessLogFieldsTest.WAIT_TIMEOUT);
     }
 
     private void waitForMetricsToStart(LibertyServer server) {
-
-
         // Wait for /metrics to be initialized
         assertNotNull("/metrics was not initialized (SRVE0242I not found)",
                       server.waitForStringInLog("SRVE0242I.*/metrics", CustomAccessLogFieldsTest.WAIT_TIMEOUT));

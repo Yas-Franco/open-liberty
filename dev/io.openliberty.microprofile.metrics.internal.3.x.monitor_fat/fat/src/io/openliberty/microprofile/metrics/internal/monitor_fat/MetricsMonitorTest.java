@@ -104,7 +104,7 @@ public class MetricsMonitorTest {
                 "------- Enable mpMetrics-3.0 and monitor-1.0: vendor metrics should be available ------");
         server.setServerConfigurationFile("server_monitor30.xml");
         server.startServer();
-        server.waitForLTPAKeysCreatedAndConfigComplete(60000);
+        server.waitForLTPAConfigReady(60000);
         server.waitForDefaultHTTPEndpointSSLStart(60000);
         Log.info(c, testName, "------- server started -----");
         Assert.assertNotNull("CWWKT0016I NOT FOUND", server.waitForStringInLogUsingMark("CWWKT0016I"));

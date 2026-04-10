@@ -578,8 +578,8 @@ public class ComputedMetricsTest {
     private void waitForSecurityPrerequisites(LibertyServer server, int timeout) throws Exception {
         // We only need to wait for LTPA keys if this is the first time using this server.
        if (initialServerStart) {
-            // Need to ensure LTPA keys and configuration are created before hitting a secure endpoint.
-            server.waitForLTPAKeysCreatedAndConfigComplete(timeout);
+            // Need to ensure LTPA configuration is ready before hitting a secure endpoint.
+            server.waitForLTPAConfigReady(timeout);
        }
         // Ensure defaultHttpEndpoint-ssl TCP Channel is started
         server.waitForDefaultHTTPEndpointSSLStart(timeout);

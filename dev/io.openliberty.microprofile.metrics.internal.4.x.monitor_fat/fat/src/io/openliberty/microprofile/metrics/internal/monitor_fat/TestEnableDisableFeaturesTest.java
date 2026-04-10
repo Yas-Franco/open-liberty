@@ -445,16 +445,11 @@ public class TestEnableDisableFeaturesTest {
                 new String[] { "vendor_connectionpool", "vendor_servlet", "{servlet=\"testJDBCApp\"}" });
     }
 
-    private void waitForSecurityPrerequisites(LibertyServer server, int timeout) {
-        // Need to ensure LTPA keys and configuration are created before hitting a
-        // secure endpoint
-        try {
-            server.waitForLTPAKeysCreatedAndConfigComplete(timeout);
-            // Ensure defaultHttpEndpoint-ssl TCP Channel is started
-            server.waitForDefaultHTTPEndpointSSLStart(timeout);
-        } catch (Exception e){
-            // The assertions will cause the test to bail out, so the exception that could of been thrown has been suppressed
-        }
+    private void waitForSecurityPrerequisites(LibertyServer server, int timeout) throws Exception {
+        // Need to ensure LTPA configuration is ready before hitting a secure endpoint
+        server.waitForLTPAConfigReady(timeout);
+        // Ensure defaultHttpEndpoint-ssl TCP Channel is started
+        server.waitForDefaultHTTPEndpointSSLStart(timeout);
     }
 
     private String getHttpServlet(String servletPath, LibertyServer server) throws Exception {

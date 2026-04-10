@@ -460,9 +460,8 @@ public class TestEnableDisableFeaturesTest {
     }
 
     private void waitForSecurityPrerequisites(LibertyServer server, int timeout) throws Exception {
-        // Need to ensure LTPA keys and configuration are created before hitting a
-        // secure endpoint
-        server.waitForLTPAKeysCreatedAndConfigComplete(timeout);
+        // Need to ensure LTPA is ready before invoking secure endpoint
+        server.waitForLTPAConfigReady(timeout);
         // Ensure defaultHttpEndpoint-ssl TCP Channel is started
         server.waitForDefaultHTTPEndpointSSLStart(timeout);
     }
