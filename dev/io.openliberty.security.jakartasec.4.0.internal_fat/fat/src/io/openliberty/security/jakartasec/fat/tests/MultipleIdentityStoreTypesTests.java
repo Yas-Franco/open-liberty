@@ -187,8 +187,8 @@ public class MultipleIdentityStoreTypesTests extends BaseJakartaSecurity40Test {
         String inMemIdStoreNotValidated = String.format(ID_STORE_VALIDATION_FAIL_MSG, "IdentityStore");
         String customDbIdStoreValidated = String.format(ID_STORE_VALIDATION_SUCCESS_MSG, "CustomDatabaseIdentityStore");
 
-        assertNotNull("InMemoryIdentityStore should fail to validate the user", waitForStringInLog(inMemIdStoreNotValidated, 2000));
-        assertNotNull("CustomDatabaseIdentityStore should be validate the user", waitForStringInLog(customDbIdStoreValidated, 2000));
+        assertNotNull("InMemoryIdentityStore should fail to validate the user", waitForStringInLog(inMemIdStoreNotValidated));
+        assertNotNull("CustomDatabaseIdentityStore should be validate the user", waitForStringInLog(customDbIdStoreValidated));
 
         logInfo("testUserCredentialOnBothStores",
                 "Test passed - database password correctly validaded on the lower priority store");
@@ -302,13 +302,13 @@ public class MultipleIdentityStoreTypesTests extends BaseJakartaSecurity40Test {
         String customDbIdStoreName = String.format(ID_STORE_FOUND_MSG, "CustomDatabaseIdentityStore");
 
         //Both stores are found
-        assertNotNull("InMemoryIdentityStore should be found", waitForStringInLog(inMemIdStoreName, 2000));
-        assertNotNull("CustomDatabaseIdentityStore should be found", waitForStringInLog(customDbIdStoreName, 2000));
+        assertNotNull("InMemoryIdentityStore should be found", waitForStringInLog(inMemIdStoreName));
+        assertNotNull("CustomDatabaseIdentityStore should be found", waitForStringInLog(customDbIdStoreName));
 
         // The in-memory store should validate successfully, so database store should not be called
         // for credential validation (it might be called for groups, but not for validation)
         String inMemIdStoreValidated = String.format(ID_STORE_VALIDATION_SUCCESS_MSG, "IdentityStore");
-        assertNotNull("InMemoryIdentityStore should be validated", waitForStringInLog(inMemIdStoreValidated, 2000));
+        assertNotNull("InMemoryIdentityStore should be validated", waitForStringInLog(inMemIdStoreValidated));
 
         logInfo("testPriorityOrder", "Test passed - priority order verified");
     }
