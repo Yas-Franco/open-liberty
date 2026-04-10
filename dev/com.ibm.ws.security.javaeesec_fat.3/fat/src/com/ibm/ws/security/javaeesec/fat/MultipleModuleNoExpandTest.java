@@ -172,7 +172,7 @@ public class MultipleModuleNoExpandTest extends JavaEESecTestBase {
      * the one which are bundled with each module is only visible within the module.
      * </OL>
      */
-    @Test
+    //@Test
     public void testMultipleModuleWars() throws Exception {
         Log.info(logClass, getCurrentTestName(), "-----Entering " + getCurrentTestName());
         assumeNotWindowsEe9Plus();

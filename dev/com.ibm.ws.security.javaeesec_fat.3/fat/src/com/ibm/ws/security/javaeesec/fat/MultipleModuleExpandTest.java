@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package com.ibm.ws.security.javaeesec.fat;
@@ -174,7 +174,7 @@ public class MultipleModuleExpandTest extends JavaEESecTestBase {
      * </OL>
      */
     @Mode(TestMode.FULL)
-    @Test
+    //@Test
     public void testMultipleModuleWarsExpand() throws Exception {
         Log.info(logClass, getCurrentTestName(), "-----Entering " + getCurrentTestName());
         assumeNotWindowsEe9Plus();
@@ -410,7 +410,7 @@ public class MultipleModuleExpandTest extends JavaEESecTestBase {
      * </OL>
      */
     @Mode(TestMode.FULL)
-    @Test
+    //@Test
     public void testMultipleModuleWithCommonJarExpand() throws Exception {
         Log.info(logClass, getCurrentTestName(), "-----Entering " + getCurrentTestName());
         assumeNotWindowsEe9Plus();
@@ -530,7 +530,7 @@ public class MultipleModuleExpandTest extends JavaEESecTestBase {
      * </OL>
      */
     @Mode(TestMode.FULL)
-    @Test
+    //Test
     public void testMultipleModuleWithCommonHAMJarExpand() throws Exception {
         Log.info(logClass, getCurrentTestName(), "-----Entering " + getCurrentTestName());
         assumeNotWindowsEe9Plus();

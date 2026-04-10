@@ -105,6 +105,6 @@ src: \
 	com.ibm.ws.com.unboundid;version=latest,\
 	com.unboundid:unboundid-ldapsdk;version=7.0.3,\
     io.openliberty.security.javaeesec.internal
-	
+
 # Copy in FIPS keys
 ltpa.fips.enabled: true
