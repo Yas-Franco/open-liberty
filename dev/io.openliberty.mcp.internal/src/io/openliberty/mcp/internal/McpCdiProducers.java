@@ -9,7 +9,6 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal;
 
-import io.openliberty.mcp.internal.encoders.EncoderRegistry;
 import io.openliberty.mcp.internal.moduleScope.ModuleScoped;
 import io.openliberty.mcp.tools.ToolManager;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -38,19 +37,6 @@ public class McpCdiProducers {
     @Produces
     private ToolManager produceToolManager(McpCdiExtension extension) {
         return extension.getCurrentToolRegistry();
-    }
-
-    /**
-     * Produces the module-scoped {@link EncoderRegistry} for custom content encoder registration.
-     * Invoked lazily on first injection within each module.
-     *
-     * @param extension The CDI extension managing encoder registries
-     * @return The EncoderRegistry instance for the current module
-     */
-    @ModuleScoped
-    @Produces
-    private EncoderRegistry produceEncoderRegistry(McpCdiExtension extension) {
-        return extension.getCurrentEncoderRegistry();
     }
 
 }
