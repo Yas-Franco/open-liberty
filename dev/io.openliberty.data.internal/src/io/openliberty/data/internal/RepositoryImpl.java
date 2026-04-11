@@ -22,7 +22,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLSyntaxErrorException;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
@@ -391,15 +390,13 @@ public class RepositoryImpl<R> implements InvocationHandler {
      */
     private <T> T getResource(QueryInfo info) throws Exception {
         Object resource = null;
-        boolean resourceAutoClosedByTx = false;
+        boolean resourceAutoCloses = false;
         boolean stateful = info.producer.stateful();
         Class<?> type = info.method.getReturnType();
 
         if (EntityManager.class.equals(type)) {
-            SimpleEntry<EntityManager, Boolean> emAutoCloseable = //
-                            builder.getEntityManager(stateful);
-            resource = emAutoCloseable.getKey();
-            resourceAutoClosedByTx = emAutoCloseable.getValue();
+            resource = builder.getEntityManager(stateful);
+            resourceAutoCloses = stateful;
         } else if (DataSource.class.equals(type)) {
             resource = builder.getDataSource(info.method, repositoryInterface);
         } else if (Connection.class.equals(type)) {
@@ -419,7 +416,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
                       type.getName(),
                       Util.names(provider.compat.resourceAccessorTypes(stateful)));
 
-        if (!resourceAutoClosedByTx &&
+        if (!resourceAutoCloses &&
             resource instanceof AutoCloseable) {
             Deque<AutoCloseable> resources = defaultMethodResources.get();
             if (resources == null) {
@@ -554,7 +551,6 @@ public class RepositoryImpl<R> implements InvocationHandler {
             }
 
             Object returnValue;
-            boolean emAutoClosedByTx = false;
             boolean failed = true;
             QueryType queryType = null;
             boolean startedTransaction = false;
@@ -586,12 +582,8 @@ public class RepositoryImpl<R> implements InvocationHandler {
                     Tr.debug(this, tc, Util.txStatusToString(txStatus));
                 }
 
-                if (queryType != RESOURCE_ACCESS) {
-                    SimpleEntry<EntityManager, Boolean> emAutoCloseable = //
-                                    builder.getEntityManager(stateful);
-                    em = emAutoCloseable.getKey();
-                    emAutoClosedByTx = emAutoCloseable.getValue();
-                }
+                if (queryType != RESOURCE_ACCESS)
+                    em = builder.getEntityManager(stateful);
 
                 returnValue = switch (queryType) {
                     case FIND, FIND_AND_DELETE -> queryInfo.find(em, txStatus, args);
@@ -661,7 +653,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
                             provider.localTranCurrent.resume(suspendedLTC);
                         }
                     } finally {
-                        if (!emAutoClosedByTx && em != null)
+                        if (!stateful && em != null)
                             em.close();
                     }
                 }

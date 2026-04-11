@@ -15,7 +15,6 @@ package io.openliberty.data.internal;
 import static io.openliberty.data.internal.cdi.DataExtension.exc;
 
 import java.util.AbstractList;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -214,10 +213,10 @@ public class PageImpl<T> implements Page<T> {
 
         EntityManagerBuilder builder = queryInfo.entityInfo.builder;
         boolean stateful = queryInfo.producer.stateful();
-        SimpleEntry<EntityManager, Boolean> emAutoCloseable = null;
+        EntityManager em = null;
         try {
-            emAutoCloseable = builder.getEntityManager(stateful);
-            EntityManager em = emAutoCloseable.getKey();
+            em = builder.getEntityManager(stateful);
+
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
                 Tr.debug(this, tc, "query for count: " + queryInfo.jpqlCount);
 
@@ -228,8 +227,8 @@ public class PageImpl<T> implements Page<T> {
         } catch (Exception x) {
             throw RepositoryImpl.failure(x, builder);
         } finally {
-            if (emAutoCloseable != null && emAutoCloseable.getValue())
-                emAutoCloseable.getKey().close();
+            if (!stateful && em != null)
+                em.close();
         }
     }
 

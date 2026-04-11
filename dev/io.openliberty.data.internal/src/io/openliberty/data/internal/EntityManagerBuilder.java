@@ -25,7 +25,6 @@ import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLRecoverableException;
 import java.sql.SQLTransientConnectionException;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,8 +49,12 @@ import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
+import io.openliberty.data.internal.cdi.StatefulPersistenceContext;
 import jakarta.data.exceptions.DataException;
 import jakarta.data.exceptions.MappingException;
+import jakarta.enterprise.context.ContextNotActiveException;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.CDI;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.metamodel.Attribute;
 import jakarta.persistence.metamodel.Attribute.PersistentAttributeType;
@@ -61,6 +64,7 @@ import jakarta.persistence.metamodel.Metamodel;
 import jakarta.persistence.metamodel.PluralAttribute;
 import jakarta.persistence.metamodel.SingularAttribute;
 import jakarta.persistence.metamodel.Type;
+import jakarta.transaction.Status;
 import jakarta.transaction.Synchronization;
 import jakarta.transaction.Transaction;
 
@@ -93,7 +97,8 @@ public abstract class EntityManagerBuilder {
 
     /**
      * Map of Transaction to EntityManager that allows stateful repositories to
-     * reuse the same EnityManager within a transaction.
+     * reuse the same EnityManager within a transaction when there is no request
+     * scope. Otherwise, the EntityManager life cycle is tied to the request scope.
      */
     private final Map<Transaction, EntityManager> entityManagerPerTx = //
                     new ConcurrentHashMap<>();
@@ -413,7 +418,7 @@ public abstract class EntityManagerBuilder {
      *
      * @return a new EntityManager instance.
      */
-    protected abstract EntityManager createEntityManager();
+    public abstract EntityManager createEntityManager();
 
     /**
      * Returns an alphabetized comma-delimited list of the class names as text
@@ -458,35 +463,61 @@ public abstract class EntityManagerBuilder {
      * and the repository is stateful. Otherwise create a new instance.
      *
      * @param stateful indicates a stateful repository.
-     * @return EntityManager and indicator of whether the EntityManager will be
-     *         automatically closed by the current transaction.
+     * @return the EntityManager.
      * @throws Exception if an error occurs.
      */
-    SimpleEntry<EntityManager, Boolean> getEntityManager(boolean stateful) //
-                    throws Exception {
-        boolean autoClosedByTx;
-        EntityManager em;
+    @FFDCIgnore({ ContextNotActiveException.class, // RequestScope not available on unmanaged thread
+                  IllegalStateException.class }) // CDI not available on unmanaged thread
+    EntityManager getEntityManager(boolean stateful) throws Exception {
+        EntityManager em = null;
 
         if (stateful) {
-            Transaction tx = provider.tranMgr.getTransaction();
-            if (tx == null) {
-                autoClosedByTx = false;
-                em = createEntityManager();
-            } else {
-                autoClosedByTx = true;
-                em = entityManagerPerTx.get(tx);
-                if (em == null) {
-                    em = createEntityManager();
-                    tx.registerSynchronization(new EntityManagerCleanup(tx));
-                    entityManagerPerTx.put(tx, em);
+            try {
+                // Use an EnityManager that follows the life cycle of the current
+                // request scope.
+                Instance<StatefulPersistenceContext> instance;
+                instance = CDI.current().select(StatefulPersistenceContext.class);
+                if (instance != null && instance.isResolvable()) {
+                    StatefulPersistenceContext bean = instance.get();
+                    em = bean.get(this);
+                    if (!em.isJoinedToTransaction() &&
+                        provider.tranMgr.getStatus() != Status.STATUS_NO_TRANSACTION)
+                        em.joinTransaction();
+                }
+            } catch (ContextNotActiveException x) {
+                // raised by bean.get() when on unmanaged thread
+            } catch (IllegalStateException x) {
+                // raised by CDI.current() when on unmanaged thread
+            }
+            if (em == null) {
+                // Use an EntityManager that follows the life cycle of the current
+                // transaction.
+                Transaction tx = provider.tranMgr.getTransaction();
+                if (tx == null) {
+                    // TODO NLS message. Can mention using RequestContextController
+                    // .activate()/deactivate() around repository operations to
+                    // establish a request scope context.
+                    throw new IllegalStateException("The {0} method of the {1}" +
+                                                    " stateful repository must be" +
+                                                    " used within a request scope" +
+                                                    " or a transaction so that the" +
+                                                    " persistence context can" +
+                                                    " follow its life cycle.");
+                } else {
+                    em = entityManagerPerTx.get(tx);
+                    if (em == null) {
+                        em = createEntityManager();
+                        em.joinTransaction();
+                        tx.registerSynchronization(new EntityManagerCleanup(tx));
+                        entityManagerPerTx.put(tx, em);
+                    }
                 }
             }
         } else {
-            autoClosedByTx = false;
             em = createEntityManager();
         }
 
-        return new SimpleEntry<>(em, autoClosedByTx);
+        return em;
     }
 
     @FFDCIgnore(NoSuchFieldException.class)
@@ -629,7 +660,8 @@ public abstract class EntityManagerBuilder {
         }
 
         if (!entityManagerPerTx.isEmpty()) {
-            writer.println(indent + "  stateless entity manager per transaction:");
+            writer.println(indent + "  stateless entity manager per transaction" +
+                           " and not within a request scope:");
             entityManagerPerTx.forEach((tx, em) -> writer //
                             .println(indent + "    " + tx + " -> " + em));
         }
@@ -662,8 +694,11 @@ public abstract class EntityManagerBuilder {
         @Override
         public void afterCompletion(int status) {
             EntityManager em = entityManagerPerTx.remove(tx);
-            if (em != null)
+            if (em != null) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                    Tr.debug(this, tc, "close " + em);
                 em.close();
+            }
         }
 
         @Override

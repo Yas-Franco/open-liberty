@@ -142,7 +142,7 @@ public enum QueryType {
     // stateful repository life cycle method @Remove
     REMOVE("Remove", //
            Is.LIFE_CYCLE_METHOD, //
-           !Require.AUTO_START_TX, //
+           Require.AUTO_START_TX, //
            !Require.DETACH_ENTITIES, //
            !Require.RETURN_HIDDEN, //
            Require.STATEFUL),
