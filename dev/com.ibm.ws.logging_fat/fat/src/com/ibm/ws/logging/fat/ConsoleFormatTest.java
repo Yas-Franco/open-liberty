@@ -547,6 +547,9 @@ public class ConsoleFormatTest {
         }
         loggingObj.setConsoleFormat(consoleFormat);
         libertyServer.setMarkToEndOfLog(consoleLogFile);
+
+//        Thread.sleep(100);
+
         libertyServer.updateServerConfiguration(serverConfig);
         libertyServer.waitForConfigUpdateInLogUsingMark(null);
     }
