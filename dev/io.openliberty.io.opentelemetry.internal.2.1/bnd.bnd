@@ -18,7 +18,7 @@ openTelemetryVersion=1.48.0
 alphaOpenTelemetryVersion=1.48.0.alpha
 openTelemetryInstrumentationVersion=2.14.0
 alphaOpenTelemetryInstrumentationVersion=2.14.0.alpha
-semconvOpenTelemetryVersion=1.32.0
+semconvOpenTelemetryVersion=1.40.0
 alphaSemconvOpenTelemetryVersion=1.32.0.alpha
 
 src: src, resources

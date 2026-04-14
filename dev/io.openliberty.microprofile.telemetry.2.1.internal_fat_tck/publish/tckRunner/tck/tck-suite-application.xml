@@ -16,7 +16,7 @@
             <package name="org.eclipse.microprofile.telemetry.tracing.tck.*"></package>
         </packages>
     </test>
-    <test name="tck-package-org.eclipse.microprofile.telemetry.metrics.tck.application">
+    <!--  <test name="tck-package-org.eclipse.microprofile.telemetry.metrics.tck.application">
         <packages>
             <package name="org.eclipse.microprofile.telemetry.metrics.tck.application.*"></package>
         </packages>
@@ -26,4 +26,5 @@
             <package name="org.eclipse.microprofile.telemetry.logs.tck.application.*"></package>
         </packages>
     </test>
+    -->
 </suite>

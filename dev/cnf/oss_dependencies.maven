@@ -159,7 +159,7 @@ io.opentelemetry.semconv:opentelemetry-semconv-incubating:1.32.0-alpha
 io.opentelemetry.semconv:opentelemetry-semconv:1.23.1-alpha
 io.opentelemetry.semconv:opentelemetry-semconv:1.25.0-alpha
 io.opentelemetry.semconv:opentelemetry-semconv:1.30.0
-io.opentelemetry.semconv:opentelemetry-semconv:1.32.0
+io.opentelemetry.semconv:opentelemetry-semconv:1.40.0
 io.opentelemetry:opentelemetry-api-events:1.29.0-alpha
 io.opentelemetry:opentelemetry-api-incubator:1.39.0-alpha
 io.opentelemetry:opentelemetry-api-incubator:1.48.0-alpha

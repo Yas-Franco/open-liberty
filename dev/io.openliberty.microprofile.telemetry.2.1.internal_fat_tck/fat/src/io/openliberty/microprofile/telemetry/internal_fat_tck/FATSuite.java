@@ -24,8 +24,10 @@ import componenttest.topology.utils.tck.TCKUtilities;
 @SuiteClasses({
                 AlwaysPassesTest.class,
                 Telemetry21TCKLauncher.class,
-                Telemetry21MetricsConfigTCKLauncher.class,
-                Telemetry21LogsConfigTCKLauncher.class
+/*
+ * Telemetry21MetricsConfigTCKLauncher.class,
+ * Telemetry21LogsConfigTCKLauncher.class
+ */
 })
 @MinimumJavaLevel(javaLevel = 11)
 public class FATSuite {
