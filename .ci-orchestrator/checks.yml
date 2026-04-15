@@ -12,6 +12,12 @@ triggers:
     - name: githubPRNumber
       isRequired: true
       description: "PR number to perform delivery requirement verification against e.g. 30188"
+    - name: githubPRBranch
+      isRequired: false
+      description: "Head branch of specified PR"
+    - name: githubPRBranchOwner
+      isRequired: false
+      description: "PR head branch owner"
 
 steps:
 - stepName: PR Changes
@@ -25,7 +31,22 @@ steps:
   projectName: copyrightHeaderCheck
   timeoutInMinutes: 1440
   properties:
-    githubPRApi: "https://api.github.com/repos/OpenLiberty/open-liberty/pulls/${githubPRNumber}"  
+    githubPRApi: "https://api.github.com/repos/OpenLiberty/open-liberty/pulls/${githubPRNumber}"
+
+- stepName: Detect Secrets Scan
+  conditionalRun:
+    - type: ifSet
+      value: ${githubPRBranch}
+    - type: ifSet
+      value: ${githubPRBranchOwner}
+  workType: Jenkins
+  projectName: detectSecretsScan
+  timeoutInMinutes: 1440
+  properties:
+    repoToScan: "open-liberty"
+    repoSSHURL: "git@github.com:${githubPRBranchOwner}/open-liberty.git"
+    branchToScan: ${githubPRBranch}
+    githubPRApi: "https://api.github.com/repos/OpenLiberty/open-liberty/pulls/${githubPRNumber}"
 
 - stepName: Prohibited Terms Check
   workType: Jenkins
