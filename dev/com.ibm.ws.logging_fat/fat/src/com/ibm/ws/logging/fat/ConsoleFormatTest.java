@@ -388,7 +388,7 @@ public class ConsoleFormatTest {
 
         // Verify if the exception is complete, and not trimmed and/or suppressed
         List<String> lines = server.findStringsInLogs(INTERNAL_CLASSES_REGEXP, consoleLogFile);
-        assertTrue("The SystemErr message is not in the  simple console format.", lines.isEmpty());
+        assertTrue("The SystemErr message is not in the simple console format.", lines.isEmpty());
     }
 
     /*
@@ -548,6 +548,7 @@ public class ConsoleFormatTest {
         loggingObj.setConsoleFormat(consoleFormat);
         libertyServer.setMarkToEndOfLog(consoleLogFile);
         libertyServer.updateServerConfiguration(serverConfig);
+        Thread.sleep(1000);
         libertyServer.waitForConfigUpdateInLogUsingMark(null);
     }
 
