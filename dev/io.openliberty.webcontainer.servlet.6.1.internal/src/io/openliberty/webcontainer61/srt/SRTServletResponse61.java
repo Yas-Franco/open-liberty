@@ -60,7 +60,6 @@ public class SRTServletResponse61 extends SRTServletResponse60 implements HttpSe
             logger.logp(Level.FINE, CLASS_NAME, "setBufferSize", String.valueOf(size) + " [" + this + "]");
 
         if (isCommitted()) {
-            logger.logp(Level.SEVERE, CLASS_NAME, "setBufferSize", "setbuffer.size.called.after.write");
             if (com.ibm.ejs.ras.TraceComponent.isAnyTracingEnabled() && logger.isLoggable(Level.FINE))
                 logger.logp(Level.FINE, CLASS_NAME, "setBufferSize", "throw IllegalStateException. Response is committed");
 

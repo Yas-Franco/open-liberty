@@ -248,7 +248,10 @@ public class TestResponseSendRedirectServlet extends HttpServlet {
             LOG("testSendRedirect_setBufferSize; Exception: [" + e + "]");
 
             if (!e.getMessage().contains("SRVE0157E")) {
-                throw e; //make lot of noise!
+                throw e;
+            }
+            else {
+                LOG("testSendRedirect_setBufferSize; Found the expected Exception: [" + e + "]");
             }
         }
         LOG("<<< Testing testSendRedirect_setBufferSize");

@@ -73,7 +73,7 @@ public class Servlet61ResponseSendRedirectTest {
         LOG.info("testCleanUp : stop server");
 
         if (server != null && server.isStarted()) {
-            server.stopServer("SRVE0157E");
+            server.stopServer();
         }
     }
 
@@ -406,7 +406,7 @@ public class Servlet61ResponseSendRedirectTest {
     /**
      * Test sendRedirect() then response.setBufferSize() which causes IllegalStateException.
      *
-     * This test causes SRVE0157E
+     * This test causes SRVE0157E but handled by application
      */
     @Test
     public void test_sendRedirect_setBufferSize() throws Exception {
