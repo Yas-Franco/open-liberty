@@ -1,0 +1,20 @@
+#*******************************************************************************
+# Copyright (c) 2019, 2025, 2026 IBM Corporation and others.
+# SPDX-License-Identifier: EPL-2.0
+#*******************************************************************************
+
+-privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa32
+
+suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa32.FATSuite
+
+tested.features: persistence-3.2, persistenceContainer-3.2, enterpriseBeansLite-4.0, servlet-6.1, jdbc-4.3, jndi-1.0, databaserotation
+javac.source: 17
+javac.target: 17
+fat.minimum.java.level: 17
+
+-buildpath: \
+    io.openliberty.jakarta.annotation.3.0;version=latest,\
+    io.openliberty.jakarta.enterpriseBeans.4.0;version=latest,\
+    io.openliberty.jakarta.servlet.6.1;version=latest,\
+    io.openliberty.jakarta.persistence.3.2;version=latest,\
+    io.openliberty.jakarta.transaction.2.0;version=latest

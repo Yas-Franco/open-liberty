@@ -1,0 +1,20 @@
+#*******************************************************************************
+# Copyright (c) 2019, 2025, 2026 IBM Corporation and others.
+# SPDX-License-Identifier: EPL-2.0
+#*******************************************************************************
+
+-privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa22
+
+suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa22.FATSuite
+
+tested.features: jpa-2.2, jpaContainer-2.2, ejb-3.2, servlet-4.0, jdbc-4.2, jndi-1.0, databaserotation
+javac.source: 1.8
+javac.target: 1.8
+fat.minimum.java.level: 8
+
+-buildpath: \
+    com.ibm.websphere.javaee.annotation.1.2;version=latest,\
+    com.ibm.websphere.javaee.ejb.3.2;version=latest,\
+    com.ibm.websphere.javaee.servlet.4.0;version=latest,\
+    com.ibm.websphere.javaee.persistence.2.2;version=latest,\
+    com.ibm.websphere.javaee.transaction.1.2;version=latest
