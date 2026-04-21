@@ -1,10 +1,10 @@
 /*******************************************************************************
- * Copyright (c) 2009, 2023 IBM Corporation and others.
+ * Copyright (c) 2009, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
- *
+ * 
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
@@ -48,32 +48,98 @@ public class UtilsChainListener {
     }
 
     /**
-     * Poll the list of chains until they're stopped or the quiesce timeout is hit
+     * Perform a quick check (up to 1 second) to see if any chains stopped immediately.
+     * This is a courtesy check only - does not wait for the full chainQuiesceTimeout.
+     * Chains that are still quiescing will be forcefully stopped by StopChainTask
+     * when the chainQuiesceTimeout expires.
      *
-     * @param quiesceTimeout
+     * @param chainQuiesceTimeout If 0, skips the check entirely (immediate stop requested).
+     *                            If > 0, waits 1 second to see if chains stop quickly.
      */
-    public void waitOnChains(long quiesceTimeout) {
-
+    public void checkChainsQuickly(long chainQuiesceTimeout) {
+        // If timeout is 0, immediate stop was requested - don't wait at all
+        if (chainQuiesceTimeout <= 0 || waitingChainNames.isEmpty()) {
+            return;
+        }
+        
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+            Tr.event(this, tc, "Quick check: " + waitingChainNames.size() + " chain(s) may still be quiescing");
+        }
+        
+        // Give chains 1 second to stop quickly (but only if quiesce timeout > 0)
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ie) {
+            // ignore
+        }
+        
+        // Remove any chains that stopped during the 1 second wait
         ChannelFramework cf = ChannelFrameworkFactory.getChannelFramework();
-        int elapsedTime = 0;
-        while (waitingChainNames.size() > 0 && elapsedTime < quiesceTimeout) {
-
-            if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-                Tr.event(this, tc, "Waiting on " + waitingChainNames.size() + " chain(s) to stop");
+        Iterator<String> iter = waitingChainNames.iterator();
+        while (iter.hasNext()) {
+            if (!cf.isChainRunning(iter.next())) {
+                iter.remove();
             }
-
-            Iterator<String> iter = waitingChainNames.iterator();
-            while (iter.hasNext()) {
-                if (!cf.isChainRunning(iter.next()))
-                    iter.remove();
-            }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ie) {
-                // ignore
-            }
-            elapsedTime += 1000;
-
+        }
+        
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+            Tr.event(this, tc, "After quick check: " + waitingChainNames.size() + " chain(s) still quiescing");
         }
     }
+
+    /**
+     * Check if all watched chains have stopped.
+     *
+     * @return true if all chains are no longer running, false otherwise
+     */
+    public boolean allChainsStopped() {
+        if (waitingChainNames.isEmpty()) {
+            return true;
+        }
+        
+        ChannelFramework cf = ChannelFrameworkFactory.getChannelFramework();
+        for (String chainName : waitingChainNames) {
+            if (cf.isChainRunning(chainName)) {
+                return false;  // At least one chain still running
+            }
+        }
+        return true;  // All chains stopped
+    }
+
+    /**
+     * Wait for all watched chains to stop, polling periodically.
+     * This method blocks until either all chains have stopped or the timeout expires.
+     *
+     * @param chainQuiesceTimeout Maximum time to wait in milliseconds
+     */
+    public void waitForChainsToStop(long chainQuiesceTimeout) {
+        if (chainQuiesceTimeout <= 0 || waitingChainNames.isEmpty()) {
+            return;
+        }
+        
+        long startNanos = System.nanoTime();
+        long timeoutNanos = chainQuiesceTimeout * 1_000_000L;  // Convert ms to ns
+        
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+            Tr.event(this, tc, "Waiting for " + waitingChainNames.size() + " chain(s) to stop");
+        }
+        
+        // Keep checking if all chains have stopped
+        while ((System.nanoTime() - startNanos) < timeoutNanos && !allChainsStopped()) {
+            try {
+                Thread.sleep(100);  // Poll every 100ms
+            } catch (InterruptedException ie) {
+                break;
+            }
+        }
+        
+        if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+            if (allChainsStopped()) {
+                Tr.event(this, tc, "All chains stopped");
+            } else {
+                Tr.event(this, tc, "Timeout expired, " + waitingChainNames.size() + " chain(s) still running");
+            }
+        }
+    }
+
 }
