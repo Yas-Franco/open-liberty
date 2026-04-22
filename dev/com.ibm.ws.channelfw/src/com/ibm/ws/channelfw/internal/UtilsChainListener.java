@@ -133,12 +133,13 @@ public class UtilsChainListener {
 
         long startTime = System.nanoTime();
         long expireTime = chainQuiesceTimeout * 1_000_000L;  // Convert ms to ns
-        long elapsedTime = System.nanoTime() - startTime;
+        long elapsedTime;
                
         // Always cleanup at least once, then keep checking until timeout or all chains stopped
         do {
             removeStoppedChains();  // Remove chains that have stopped
             
+            elapsedTime = System.nanoTime() - startTime;
             if (waitingChainNames.isEmpty() || (elapsedTime >= expireTime)) {
                 break;  // All chains stopped, or timeout expired
             }
@@ -148,7 +149,7 @@ public class UtilsChainListener {
             } catch (InterruptedException ie) {
                 break;
             }
-            elapsedTime = System.nanoTime() - startTime;
+            
         } while (true);
         
         elapsedTime = System.nanoTime() - startTime;
