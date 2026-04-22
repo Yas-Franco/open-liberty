@@ -105,7 +105,7 @@ public class TestConstants {
     private TestConstants() {}
 
     //Docker image names. These must be kept in sync with bnd.bnd
-    public static final DockerImageName DOCKER_IMAGE_OPENTELEMETRY_COLLECTOR = DockerImageName.parse("ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector:0.117.0");
+    public static final DockerImageName DOCKER_IMAGE_OPENTELEMETRY_COLLECTOR = DockerImageName.parse("ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector:0.150.1");
     public static final DockerImageName DOCKER_IMAGE_JAEGER_ALL_IN_ONE = DockerImageName.parse("quay.io/jaegertracing/all-in-one:1.76.0");
     public static final DockerImageName DOCKER_IMAGE_ZIPKIN_SLIM = DockerImageName.parse("ghcr.io/openzipkin/zipkin-slim:3.6");
 
