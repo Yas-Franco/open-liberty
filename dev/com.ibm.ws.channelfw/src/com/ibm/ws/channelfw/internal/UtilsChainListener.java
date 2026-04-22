@@ -49,16 +49,16 @@ public class UtilsChainListener {
 
     /**
      * Perform a quick check (up to 1 second) to see if any chains stopped immediately.
-     * This is a courtesy check only - does not wait for the full chainQuiesceTimeout.
+     * This does not wait for the full chainQuiesceTimeout.
      * Chains that are still quiescing will be forcefully stopped by StopChainTask
      * when the chainQuiesceTimeout expires.
      *
-     * @param chainQuiesceTimeout If 0, skips the check entirely (immediate stop requested).
-     *                            If > 0, waits 1 second to see if chains stop quickly.
+     * @param chainQuiesceTimeout If <= 1000ms, skips the check (not worth waiting).
+     *                            If > 1000ms, waits 1 second to see if chains stop quickly.
      */
     public void checkChainsQuickly(long chainQuiesceTimeout) {
-        // If timeout is 0, immediate stop was requested - don't wait at all
-        if (chainQuiesceTimeout <= 0 || waitingChainNames.isEmpty()) {
+        // If timeout is <= 1 second, don't bother.
+        if (chainQuiesceTimeout <= 1000 || waitingChainNames.isEmpty()) {
             return;
         }
         
@@ -66,21 +66,15 @@ public class UtilsChainListener {
             Tr.event(this, tc, "Quick check: " + waitingChainNames.size() + " chain(s) may still be quiescing");
         }
         
-        // Give chains 1 second to stop quickly (but only if quiesce timeout > 0)
+        // Give chains 1 second to stop quickly
         try {
             Thread.sleep(1000);
         } catch (InterruptedException ie) {
             // ignore
         }
         
-        // Remove any chains that stopped during the 1 second wait
-        ChannelFramework cf = ChannelFrameworkFactory.getChannelFramework();
-        Iterator<String> iter = waitingChainNames.iterator();
-        while (iter.hasNext()) {
-            if (!cf.isChainRunning(iter.next())) {
-                iter.remove();
-            }
-        }
+        // Check which chains stopped during the 1 second wait
+        allChainsStopped();  // This updates the internal list
         
         if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
             Tr.event(this, tc, "After quick check: " + waitingChainNames.size() + " chain(s) still quiescing");
