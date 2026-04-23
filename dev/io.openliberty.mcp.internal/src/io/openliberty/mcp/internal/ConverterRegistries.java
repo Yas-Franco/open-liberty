@@ -11,6 +11,7 @@ package io.openliberty.mcp.internal;
 
 import com.ibm.websphere.csi.J2EEName;
 
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
@@ -39,6 +40,13 @@ public class ConverterRegistries extends AbstractModuleScopedStore<ConverterRegi
     @Override
     protected ConverterRegistry createInstance(J2EEName moduleName) {
         return new ConverterRegistry(globalRegistry);
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        // Destroy any @Dependent beans for each ConverterRegistry
+        getAll().forEach(ConverterRegistry::cleanup);
+        globalRegistry.cleanup();
     }
 }
 
