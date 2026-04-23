@@ -10,6 +10,8 @@
 package io.openliberty.mcp.internal;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -57,6 +59,15 @@ public abstract class AbstractModuleScopedStore<T> {
      */
     public Collection<T> getAll() {
         return instances.values();
+    }
+
+    /**
+     * Returns an unmodifiable view of the internal mappings.
+     *
+     * @return unmodifiable map of module names to instances
+     */
+    public Map<J2EEName, T> getAllMappings() {
+        return Collections.unmodifiableMap(instances);
     }
 
     /**

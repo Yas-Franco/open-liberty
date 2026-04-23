@@ -34,7 +34,6 @@ import io.openliberty.mcp.internal.encoders.EncoderRegistry;
 import io.openliberty.mcp.internal.exceptions.GenericArgumentException;
 import io.openliberty.mcp.internal.exceptions.UnsupportedTypeException;
 import io.openliberty.mcp.internal.moduleScope.ModuleContext;
-import io.openliberty.mcp.internal.requests.BuiltinDefaultValueConverters;
 import io.openliberty.mcp.internal.requests.McpRequestIdDeserializer;
 import io.openliberty.mcp.internal.requests.McpRequestIdSerializer;
 import io.openliberty.mcp.internal.schemas.SchemaRegistry;
@@ -73,7 +72,6 @@ public class McpCdiExtension implements Extension {
     private ConcurrentHashMap<J2EEName, Map<String, ArrayList<String>>> duplicateToolsMap = new ConcurrentHashMap<>();
 
     private SchemaRegistry schemas = new SchemaRegistry();
-    private ConverterRegistry converterRegistry;
     private Jsonb jsonb = createJsonb();
     private ToolRegistries toolRegistries = new ToolRegistries(schemas, jsonb);
     private ModuleContext moduleContext;
@@ -107,8 +105,7 @@ public class McpCdiExtension implements Extension {
     }
 
     void discoverEncoderBeans(@Observes ProcessManagedBean<?> processManagedBean) {
-        AnnotatedType<?> type = processManagedBean.getAnnotatedBeanClass();
-        Class<?> javaClass = type.getJavaClass();
+        Class<?> javaClass = processManagedBean.getAnnotatedBeanClass().getJavaClass();
         if (Encoder.class.isAssignableFrom(javaClass)) {
             encoderBeans.add(processManagedBean.getBean());
         }
@@ -176,74 +173,71 @@ public class McpCdiExtension implements Extension {
             } else if (encoder instanceof ContentEncoder<?> ce) {
                 contentEncoders.computeIfAbsent(module, k -> new ArrayList<>()).add(ce);
             }
-            logEncoderRegistration(bean, module);
+            traceRegistration("encoder", bean, module);
         }
 
-        // Register global encoders (module = null)
-        EncoderRegistry globalInstance = encoderRegistries.getGlobal();
-        globalInstance.registerEncoders(toolEncoders.getOrDefault(null, new ArrayList<>()),
-                                        contentEncoders.getOrDefault(null, new ArrayList<>()));
+        // Register encoders (global and module-specific)
+        Set<J2EEName> allModules = new HashSet<>();
+        allModules.addAll(toolEncoders.keySet());
+        allModules.addAll(contentEncoders.keySet());
 
-        // Register module-specific encoders
-        Set<J2EEName> modules = new HashSet<>();
-        modules.addAll(toolEncoders.keySet());
-        modules.addAll(contentEncoders.keySet());
-        modules.remove(null); // Already handled global
-
-        for (J2EEName module : modules) {
-            EncoderRegistry moduleInstance = encoderRegistries.getForModule(module);
-            moduleInstance.registerEncoders(toolEncoders.getOrDefault(module, new ArrayList<>()),
-                                            contentEncoders.getOrDefault(module, new ArrayList<>()));
+        for (J2EEName module : allModules) {
+            EncoderRegistry registry = (module == null) ? encoderRegistries.getGlobal() : encoderRegistries.getForModule(module);
+            registry.registerEncoders(toolEncoders.getOrDefault(module, Collections.emptyList()),
+                                      contentEncoders.getOrDefault(module, Collections.emptyList()));
         }
 
         context.release();
     }
 
-    private static void logEncoderRegistration(Bean<?> encoderBean, J2EEName moduleName) {
-        if (TraceComponent.isAnyTracingEnabled()) {
-            String scope = (moduleName == null) ? "GLOBAL (EAR/lib)" : "MODULE (" + moduleName + ")";
-            String beanName = encoderBean.getName() != null ? encoderBean.getName() : encoderBean.getBeanClass().getSimpleName();
-            if (tc.isDebugEnabled()) {
-                Tr.debug(McpCdiExtension.class, tc, "Registered encoder [" + scope + "]: " + beanName, encoderBean);
-            } else if (tc.isEventEnabled()) {
-                Tr.event(McpCdiExtension.class, tc, "Registered encoder [" + scope + "]: " + beanName);
-            }
-        }
-    }
-
     void registerCustomConverters(BeanManager beanManager) {
-        converterRegistry = beanManager.createInstance().select(ConverterRegistry.class).get();
+        ConverterRegistries converterRegistries = beanManager.createInstance().select(ConverterRegistries.class).get();
         CreationalContext<?> context = beanManager.createCreationalContext(null);
 
-        Map<Type, List<DefaultValueConverter<?>>> converterMap = new HashMap<>();
+        // Group converters by module (null = global/EAR-lib)
+        Map<J2EEName, Map<Type, List<DefaultValueConverter<?>>>> convertersByModule = new HashMap<>();
 
-        // Populate converters registry with converters for wrapper types and strings
-        for (Map.Entry<Type, DefaultValueConverter<?>> entry : BuiltinDefaultValueConverters.CONVERTERS.entrySet()) {
-            converterMap.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(entry.getValue());
-        }
-        // Populate converters registry with provided customer converters
+        // Collect and classify custom converter beans by module
         for (Map.Entry<Bean<?>, Type> entry : converterBeans.entrySet()) {
             Bean<?> bean = entry.getKey();
             Type converterType = entry.getValue();
+            J2EEName module = getModuleForBeanOrNull(bean);
+
             DefaultValueConverter<?> converter = (DefaultValueConverter<?>) beanManager.getReference(bean, bean.getBeanClass(), context);
-            converterMap.computeIfAbsent(converterType, k -> new ArrayList<>()).add(converter);
-            logCustomConverterRegistration(bean);
+            convertersByModule.computeIfAbsent(module, k -> new HashMap<>())
+                              .computeIfAbsent(converterType, k -> new ArrayList<>())
+                              .add(converter);
+            traceRegistration("converter", bean, module);
         }
 
-        converterRegistry.registerConverters(converterMap, context);
-        // Set on ALL module registries until ConverterRegistries are created
-        // see EncoderRegistries.java for the pattern to follow
-        for (ToolRegistry toolRegistry : toolRegistries.getAll()) {
-            toolRegistry.setConverterRegistry(converterRegistry);
+        for (Map.Entry<J2EEName, Map<Type, List<DefaultValueConverter<?>>>> entry : convertersByModule.entrySet()) {
+            J2EEName module = entry.getKey();
+            ConverterRegistry registry = (module == null) ? converterRegistries.getGlobal() : converterRegistries.getForModule(module);
+            registry.registerConverters(entry.getValue(), context);
         }
+
+        // Wire converter registries to tool registries
+        toolRegistries.getAllMappings().forEach((moduleName, toolRegistry) -> {
+            ConverterRegistry converterRegistry = converterRegistries.getForModule(moduleName);
+            toolRegistry.setConverterRegistry(converterRegistry);
+        });
     }
 
-    private static void logCustomConverterRegistration(Bean<?> converterBean) {
+    /**
+     * Logs registration of an encoder or converter bean to its appropriate scope.
+     *
+     * @param type The type of bean being registered ("encoder" or "converter")
+     * @param bean The CDI bean being registered
+     * @param moduleName The module name (null for global/EAR-lib scope)
+     */
+    private static void traceRegistration(String type, Bean<?> bean, J2EEName moduleName) {
         if (TraceComponent.isAnyTracingEnabled()) {
+            String scope = (moduleName == null) ? "GLOBAL (EAR/lib)" : "MODULE (" + moduleName + ")";
+            String beanName = bean.getName() != null ? bean.getName() : bean.getBeanClass().getSimpleName();
             if (tc.isDebugEnabled()) {
-                Tr.debug(McpCdiExtension.class, tc, "Registered converter: " + converterBean.getName(), converterBean);
+                Tr.event(McpCdiExtension.class, tc, "Registered " + type + " [" + scope + "]: " + beanName, bean);
             } else if (tc.isEventEnabled()) {
-                Tr.event(McpCdiExtension.class, tc, "Registered converter: " + converterBean.getName());
+                Tr.event(McpCdiExtension.class, tc, "Registered " + type + " [" + scope + "]: " + beanName);
             }
         }
     }
@@ -258,7 +252,7 @@ public class McpCdiExtension implements Extension {
             Set<String> names = new HashSet<>();
 
             for (ToolArgument argMetadata : tool.arguments()) {
-                for (var error : ToolValidation.validateToolArgument(argMetadata, converterRegistry)) {
+                for (var error : ToolValidation.validateToolArgument(argMetadata, tools.getConverterRegistry())) {
                     switch (error.type()) {
                         case NAME_BLANK -> Tr.error(tc, "CWMCM0001E.blank.arguments", tool.getToolQualifiedName());
                         case NAME_MISSING -> Tr.error(tc, "CWMCM0003E.missing.tool.argument.name", tool.getToolQualifiedName());
