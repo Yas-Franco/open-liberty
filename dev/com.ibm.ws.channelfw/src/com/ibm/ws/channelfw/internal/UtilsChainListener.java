@@ -48,14 +48,28 @@ public class UtilsChainListener {
     }
 
     /**
-     * Perform a quick check (up to 1 second) to see if any chains stopped immediately.
+     * Perform a quick check (up to 1 second) to see if chains stopped.
      * Remove any chains found to be stopped.
      * This does not wait for the full chainQuiesceTimeout.
      * Chains that are still quiescing will be forcefully stopped by StopChainTask
      * when the chainQuiesceTimeout expires.
+     * <p>
+     * Previously this code had a 1-second sleep AFTER attempting to remove stopped chains.
+     * It only attempted to remove chains once. The updated code still uses the arbitrary
+     * 1-second maximum wait, but adds polling and retries, which allows it to finish early,
+     * and has a better chance of returning with all stopped chains removed.
+     * <p>
+     * It seems that it would be better for the caller to call method waitForChainsToStop()
+     * but that causes test cases to fail which didn't fail before. That needs to be investigated,
+     * but the updated code below shouldn't cause any issues.
+     * <p>
+     * Why use a maxWaitTime of 1 second, rather than just use the timeout? There is a test case,
+     * which is probably unrealistic. It sets the chainQuiesceTimeout to 250ms. That window is
+     * too small for the chains to be removed consistently within the time frame. In practice, it
+     * probably doesn't make sense to set the chainQuiesceTimeout less than the server quiesceTimeout.
      *
-     * @param chainQuiesceTimeout Determines if we should pause for a second.
-     *                            If 1 second or less, just do a quick check with no delay.
+     * @param chainQuiesceTimeout Determines if we should wait for chains to stop.
+     *                            If 0 or less, just do an immediate check with no delay.
      *
      */
     public void cleanUpChains(long chainQuiesceTimeout) {
@@ -71,27 +85,38 @@ public class UtilsChainListener {
         // Remove any chains that already stopped
         removeStoppedChains();
         
-        if (waitingChainNames.isEmpty() || chainQuiesceTimeout <= 1000) {
+        if (waitingChainNames.isEmpty()) {
             if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-                if (waitingChainNames.isEmpty()) {
-                    Tr.event(this, tc, "All chains already stopped");
-                } else {
-                    Tr.event(this, tc, "Skipping 1-second wait (timeout too short)");
-                }
+                Tr.event(this, tc, "All chains already stopped");
             }
             return;
         }
 
-        
-        // Give chains 1 second to stop
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ie) {
-            // ignore
+        //
+        // Poll for chains to stop, up to a maximum of 1 second 
+        // Note: This wait time is independent of chainQuiesceTimeout, which controls
+        // when StopChainTask forcefully stops chains
+        if (chainQuiesceTimeout > 0) {
+            final long maxWaitTime = 1000;  // Maximum time to wait in milliseconds
+            final long pollInterval = 100;   // Poll every 100ms
+            long elapsedTime = 0;
+            
+            if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
+                Tr.event(this, tc, "Polling for up to " + maxWaitTime + "ms for chains to stop");
+            }
+            
+            while (elapsedTime < maxWaitTime && !waitingChainNames.isEmpty()) {
+                try {
+                    Thread.sleep(pollInterval);
+                    elapsedTime += pollInterval;
+                } catch (InterruptedException ie) {
+                    break;
+                }
+                
+                // Remove chains that stopped during this poll interval
+                removeStoppedChains();
+            }
         }
-        
-        // Remove chains that stopped during the wait
-        removeStoppedChains();
         
         if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
             Tr.event(this, tc, "After quick check: " + waitingChainNames.size() + " chain(s) still quiescing");
