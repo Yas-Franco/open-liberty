@@ -100,6 +100,23 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
      */
     private volatile int startupCheckIntervalMilliseconds = HealthCheckConstants.CONFIG_NOT_SET;
 
+    /**
+     * Beta edition flag - checks if Liberty is running in beta mode
+     */
+    private static final boolean IS_BETA_EDITION = ProductInfo.getBetaEdition();
+
+    /**
+     * Controls whether health endpoints are enabled.
+     * Default is true. Only effective when file-based health checks are enabled.
+     */
+    private volatile boolean enableEndpoints = true;
+
+    /**
+     * WAB configuration manager for health endpoints
+     */
+    private HealthWABConfigManager wabConfigManager;
+
+
     protected volatile boolean isCheckPointFinished = false;
 
     /**
@@ -225,6 +242,9 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
 
         processConfig();
 
+        // Process enableEndpoints and register/unregister WAB accordingly
+        processEnableEndpointsWithWAB(cc);
+
         /*
          * Handle special case durign activation.
          * IF file-based HC enabled, but there are no apps, we need to explicitly
@@ -277,6 +297,30 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
             processStartupCheckIntervalConfig(serverStartupCheckIntervalConfig);
         } else {
             processStartupCheckIntervalConfig(System.getenv(HealthCheckConstants.HEALTH_ENV_CONFIG_STARTUP_CHECK_INTERVAL));
+        }
+
+        // Resolve enableEndpoints config (beta feature only)
+        if (IS_BETA_EDITION) {
+            // Try server config first (Boolean), then fall back to env var (String)
+            Boolean enableEndpointsConfig = (Boolean) properties.get(HealthCheckConstants.HEALTH_SERVER_CONFIG_ENABLE_ENDPOINTS);
+            
+            // If server config not set, check environment variable
+            if (enableEndpointsConfig == null) {
+                String envConfig = System.getenv(HealthCheckConstants.HEALTH_ENV_CONFIG_ENABLE_ENDPOINTS);
+                if (envConfig != null && !envConfig.trim().isEmpty()) {
+                    enableEndpointsConfig = Boolean.valueOf(envConfig.trim());
+                }
+            }
+            
+            // Process the resolved config value
+            if (enableEndpointsConfig != null) {
+                processEnableEndpointsConfig(enableEndpointsConfig);
+            }
+        } else {
+            // Not in beta edition - skip enableEndpoints configuration entirely
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "enableEndpoints configuration skipped - feature only available in beta edition");
+            }
         }
 
         if (isFileHealthCheckingEnabled()) {
@@ -393,6 +437,44 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, updateValueMessage);
             }
+        }
+    }
+
+    /**
+     * Processes the resolved configuration value for enableEndpoints.
+     * The value can come from either server.xml config or environment variable.
+     *
+     * @param configValue The resolved Boolean value for enableEndpoints
+     */
+    protected void processEnableEndpointsConfig(Boolean configValue) {
+        if (configValue != null) {
+            enableEndpoints = configValue.booleanValue();
+
+            // Only warn if user tries to disable endpoints (false) without file-based health checks enabled
+            // Don't warn for enableEndpoints=true since that's the default behavior anyway
+            if (!isFileHealthCheckingEnabled() && !enableEndpoints) {
+                Tr.warning(tc, "enable.endpoints.config.without.file.health.check.CWMMH01013W");
+            }
+
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "enableEndpoints configuration resolved to: " + enableEndpoints);
+            }
+        }
+    }
+
+    /**
+     * Process enableEndpoints configuration and register/unregister WAB accordingly.
+     * Only effective when file-based health checks are enabled.
+     *
+     * @param context The ComponentContext to use for WAB registration
+     */
+    protected void processEnableEndpointsWithWAB(ComponentContext context) {
+        if (isFileHealthCheckingEnabled() && isValidSystemForFileHealthCheck) {
+            // File-based health checks are enabled, respect enableEndpoints setting
+            wabConfigManager.processEnableEndpoints(context, enableEndpoints);
+        } else {
+            // File-based health checks are not enabled, always enable endpoints
+            wabConfigManager.processEnableEndpoints(context, true);
         }
     }
 
@@ -1089,19 +1171,3 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
     }
 
 }
-    /**
-     * Beta edition flag - checks if Liberty is running in beta mode
-     */
-    private static final boolean IS_BETA_EDITION = ProductInfo.getBetaEdition();
-
-    /**
-     * Controls whether health endpoints are enabled.
-     * Default is true. Only effective when file-based health checks are enabled.
-     */
-    private volatile boolean enableEndpoints = true;
-
-    /**
-     * WAB configuration manager for health endpoints
-     */
-    private HealthWABConfigManager wabConfigManager;
-
