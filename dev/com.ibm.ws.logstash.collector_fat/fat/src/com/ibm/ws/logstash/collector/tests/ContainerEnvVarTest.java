@@ -40,6 +40,9 @@ import componenttest.topology.impl.LibertyServerFactory;
 @RunWith(FATRunner.class)
 public class ContainerEnvVarTest extends LogstashCollectorTest {
 
+    /*
+     * Current model must acquire server this way, we need server "early" so that the static initialization of the generic container cab resolve
+     */
     private static LibertyServer server = LibertyServerFactory.getLibertyServer("ContainerEnvServer");
 
     private String testName = "";
@@ -54,7 +57,7 @@ public class ContainerEnvVarTest extends LogstashCollectorTest {
         try {
             return prepareServerSSLAndConstructContainer(server);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create expLogstashContainer", e);
+            throw new RuntimeException("Failed to setup server and/or container", e);
         }
     }
 

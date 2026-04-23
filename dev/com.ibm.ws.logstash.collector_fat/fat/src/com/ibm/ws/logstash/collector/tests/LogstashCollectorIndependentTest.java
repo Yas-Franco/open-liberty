@@ -39,6 +39,9 @@ public class LogstashCollectorIndependentTest extends LogstashCollectorTest {
 
     private static Class<?> c = LogstashCollectorIndependentTest.class;
 
+    /*
+     * Current model must acquire server this way, we need server "early" so that the static initialization of the generic container cab resolve
+     */
     private static LibertyServer server = LibertyServerFactory.getLibertyServer("LogstashCollectorServer");
 
     protected static boolean runTest;
@@ -50,7 +53,7 @@ public class LogstashCollectorIndependentTest extends LogstashCollectorTest {
         try {
             return prepareServerSSLAndConstructContainer(server);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create expLogstashContainer", e);
+            throw new RuntimeException("Failed to setup server and/or container", e);
         }
     }
 

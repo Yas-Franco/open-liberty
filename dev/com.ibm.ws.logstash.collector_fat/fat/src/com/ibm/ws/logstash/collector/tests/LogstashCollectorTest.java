@@ -336,13 +336,17 @@ public abstract class LogstashCollectorTest {
         Properties env = new Properties();
         ProgramOutput commandOutput = server.getMachine().execute(securityUtility, cmd, server.getInstallRoot(), env);
 
-        Log.info(c, "foo", "stderr:\n" + commandOutput.getStderr()
-                           + "\nstdout:\n" + commandOutput.getStdout()
-                           + "\nRC: " + commandOutput.getReturnCode());
+        Log.info(c, "generateTrustStoreForServer", "stderr:\n" + commandOutput.getStderr()
+                                                   + "\nstdout:\n" + commandOutput.getStdout()
+                                                   + "\nRC: " + commandOutput.getReturnCode());
 
         if (commandOutput.getReturnCode() != 0) {
             throw new IllegalStateException("securityUtility createSSLCertificate failed with return code " + commandOutput.getReturnCode());
         }
+
+        /*
+         * Acquire keyStore server.xml snippet to be injected into server.xml
+         */
 
         String keyStoreSnippet = extractKeyStoreSnippet(commandOutput.getStdout());
         generatedOverrideFile = new File(server.getServerRoot() + "/configDropins/overrides/logstash-ssl-override.xml");
@@ -354,6 +358,10 @@ public abstract class LogstashCollectorTest {
             throw new IllegalStateException("Expected keystore was not created: " + keystoreFile.getAbsolutePath());
         }
 
+        /*
+         * Section where we extract the keys/cert from the p12 file.
+         * Store to field, which we use later to inject into logstash container
+         */
         generatedPrivateKeyFile = new File(server.getServerRoot() + "/resources/security/logstash.key");
         generatedCertificateFile = new File(server.getServerRoot() + "/resources/security/logstash.crt");
 
@@ -400,6 +408,9 @@ public abstract class LogstashCollectorTest {
     }
 
     private static void writePemFile(File outputFile, String type, byte[] encodedBytes) throws Exception {
+        /*
+         * Writes in PKCS#8 format. Logstash does not like PKCS#1 format if we were to use SSLUtils. So we need to use our own method here.
+         */
         String pem = "-----BEGIN " + type + "-----\n"
                      + Base64.getMimeEncoder(64, new byte[] { '\n' }).encodeToString(encodedBytes)
                      + "\n-----END " + type + "-----\n";
