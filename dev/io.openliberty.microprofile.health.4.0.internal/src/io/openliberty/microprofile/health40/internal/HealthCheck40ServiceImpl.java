@@ -116,6 +116,10 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
      */
     private HealthWABConfigManager wabConfigManager;
 
+    /**
+     * ExecutorService for asynchronous WAB configuration updates
+     */
+    private final AtomicReference<ExecutorService> executorServiceRef = new AtomicReference<>();
 
     protected volatile boolean isCheckPointFinished = false;
 
@@ -159,6 +163,15 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
             this.appTracker = null;
             stopAllTimers();
         }
+    }
+
+    @Reference(service = ExecutorService.class)
+    protected void setExecutorService(ExecutorService service) {
+        executorServiceRef.set(service);
+    }
+
+    protected void unsetExecutorService(ExecutorService service) {
+        executorServiceRef.compareAndSet(service, null);
     }
 
     /**
@@ -489,8 +502,36 @@ public class HealthCheck40ServiceImpl implements HealthCheck40Service {
          * not fit for file-based health checks.
          */
         if (isValidSystemForFileHealthCheck) {
+            // Store previous enableEndpoints value to detect changes
+            boolean previousEnableEndpoints = enableEndpoints;
+            
             processCheckIntervalConfig((String) properties.get(HealthCheckConstants.HEALTH_SERVER_CONFIG_CHECK_INTERVAL));
             processStartupCheckIntervalConfig((String) properties.get(HealthCheckConstants.HEALTH_SERVER_CONFIG_STARTUP_CHECK_INTERVAL));
+            processEnableEndpointsConfig((Boolean) properties.get(HealthCheckConstants.HEALTH_SERVER_CONFIG_ENABLE_ENDPOINTS));
+
+            // Only execute WAB update if enableEndpoints actually changed
+            if (previousEnableEndpoints != enableEndpoints) {
+                // Execute WAB configuration update asynchronously to avoid FFDC during component reconfiguration
+                ExecutorService executor = executorServiceRef.get();
+                if (executor != null) {
+                    executor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                processEnableEndpointsWithWAB(context);
+                            } catch (Exception e) {
+                                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                                    Tr.debug(tc, "Exception during asynchronous WAB update", e);
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "ExecutorService not available, skipping WAB update");
+                    }
+                }
+            }
         }
 
     }
