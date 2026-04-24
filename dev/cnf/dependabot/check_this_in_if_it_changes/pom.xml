@@ -2783,13 +2783,18 @@
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpg-jdk18on</artifactId>
+      <version>1.84</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk18on</artifactId>
       <version>1.82</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk18on</artifactId>
-      <version>1.78.1</version>
+      <artifactId>bcpkix-jdk18on</artifactId>
+      <version>1.84</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -2798,13 +2803,18 @@
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcutil-jdk18on</artifactId>
-      <version>1.78.1</version>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.84</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcutil-jdk18on</artifactId>
       <version>1.82</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcutil-jdk18on</artifactId>
+      <version>1.84</version>
     </dependency>
     <dependency>
       <groupId>org.brotli</groupId>
