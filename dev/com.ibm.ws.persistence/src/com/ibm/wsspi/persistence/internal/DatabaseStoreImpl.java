@@ -398,7 +398,7 @@ public class DatabaseStoreImpl implements DatabaseStore {
                 throw new UnsupportedOperationException(dbProductName);
             }
             if (isAutoStrategy) {
-                String autoStrategy = dbProductName.contains("oracle") ? "SEQUENCE"
+                String autoStrategy = dbProductName.contains("oracle") || dbProductName.contains("H2") ? "SEQUENCE"
                                 : dbProductName.contains("adaptive server") || dbProductName.contains("sybase") ? "TABLE"
                                                 : "IDENTITY";
                 strategy.set(autoStrategy);
