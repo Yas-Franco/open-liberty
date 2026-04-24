@@ -28,12 +28,13 @@
     <databaseStore id="dbTaskStore1">
       <dataSource>
         <jdbcDriver libraryRef="jdbc1Lib1"/>
-        <properties.derby.embedded createDatabase="create" databaseName="memory:cpefeature"/>
+        <properties.h2 URL="jdbc:h2:mem:cpefeature;DB_CLOSE_DELAY=-1"/>
       </dataSource>
     </databaseStore>
     <library id="jdbc1Lib1">
-      <fileset dir="${shared.resource.dir}/derby" includes="derby.jar"/>
+      <fileset dir="${shared.resource.dir}/h2Java8" includes="h2.jar"/>
     </library>
   
-    <javaPermission codebase="${shared.resource.dir}/derby/derby.jar" className="java.security.AllPermission"/>
+    <javaPermission codebase="${shared.resource.dir}/h2Java8/h2.jar" className="java.security.AllPermission"/>
+    <javaPermission className="java.lang.RuntimePermission" name="getClassLoader"/>
 </server>
