@@ -19,6 +19,7 @@ triggers:
       isRequired: false
       description: "PR head branch owner"
 
+steps:
 - stepName: Copyright Header Check
   workType: Jenkins
   projectName: copyrightHeaderCheck
