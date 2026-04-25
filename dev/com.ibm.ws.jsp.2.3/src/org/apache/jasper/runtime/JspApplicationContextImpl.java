@@ -31,9 +31,11 @@
 //--------------------------------------------------------------------------------------
 // PM05903	  03/02/10    anupag		AddELResolver in servlet is allowed.
 // PI31922    12/19/14    hwibell       Allow multiple expression factories to be used on a server.
-// OLGH34664  04/22/26	  volosied      Fix ClassCastException 
+// OLGH34664  04/22/26	  volosied      Fix ClassCastException
 package org.apache.jasper.runtime;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -55,7 +57,7 @@ import com.ibm.wsspi.webcontainer.WCCustomProperties;
 
 /**
  * Implementation of JspApplicationContext
- * 
+ *
  * @author Jacob Hookom
  */
 public class JspApplicationContextImpl implements JspApplicationContext {
@@ -85,14 +87,13 @@ public class JspApplicationContextImpl implements JspApplicationContext {
          * is loaded. This is not the desirable behavior as expressionFactory should be set for each
          * application. expressionFactory will point to either expression factory based on the custom
          * property 'com.ibm.ws.jsp.allowExpressionFactoryPerApp'.
-         * 
+         *
          * This issue was addressed by the Japser project bug 52998 (https://issues.apache.org/bugzilla/show_bug.cgi?id=52998).
          */
         if (!WCCustomProperties.ALLOW_EXPRESSION_FACTORY_PER_APP) {
             logger.logp(Level.FINE, KEY, "JspApplicationContextImpl", "Setting expressionFactory to the expression factory of the first loaded application.");
             expressionFactory = staticExpressionFactory;
-        }
-        else {
+        } else {
             logger.logp(Level.FINE, KEY, "JspApplicationContextImpl", "Setting expressionFactory to a new instance of ExpressionFactory.");
             expressionFactory = ExpressionFactory.newInstance();
         }
@@ -111,21 +112,27 @@ public class JspApplicationContextImpl implements JspApplicationContext {
         if (context == null) {
             throw new IllegalArgumentException("ServletContext was null");
         }
-        
+
         // Use context-specific key to avoid cross-module contamination in multi-module EAR applications
         String contextPath = context.getContextPath();
         String contextSpecificKey = KEY + "." + contextPath;
-        
-        JspApplicationContextImpl impl = null;
+
         Object cached = context.getAttribute(contextSpecificKey);
-        
-        // Verify the cached instance is from the same classloader before casting
-        // to avoid ClassCastException in multi-module EAR applications
-        ClassLoader classLoader = JspApplicationContextImpl.class.getClassLoader();
-        if (cached != null && cached.getClass().getClassLoader() == classLoader) {
-            impl = (JspApplicationContextImpl) cached;
-        }
-        
+
+        JspApplicationContextImpl impl = AccessController.doPrivileged(new PrivilegedAction<JspApplicationContextImpl>() {
+
+            @Override
+            public JspApplicationContextImpl run() {
+                // Verify the cached instance is from the same classloader before casting
+                // to avoid ClassCastException in multi-module EAR applications
+                ClassLoader classLoader = JspApplicationContextImpl.class.getClassLoader();
+                if (cached != null && cached.getClass().getClassLoader() == classLoader) {
+                    return (JspApplicationContextImpl) cached;
+                }
+                return null;
+            }
+        });
+
         if (impl == null) {
             impl = new JspApplicationContextImpl();
             context.setAttribute(contextSpecificKey, impl);
@@ -134,7 +141,7 @@ public class JspApplicationContextImpl implements JspApplicationContext {
         if (WCCustomProperties.THROW_EXCEPTION_FOR_ADDELRESOLVER
             && context.getAttribute("com.ibm.ws.jsp.servletContextListeners.contextInitialized") != null) {
             impl.listenersContextInitialized = true;
-        }//PM05903 End
+        } //PM05903 End
 
         return impl;
     }
@@ -161,8 +168,7 @@ public class JspApplicationContextImpl implements JspApplicationContext {
     private ELResolver createELResolver() {
         this.instantiated = true;
         if (this.resolver == null) {
-            CompositeELResolver r = new JasperELResolver(this.resolvers,
-                            expressionFactory.getStreamELResolver());
+            CompositeELResolver r = new JasperELResolver(this.resolvers, expressionFactory.getStreamELResolver());
             this.resolver = r;
         }
         return this.resolver;
@@ -174,8 +180,7 @@ public class JspApplicationContextImpl implements JspApplicationContext {
             throw new IllegalArgumentException("ELResolver was null");
         }
         if (this.instantiated || this.listenersContextInitialized) { //PM05903
-            throw new IllegalStateException(
-                            "cannot call addELResolver after the first request has been made");
+            throw new IllegalStateException("cannot call addELResolver after the first request has been made");
         }
         this.resolvers.add(resolver);
     }

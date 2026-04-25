@@ -34,6 +34,8 @@
 // OLGH34664  04/22/26	  volosied      Fix ClassCastException 
 package org.apache.jasper.runtime;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -122,15 +124,21 @@ public class JspApplicationContextImpl implements JspApplicationContext {
 		String contextPath = context.getContextPath();
 		String contextSpecificKey = KEY + "." + contextPath;
 		
-		JspApplicationContextImpl impl = null;
 		Object cached = context.getAttribute(contextSpecificKey);
 		
-		// Verify the cached instance is from the same classloader before casting
-		// to avoid ClassCastException in multi-module EAR applications
-		ClassLoader classLoader = JspApplicationContextImpl.class.getClassLoader();
-		if (cached != null && cached.getClass().getClassLoader() == classLoader) {
-			impl = (JspApplicationContextImpl) cached;
-		}
+	        JspApplicationContextImpl impl = AccessController.doPrivileged(new PrivilegedAction<JspApplicationContextImpl>() {
+
+	            @Override
+	            public JspApplicationContextImpl run() {
+	                // Verify the cached instance is from the same classloader before casting
+	                // to avoid ClassCastException in multi-module EAR applications
+	                ClassLoader classLoader = JspApplicationContextImpl.class.getClassLoader();
+	                if (cached != null && cached.getClass().getClassLoader() == classLoader) {
+	                    return (JspApplicationContextImpl) cached;
+	                }
+	                return null;
+	            }
+	        });
 		
 		if (impl == null) {
 			impl = new JspApplicationContextImpl();
