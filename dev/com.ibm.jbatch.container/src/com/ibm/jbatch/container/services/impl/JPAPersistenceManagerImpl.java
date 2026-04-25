@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015, 2020 IBM Corporation and others.
+ * Copyright (c) 2015, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -1660,7 +1660,12 @@ public class JPAPersistenceManagerImpl extends AbstractPersistenceManager implem
                     if (jobInstance == null) {
                         throw new IllegalStateException("Didn't find JobInstanceEntity associated with step thread key value: " + instanceKey.getJobInstance());
                     }
-                    final JobExecutionEntity jobExecution = entityMgr.find(JobExecutionEntity.class, jobExecutionId);
+                    final JobExecutionEntity jobExecution = entityMgr.createQuery(
+                            "SELECT j FROM JobExecutionEntity j WHERE j.jobExecId = :id",
+                            JobExecutionEntity.class)
+                            .setParameter("id", jobExecutionId)
+                            .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                            .getSingleResult();
                     if (jobExecution == null) {
                         throw new IllegalStateException("Didn't find JobExecutionEntity associated with value: " + jobExecutionId);
                     }
