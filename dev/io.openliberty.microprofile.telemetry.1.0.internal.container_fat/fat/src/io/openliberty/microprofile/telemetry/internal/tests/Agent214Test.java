@@ -106,6 +106,8 @@ public class Agent214Test {
         server.addEnvVar(TestConstants.ENV_OTEL_EXPORTER_OTLP_ENDPOINT, jaegerContainer.getOtlpGrpcUrl());
         //The default OTLP protocol has been changed from grpc to http/protobuf in the Java Agent v2.14.0
         server.addEnvVar(TestConstants.ENV_OTEL_EXPORTER_OTLP_PROTOCOL, "grpc");
+        server.addEnvVar("OTEL_TRACE_EXPORT_INTERVAL", "5000");
+        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "10000");
 
         server.addEnvVar("OTEL_INSTRUMENTATION_COMMON_EXPERIMENTAL_CONTROLLER_TELEMETRY_ENABLED", "true"); //otel.instrumentation.common.experimental.controller-telemetry.enabled=true)
 

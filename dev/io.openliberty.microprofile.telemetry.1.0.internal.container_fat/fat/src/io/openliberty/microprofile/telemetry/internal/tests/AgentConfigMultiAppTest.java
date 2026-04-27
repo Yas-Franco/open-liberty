@@ -116,6 +116,8 @@ public class AgentConfigMultiAppTest {
         server.addEnvVar(TestConstants.ENV_OTEL_EXPORTER_OTLP_PROTOCOL, "grpc");
         server.addEnvVar("OTEL_METRICS_EXPORTER", "none");
         server.addEnvVar("OTEL_LOGS_EXPORTER", "none");
+        server.addEnvVar("OTEL_TRACE_EXPORT_INTERVAL", "5000");
+        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "10000");
         server.addEnvVar(TestConstants.ENV_OTEL_BSP_SCHEDULE_DELAY, "100"); // Wait no more than 100ms to send traces to the server
         server.addEnvVar(TestConstants.ENV_OTEL_SDK_DISABLED, "false"); //Enable tracing
     }

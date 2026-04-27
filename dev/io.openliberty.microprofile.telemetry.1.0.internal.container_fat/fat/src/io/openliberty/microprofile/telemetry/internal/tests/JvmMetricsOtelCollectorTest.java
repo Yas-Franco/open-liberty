@@ -80,6 +80,8 @@ public class JvmMetricsOtelCollectorTest {
         server.addEnvVar(TestConstants.ENV_OTEL_SERVICE_NAME, "PrometheusOtelCollectorTest");
         server.addEnvVar(TestConstants.ENV_OTEL_SDK_DISABLED, "false");
 
+        server.addEnvVar("OTEL_TRACE_EXPORT_INTERVAL", "5000");
+        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "10000");
         // Construct the test application
         WebArchive spanTest = ShrinkWrap.create(WebArchive.class, "spanTest.war")
                                         .addPackage(TestResource.class.getPackage());

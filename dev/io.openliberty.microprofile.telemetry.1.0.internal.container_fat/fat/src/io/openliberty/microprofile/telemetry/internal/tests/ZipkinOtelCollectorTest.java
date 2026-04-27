@@ -118,6 +118,8 @@ public class ZipkinOtelCollectorTest {
         server.addEnvVar(TestConstants.ENV_OTEL_SDK_DISABLED, "false");
         server.addEnvVar(TestConstants.ENV_OTEL_TRACES_SAMPLER, "always_on");
 
+        server.addEnvVar("OTEL_TRACE_EXPORT_INTERVAL", "5000");
+        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "10000");
         // Deploy app
         WebArchive spanTest = ShrinkWrap.create(WebArchive.class, "spanTest.war")
                                         .addPackage(TestResource.class.getPackage());

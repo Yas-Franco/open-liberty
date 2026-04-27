@@ -101,6 +101,8 @@ public class CrossFeatureJaegerTest {
         telemetryServer.addEnvVar("OTEL_PROPAGATORS", "tracecontext, baggage, jaeger"); // Include the jaeger propagation headers
         telemetryServer.addEnvVar("IO_OPENLIBERTY_MICROPROFILE_TELEMETRY_INTERNAL_APPS_CROSSFEATURE_TELEMETRY_CROSSFEATURECLIENT_MP_REST_URL", getUrl(opentracingServer));
 
+        server.addEnvVar("OTEL_TRACE_EXPORT_INTERVAL", "5000");
+        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "10000");
         opentracingServer.addEnvVar("JAEGER_ENDPOINT", jaegerContainer.getJaegerThriftUrl());
         opentracingServer.addEnvVar("JAEGER_SAMPLER_TYPE", "const"); // Trace every call
         opentracingServer.addEnvVar("JAEGER_SAMPLER_PARAM", "1"); // Trace every call

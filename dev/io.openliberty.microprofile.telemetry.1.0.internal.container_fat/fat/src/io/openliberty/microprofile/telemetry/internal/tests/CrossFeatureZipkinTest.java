@@ -92,6 +92,8 @@ public class CrossFeatureZipkinTest {
         telemetryServer.addEnvVar("OTEL_PROPAGATORS", "tracecontext, b3"); // Include the b3 propagation header for Zipkin
         telemetryServer.addEnvVar("IO_OPENLIBERTY_MICROPROFILE_TELEMETRY_INTERNAL_APPS_CROSSFEATURE_TELEMETRY_CROSSFEATURECLIENT_MP_REST_URL", getUrl(opentracingServer));
 
+        server.addEnvVar("OTEL_TRACE_EXPORT_INTERVAL", "5000");
+        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "10000");
         opentracingServer.addEnvVar("zipkinPortName", Integer.toString(zipkinContainer.getHttpPort()));
         opentracingServer.addEnvVar("zipkinHostName", zipkinContainer.getHost());
         opentracingServer.addEnvVar("ZIPKIN_SAMPLER_TYPE", "const"); // Trace every call
