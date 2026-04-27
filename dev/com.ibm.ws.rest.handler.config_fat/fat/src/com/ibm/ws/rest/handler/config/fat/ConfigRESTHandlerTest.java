@@ -515,7 +515,7 @@ public class ConfigRESTHandlerTest extends FATServletClient {
         assertEquals(err, false, j.getBoolean("syncQueryTimeoutWithTransactionTimeout"));
         assertEquals(err, true, j.getBoolean("transactional"));
         assertNotNull(err, j = j.getJsonObject("properties.h2"));
-        assertEquals(err, "jdbc:h2:file:doesNotExist;IF_EXISTS=TRUE;DB_CLOSE_DELAY=-1", j.getString("URL"));
+        assertEquals(err, "jdbc:h2:file:doesNotExist;IFEXISTS=TRUE;DB_CLOSE_DELAY=-1", j.getString("URL"));
 
         j = json.getJsonObject(6);
         assertEquals(err, "dataSource", j.getString("configElementName"));

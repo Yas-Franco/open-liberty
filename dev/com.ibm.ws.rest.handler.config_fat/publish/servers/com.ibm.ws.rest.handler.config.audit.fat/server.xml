@@ -55,7 +55,7 @@
   <dataSource id="jdbc/nonexistentdb" jndiName="${id}">
     <CONNECTIONMANAGER id="NestedConPool" agedTimeout="1h2m3s" connectionTimeout="0s" maxIdleTime="40m" reapTime="2m30s"/>
     <jdbcDriver libraryRef="H2"/>
-    <properties.h2 URL="jdbc:h2:file:doesNotExist;IF_EXISTS=TRUE;DB_CLOSE_DELAY=-1"/>
+    <properties.h2 URL="jdbc:h2:file:doesNotExist;IFEXISTS=TRUE;DB_CLOSE_DELAY=-1"/>
   </dataSource>
 
   <transaction>
