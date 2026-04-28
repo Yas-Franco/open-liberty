@@ -88,12 +88,12 @@ public class ZipkinTest {
         server.addEnvVar(TestConstants.ENV_OTEL_EXPORTER_ZIPKIN_ENDPOINT, zipkinContainer.getApiBaseUrl() + "/spans");
 
         server.addEnvVar(TestConstants.ENV_OTEL_SERVICE_NAME, "Test service");
-        server.addEnvVar(TestConstants.ENV_OTEL_BSP_SCHEDULE_DELAY, "10"); // Wait no more than 100ms to send traces to the server. lowers the chance that verification races the exporter
+        server.addEnvVar(TestConstants.ENV_OTEL_BSP_SCHEDULE_DELAY, "0"); // Wait no more than 100ms to send traces to the server. lowers the chance that verification races the exporter
         server.addEnvVar(TestConstants.ENV_OTEL_SDK_DISABLED, "false"); //Enable tracing
         server.addEnvVar(TestConstants.ENV_OTEL_TRACES_SAMPLER, "always_on");
 
-        server.addEnvVar("OTEL_TRACE_EXPORT_INTERVAL", "1000");
-        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "30000");
+        server.addEnvVar("OTEL_TRACE_export_interval", "500");
+        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "60000");
         // Construct the test application
         WebArchive spanTest = ShrinkWrap.create(WebArchive.class, "spanTest.war")
                                         .addPackage(TestResource.class.getPackage());

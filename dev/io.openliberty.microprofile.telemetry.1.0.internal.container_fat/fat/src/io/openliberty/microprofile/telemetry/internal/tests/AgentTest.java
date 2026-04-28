@@ -109,10 +109,10 @@ public class AgentTest {
         server.addEnvVar("OTEL_METRICS_EXPORTER", "none");
         server.addEnvVar("OTEL_LOGS_EXPORTER", "none");
 
-        server.addEnvVar("OTEL_TRACE_EXPORT_INTERVAL", "1000");
-        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "30000");
+        server.addEnvVar("OTEL_TRACE_export_interval", "500");
+        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "60000");
         server.addEnvVar(TestConstants.ENV_OTEL_SERVICE_NAME, SERVICE_NAME);
-        server.addEnvVar(TestConstants.ENV_OTEL_BSP_SCHEDULE_DELAY, "10"); // Wait no more than 100ms to send traces to the server. lowers the chance that verification races the exporter
+        server.addEnvVar(TestConstants.ENV_OTEL_BSP_SCHEDULE_DELAY, "0"); // Wait no more than 100ms to send traces to the server. lowers the chance that verification races the exporter
         server.addEnvVar(TestConstants.ENV_OTEL_SDK_DISABLED, "false"); //Enable tracing
 
         // Construct the test application
