@@ -102,7 +102,7 @@ public class UtilsChainListener {
             long elapsedTime = 0;
             
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                Tr.debug(this, tc, "Polling for up to " + maxWaitTime + "ms for chains to stop");
+                Tr.event(this, tc, "Waiting on " + waitingChainNames.size() + " chain(s) to stop");
             }
             
             while (elapsedTime < maxWaitTime && !waitingChainNames.isEmpty()) {
