@@ -98,6 +98,6 @@ startup.check.interval.config.only.set.CWMMH01012W=CWMMH01012W: The startup chec
 startup.check.interval.config.only.set.CWMMH01012W.explanation=Configuring only the startup check interval does not enable the file-based health check mechanism.
 startup.check.interval.config.only.set.CWMMH01012W.useraction=Configure the check interval to enable the file-based health check mechanism.
 
-enable.endpoints.config.without.file.health.check.CWMMH01013W=CWMMH01013W: The enableEndpoints configuration is set to false but file-based health check function is not enabled. This configuration will have no effect and the health check endpoints will be enabled.
-enable.endpoints.config.without.file.health.check.CWMMH01013W.explanation=The enableEndpoints configuration only takes effect when file-based health checks are enabled.
-enable.endpoints.config.without.file.health.check.CWMMH01013W.useraction=Enable file-based health check functionality, or remove the enableEndpoints configuration.
+enable.endpoints.config.without.file.health.check.CWMMH01013W=CWMMH01013W: The enableEndpoints configuration is set to false but the file-based health check function is not enabled. This configuration has no effect and the health check endpoints are enabled.
+enable.endpoints.config.without.file.health.check.CWMMH01013W.explanation=The enableEndpoints configuration takes effect only when file-based health checks are enabled.
+enable.endpoints.config.without.file.health.check.CWMMH01013W.useraction=Enable file-based health check functions, or remove the enableEndpoints configuration.

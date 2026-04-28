@@ -17,8 +17,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.net.HttpURLConnection;
 
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -26,8 +24,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import com.ibm.websphere.simplicity.ShrinkHelper;
-import com.ibm.websphere.simplicity.ShrinkHelper.DeployOptions;
 import com.ibm.websphere.simplicity.log.Log;
 
 import componenttest.annotation.Server;
@@ -48,7 +44,6 @@ public class EnableEndpointsTest {
 
     private static final String SERVER_NAME = "EnableEndpointsServer";
     private static final String NO_FILE_HEALTH_CHECK_SERVER_NAME = "EnableEndpointsNoFileHealthCheckServer";
-    private static final String APP_NAME = "FileHealthCheckApp";
     private static final String[] IGNORED_FAILURES = { "CWMMH01013W", "CWMMH0052W", "CWMMH0054W", "CWMMH0053W", "CWMMH0050E" };
     private static final String[] HEALTH_ENDPOINTS = { "/health", "/health/ready", "/health/live", "/health/started" };
     private static final String[] ENDPOINT_NAMES = { "Health", "Ready", "Live", "Started" };
@@ -78,23 +73,8 @@ public class EnableEndpointsTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        // Create test application once and deploy to both servers
-        WebArchive app = createTestApplication();
-        ShrinkHelper.exportDropinAppToServer(server, app, DeployOptions.SERVER_ONLY);
-        ShrinkHelper.exportDropinAppToServer(noFileHealthCheckServer, app, DeployOptions.SERVER_ONLY);
-
-        Log.info(EnableEndpointsTest.class, "beforeClass", "Test application deployed to both servers");
-    }
-
-    /**
-     * Create the test application WAR.
-     *
-     * @return WebArchive containing the test application
-     */
-    private static WebArchive createTestApplication() {
-        return ShrinkWrap.create(WebArchive.class, APP_NAME + ".war")
-                        .addAsWebInfResource(new File("test-applications/" + APP_NAME + "/resources/WEB-INF/web.xml"))
-                        .addPackage("io.openliberty.microprofile.health.file.healthcheck.app");
+        // No application deployment needed - we're only testing health endpoints
+        Log.info(EnableEndpointsTest.class, "beforeClass", "Test setup complete");
     }
 
     /**
