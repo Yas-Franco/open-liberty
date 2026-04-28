@@ -87,11 +87,11 @@ public class TracingNotEnabledTest {
         server.addEnvVar(TestConstants.ENV_OTEL_EXPORTER_OTLP_ENDPOINT, jaegerContainer.getOtlpGrpcUrl());
 
         server.addEnvVar(TestConstants.ENV_OTEL_SERVICE_NAME, SERVICE_NAME);
-        server.addEnvVar(TestConstants.ENV_OTEL_BSP_SCHEDULE_DELAY, "100"); // Wait no more than 100ms to send traces to the server
+        server.addEnvVar(TestConstants.ENV_OTEL_BSP_SCHEDULE_DELAY, "10"); // Wait no more than 100ms to send traces to the server. lowers the chance that verification races the exporter
         
         
-        server.addEnvVar("OTEL_TRACE_EXPORT_INTERVAL", "5000");
-        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "10000");
+        server.addEnvVar("OTEL_TRACE_EXPORT_INTERVAL", "1000");
+        server.addEnvVar("OTEL_EXPORTER_OTLP_TIMEOUT", "30000");
         // server.addEnvVar(TestConstants.ENV_OTEL_SDK_DISABLED, "false"); // Do not enable tracing
 
         // Construct the test application
