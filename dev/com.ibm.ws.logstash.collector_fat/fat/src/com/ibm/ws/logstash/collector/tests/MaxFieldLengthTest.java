@@ -46,7 +46,7 @@ import componenttest.topology.impl.LibertyServerFactory;
 public class MaxFieldLengthTest extends LogstashCollectorTest {
 
     /*
-     * Current model must acquire server this way, we need server "early" so that the static initialization of the generic container cab resolve
+     * Current model must acquire server this way, we need server "early" so that the static initialization of the generic container can resolve
      */
     private static LibertyServer server = LibertyServerFactory.getLibertyServer("LogstashServer");
     private static boolean connected = false;

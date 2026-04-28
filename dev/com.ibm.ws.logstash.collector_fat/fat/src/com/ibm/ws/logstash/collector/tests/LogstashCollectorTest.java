@@ -77,6 +77,7 @@ public abstract class LogstashCollectorTest {
     public static final int DEFAULT_TIMEOUT = 40 * 1000; // 40 seconds
     private static File generatedPrivateKeyFile;
     private static File generatedCertificateFile;
+
     private static File generatedOverrideFile;
 
     protected abstract LibertyServer getServer();
@@ -320,7 +321,7 @@ public abstract class LogstashCollectorTest {
     }
 
     protected static void generateTrustStoreForServer(LibertyServer server) throws Exception {
-        String dockerHostName = DockerClientFactory.instance().dockerHostIpAddress(); //logstashContainer.getHost();
+        String dockerHostName = DockerClientFactory.instance().dockerHostIpAddress();
         String securityUtility = server.getInstallRoot() + "/bin/securityUtility";
         if (System.getProperty("os.name").toLowerCase().startsWith("win")) {
             securityUtility = securityUtility + ".bat";
@@ -351,7 +352,7 @@ public abstract class LogstashCollectorTest {
         String keyStoreSnippet = extractKeyStoreSnippet(commandOutput.getStdout());
         generatedOverrideFile = new File(server.getServerRoot() + "/configDropins/overrides/logstash-ssl-override.xml");
         writeOverrideXml(generatedOverrideFile, keyStoreSnippet);
-        Log.info(c, "foo", "Wrote SSL override to " + generatedOverrideFile.getAbsolutePath());
+        Log.info(c, "generateTrustStoreForServer", "Wrote SSL override to " + generatedOverrideFile.getAbsolutePath());
 
         File keystoreFile = new File(server.getServerRoot() + "/resources/security/key.p12");
         if (!keystoreFile.exists()) {
@@ -383,8 +384,8 @@ public abstract class LogstashCollectorTest {
             writePemFile(generatedPrivateKeyFile, "PRIVATE KEY", privateKey.getEncoded());
             writePemFile(generatedCertificateFile, "CERTIFICATE", certificate.getEncoded());
 
-            Log.info(c, "foo", "Extracted private key to " + generatedPrivateKeyFile.getAbsolutePath());
-            Log.info(c, "foo", "Extracted certificate to " + generatedCertificateFile.getAbsolutePath());
+            Log.info(c, "generateTrustStoreForServer", "Extracted private key to " + generatedPrivateKeyFile.getAbsolutePath());
+            Log.info(c, "generateTrustStoreForServer", "Extracted certificate to " + generatedCertificateFile.getAbsolutePath());
         }
     }
 
