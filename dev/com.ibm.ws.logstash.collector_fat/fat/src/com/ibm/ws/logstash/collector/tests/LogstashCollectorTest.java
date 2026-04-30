@@ -201,7 +201,7 @@ public abstract class LogstashCollectorTest {
         return APP_URL;
     }
 
-    private static final String IMAGE_NAME = DockerImageName.parse("docker.elastic.co/logstash/logstash:9.3.3") //
+    private static final String IMAGE_NAME = DockerImageName.parse("public.ecr.aws/elastic/logstash:9.3.3") //
                     .asCompatibleSubstituteFor("logstash:9.3.3") //
                     .asCanonicalNameString();
 
