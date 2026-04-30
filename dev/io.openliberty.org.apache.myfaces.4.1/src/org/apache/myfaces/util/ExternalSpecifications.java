@@ -96,7 +96,7 @@ public final class ExternalSpecifications
             available = false;
         }
 
-        log.info("MyFaces Core CDI support " + (available ? "enabled" : "disabled"));
+        // log.info("MyFaces Core CDI support " + (available ? "enabled" : "disabled"));
  
         return available;
     });

@@ -214,6 +214,10 @@ public class JSF23CDIInjectionTests extends CDITestBase {
      *
      * Also ensure that when running on a Server with the cdi-2.0 feature enabled that JSF knows that MyFaces CDI Support
      * is enabled.
+     * 
+     * Note: MyFaces Core CDI support enabled is not needed for 4.1+ since CDI is required.
+     * Message was kept for 4.0 as the message was kept post GA.  Removal avoided to reduce any potential breaking changes. 
+     * However, there is no indication of any breaking changes as CDI is required for 4.0+.
      *
      * @throws Exception
      */
