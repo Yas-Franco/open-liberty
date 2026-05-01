@@ -15,9 +15,9 @@ package com.ibm.ws.testcontainers.example;
 import static componenttest.annotation.SkipIfSysProp.DB_Not_Default;
 import static componenttest.annotation.SkipIfSysProp.DB_Postgres;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
