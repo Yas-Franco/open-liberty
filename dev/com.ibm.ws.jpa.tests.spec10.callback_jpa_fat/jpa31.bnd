@@ -1,0 +1,18 @@
+#*******************************************************************************
+# Copyright (c) 2019, 2025, 2026 IBM Corporation and others.
+# SPDX-License-Identifier: EPL-2.0
+#*******************************************************************************
+
+fat.test.bucket: jpa31
+
+-privatepackage: com.ibm.ws.jpa.tests.spec10.callback.jpa31,\
+                 com.ibm.ws.jpa.tests.spec10.callback.tests,\
+                 com.ibm.ws.jpa.fvt.callback.*
+
+suite.name=com.ibm.ws.jpa.tests.spec10.callback.jpa31.FATSuite
+
+tested.features: persistence-3.1, persistenceContainer-3.1, enterpriseBeansLite-4.0, servlet-6.0, jdbc-4.3, jndi-1.0, databaserotation
+javac.source: 11
+javac.target: 11
+fat.minimum.java.level: 11
+
