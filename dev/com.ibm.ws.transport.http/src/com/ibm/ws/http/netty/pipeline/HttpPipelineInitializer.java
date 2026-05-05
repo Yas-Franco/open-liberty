@@ -248,7 +248,7 @@ public class HttpPipelineInitializer extends ChannelInitializerWrapper {
                 ctx.channel().attr(NettyHttpConstants.PROTOCOL).set(ProtocolName.HTTP1.name());
                 //TODO: this is a very large number (under https://github.com/OpenLiberty/open-liberty/issues/33114)
                 pipeline.addAfter(HTTP_KEEP_ALIVE_HANDLER_NAME, HTTP_AGGREGATOR_HANDLER_NAME,
-                                  new LibertyHttpObjectAggregator(httpConfig.getMessageSizeLimit() == -1 ? maxContentLength : httpConfig.getMessageSizeLimit()));
+                                  new LibertyHttpObjectAggregator(httpConfig.getMessageSizeLimit() == -1 ? maxContentLength : httpConfig.getMessageSizeLimit(), httpConfig));
                 pipeline.addAfter(HTTP_AGGREGATOR_HANDLER_NAME, HTTP_REQUEST_HANDLER_NAME, new LibertyHttpRequestHandler(httpConfig));
                 ctx.pipeline().remove(this);
 
@@ -290,7 +290,7 @@ public class HttpPipelineInitializer extends ChannelInitializerWrapper {
             pipeline.addAfter(NETTY_HTTP_SERVER_CODEC, HTTP_KEEP_ALIVE_HANDLER_NAME, new HttpServerKeepAliveHandler());
             //TODO: this is a very large number (under https://github.com/OpenLiberty/open-liberty/issues/33114)
             pipeline.addAfter(HTTP_KEEP_ALIVE_HANDLER_NAME, HTTP_AGGREGATOR_HANDLER_NAME,
-                              new LibertyHttpObjectAggregator(httpConfig.getMessageSizeLimit() == -1 ? maxContentLength : httpConfig.getMessageSizeLimit()));
+                              new LibertyHttpObjectAggregator(httpConfig.getMessageSizeLimit() == -1 ? maxContentLength : httpConfig.getMessageSizeLimit(), httpConfig));
             pipeline.addAfter(HTTP_AGGREGATOR_HANDLER_NAME, HTTP_REQUEST_HANDLER_NAME, new LibertyHttpRequestHandler(httpConfig));
             
         }

@@ -83,19 +83,8 @@ public class HttpDispatcherHandler extends SimpleChannelInboundHandler<FullHttpR
     @Override
     protected void channelRead0(ChannelHandlerContext context, FullHttpRequest request) throws Exception {
         if (request.decoderResult().isFinished() && request.decoderResult().isSuccess()) {
-            // Verify if the request expects 100 continue
-            // At this point, the validation of the message size is already done by the aggregator
-            if (HttpUtil.is100ContinueExpected(request)) {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "Request contains [Expect: 100-continue]");
-                }
-                DefaultFullHttpResponse continueResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE);
-                HttpUtil.setContentLength(continueResponse, 0);
-                byte[] date = HttpDispatcher.getDateFormatter().getRFC1123TimeAsBytes(config.getDateHeaderRange());
-                continueResponse.headers().set(HttpHeaderKeys.HDR_DATE.getName(),
-                                new String(date, StandardCharsets.UTF_8));
-                context.writeAndFlush(continueResponse);
-            }
+            // Note: 100-Continue is now handled in LibertyHttpObjectAggregator before aggregation
+            // to avoid deadlock where aggregator waits for body and client waits for 100-Continue
             FullHttpRequest msg = request;
             HttpDispatcher.getExecutorService().execute(new Runnable() {
                 @Override

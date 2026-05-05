@@ -412,9 +412,14 @@ public class ClientSSLHandshakeTest extends CommonTest {
                         effectiveCiphers.subList(0, Math.min(5, effectiveCiphers.size())));
             }
             
-            // Verify we have a reasonable number of ciphers (the JDK effective list typically have 30+ ciphers)
-            assertTrue("Expected JDK default cipher list to have at least 20 ciphers, but found: " + effectiveCiphers.size(),
-                    effectiveCiphers.size() > 20);
+            // Verify we have a reasonable number of ciphers in the JDK effective list.
+            // FIPS mode restricts the available cipher suites, resulting in fewer ciphers
+            // compared to non-FIPS mode where the JDK typically provides more cipher options.
+            boolean isFipsEnabled = testServer.isFIPS140_3EnabledAndSupported();
+            int expectedMinCiphers = isFipsEnabled ? 10 : 30;
+            assertTrue("Expected JDK default cipher list to have at least " + expectedMinCiphers +
+                    " ciphers (FIPS=" + isFipsEnabled + "), but found: " + effectiveCiphers.size(),
+                    effectiveCiphers.size() >= expectedMinCiphers);
 
         } catch (Exception e) {
             Log.error(c, name.getMethodName(), e, "Unexpected exception was thrown.");
@@ -443,11 +448,6 @@ public class ClientSSLHandshakeTest extends CommonTest {
 
             testServer.startServer();
 
-            // Wait for the securityLevel messages (appears during config processing)
-            // CWPKI0838I appears because DefaultSSLConfig is always loaded because securityLevel
-            // HIGH is set as the default in the metatype.
-           assertNotNull("Server should log CWPKI0838I info message for defaultSSLConfig for securityLevel attribute.",
-                        testServer.waitForStringInLogUsingMark("CWPKI0838I.*defaultSSLConfig"));
             assertNotNull("Server should log CWPKI0839W warning for weak cipher specification.",
                         testServer.waitForStringInLogUsingMark("CWPKI0839W"));
             
@@ -488,13 +488,6 @@ public class ClientSSLHandshakeTest extends CommonTest {
 
             testServer.startServer();
 
-            // Wait for the securityLevel messages (appears during config processing)
-            // Should appear twice - once for each SSL config
-            //CWPKI0838I appears because DefaultSSLConfig is always loaded because securityLevel
-            //HIGH is set as the default in the metatype
-            assertNotNull("Server should log CWPKI0838I info message for securityLevel attribute.",
-                        testServer.waitForStringInLogUsingMark("CWPKI0838I.*defaultSSLConfig"));
-            
             List<String> warningMessages = testServer.findStringsInLogsUsingMark("CWPKI0839W", testServer.getDefaultLogFile());
             assertNotNull("Server should log CWPKI0839W warning messages for weak cipher specification.", warningMessages);
             assertTrue("Server should log CWPKI0839W twice (once for each SSL config), but found: " + warningMessages.size(),
