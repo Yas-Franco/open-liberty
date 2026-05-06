@@ -79,7 +79,8 @@ dependencies {
         'com.microsoft.sqlserver:mssql-jdbc:9.2.1.jre8',
         "org.apache.derby:derbyclient:${derbyJava8PlusVersion}",
         "org.apache.derby:derby:${derbyJava8PlusVersion}",
-        'com.oracle.database.jdbc:ojdbc8:23.4.0.24.05'
+        'com.oracle.database.jdbc:ojdbc8:23.4.0.24.05',
+        "com.h2database:h2:${h2Java8Version}"
 
    //TODO - update other drivers to Java 17 versions (i.e. ojdbc17)
    jdbcDriversJava17Plus 'com.ibm.db2:jcc:12.1.0.0',
@@ -89,7 +90,8 @@ dependencies {
         "org.apache.derby:derby:${derbyJava17PlusVersion}",
         "org.apache.derby:derbytools:${derbyJava17PlusVersion}",
         "org.apache.derby:derbyshared:${derbyJava17PlusVersion}",
-        'com.oracle.database.jdbc:ojdbc8:23.4.0.24.05'
+        'com.oracle.database.jdbc:ojdbc8:23.4.0.24.05',
+        "com.h2database:h2:${h2Java8Version}"
         
 
   jakartaTransformer 'commons-cli:commons-cli:1.5.0',
@@ -180,6 +182,7 @@ task copyJdbcDrivers(type: Copy) {
   rename 'ojdbc8.*.jar', 'ojdbc8.jar'
   rename 'postgresql.*.jar', 'postgresql.jar'
   rename 'mssql-jdbc.*.jar', 'mssql-jdbc.jar'
+  rename 'h2-.*.jar', 'h2.jar'
 }
 
 task copyJdbcDriversJava17Plus(type: Copy) {
@@ -194,6 +197,7 @@ task copyJdbcDriversJava17Plus(type: Copy) {
     rename 'ojdbc8.*.jar', 'ojdbc8.jar'
     rename 'postgresql.*.jar', 'postgresql.jar'
     rename 'mssql-jdbc.*.jar', 'mssql-jdbc.jar'
+	rename 'h2-.*.jar', 'h2.jar'
   }
 
 task copyFeatureBundles {
