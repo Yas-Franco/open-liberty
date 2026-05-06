@@ -18,25 +18,25 @@ customModes:
       # Instructions
       Focus on a single Open Liberty test bucket migration.
       Prefer minimal, bucket-scoped changes over broad refactors.
+      Use the new_task tool to spawn subagents.
 
       You have two modes you can operate in: MIGRATION or DEBUG mode
       If cognativeMetadata.yml contains the line "Migrated from derby to h2" use DEBUG mode otherwise use MIGRATION mode.
 
       ## Mode: MIGRATION
 
-      Use a subagent to perform the following investigation:
+      Use a subagent (ask) to perform the following investigation:
       Read bnd.bnd file:
         - Determine the minimum java level required to run the test bucket?
       Read build.gradle file:
       - Is the test bucket using databaseRotation? 
         - If copyTestContainers task is used -- then databaseRotation is true
         - If copyTestContainer task is not used -- then databaseRotation is false
-
-      Use a subagent to perform the following search:
+      Perform the following search:
       - Local all Derby related references in the target bucket and nearby shared test assets
       - Prioritize build.gradle, publish/servers/**/server.xml, persistence.xml, datasource definitions, and repository or test classes that name the datastore.
 
-      Use a subagent to perform the code changes:
+      Use a subagent (code) to perform the code changes:
       - build.gradle
         - replace addRequiredLibraries.dependsOn tasks with the H2 equivalent
           - If minimum java level is >= 11 then use the gradle task `addH2`
@@ -47,6 +47,9 @@ customModes:
       - server configs (publish/servers/**/server.xml)
         - check application classloader library refs, shared resource jar paths, and javaPermission entries together so Derby library IDs and derby.jar references are converted consistently to H2 equivalents.
         - datasource configuration, use properties.h2 (not properties.h2.embedded nor properties.h2.client) with the URL attribute configured to ${env.DB_URL}.
+        - replace the driver location ${shared.resource.dir}/derby
+          - If minimum java level is >= 11 then use location ${shared.resource.dir}/h2
+          - If minimum java level is < 11 then use location ${shared.resource.dir}/h2Java8
         - make note of the number and frequency of user/password configured.
         - make note of the databaseName
       - test setup (java classes under fat/ directory that contain @RunWith(FATRunner.class))
@@ -70,7 +73,7 @@ customModes:
           - Check the H2 documentation for the complete list of reserved keywords if encountering SQL syntax errors.
         - Preserve existing test intent and naming unless a Derby-specific name must change for clarity or correctness, but do rename datasource IDs or library IDs when they are Derby-branded and actively used.
 
-      Use a subagent to re-search the bucket:
+      Use a subagent (ask) to re-search the bucket:
       - stale Derby references in the impacted scope and distinguish active references from commented-out or TODO-gated code that may need manual follow-up.
 
       After migrating the bucket add/append the following value "Migrated from derby to h2" to the property "description" in cognitiveMetadata.yml
@@ -82,15 +85,13 @@ customModes:
       The user has already performed migration
       If the directory build/libs/autoFVT does not exist, prompt the user to manually run the test bucket.
 
-      Use a subagent to identify the error:
+      Use a subagent (advanced) to identify the error:
       - build/libs/autoFVT/results/ contains the test client output and junit results
         - Did an error occur prior to a server starting?
         - Did an error get returned while running a test on the server? If so which server?
-
-      Use a subagent to investigate error cause:
       - build/libs/autoFVT/output/servers/ contains the test server output
         - Investigate any servers which had errors.
 
-      Use a subagent to attempt to fix any errors
+      Use a subagent (code) to attempt to fix any errors
 
       After making code changes, prompt the user to re-run the test bucket, do not attempt to re-run the test bucket yourself. 

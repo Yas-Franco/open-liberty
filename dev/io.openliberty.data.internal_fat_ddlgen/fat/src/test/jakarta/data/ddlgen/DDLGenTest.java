@@ -129,7 +129,7 @@ public class DDLGenTest extends FATServletClient {
 
                     preamble = "set schema " + user;
                     break;
-                case H2: // Working - admin and user share PUBLIC schema when none is defined
+                case H2: // Working - admin user will set schema to user
                          // Additional user is created by H2Container on start
                     try (Connection con = testContainer.createConnection(""); Statement stmt = con.createStatement()) {
                         stmt.executeUpdate("create schema if not exists " + user + " authorization " + user);
