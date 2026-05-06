@@ -41,6 +41,7 @@ import org.jmock.api.Action;
 import org.jmock.api.Invocation;
 import org.jmock.integration.junit4.JUnit4Mockery;
 import org.jmock.lib.legacy.ClassImposteriser;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -56,6 +57,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import com.ibm.ws.kernel.service.util.ProductInfo;
 import com.ibm.ws.webcontainer.httpsession.SessionManager;
 import com.ibm.ws.webcontainer.osgi.DynamicVirtualHost;
 import com.ibm.ws.webcontainer.osgi.DynamicVirtualHostManager;
@@ -1002,9 +1004,15 @@ public class PluginGeneratorTest {
         testfile.renameTo(new File(testClassesDir + "/serverRole-plugin-cfg.xml"));
     }
 
-    // Test generation of XML file and check values of OutboundInterfacesList and OutboundBindStrict properties
+    /*
+     * Test generation of XML file and check values of OutboundInterfacesList and OutboundBindStrict properties
+     * This test requires beta edition to be enabled
+     */
     @Test
     public void testOutboundInterfaceProperties() throws Exception {
+        /* Skip test if beta edition is not enabled */
+        Assume.assumeTrue(ProductInfo.getBetaEdition());
+        
         setCommonVHostExpectations();
         setXMLGenerateExpectations();
         setCommonExpectations();
@@ -1080,9 +1088,15 @@ public class PluginGeneratorTest {
         testfile.renameTo(new File(testClassesDir + "/outboundinterface-plugin-cfg.xml"));
     }
 
-    // Test generation of XML file with default OutboundBindStrict (false) and no OutboundInterfacesList
+    /*
+     * Test generation of XML file with default OutboundBindStrict (false) and no OutboundInterfacesList
+     * This test requires beta edition to be enabled
+     */
     @Test
     public void testOutboundInterfacePropertiesDefaults() throws Exception {
+        /* Skip test if beta edition is not enabled */
+        Assume.assumeTrue(ProductInfo.getBetaEdition());
+        
         setCommonVHostExpectations();
         setXMLGenerateExpectations();
         setCommonExpectations();
