@@ -75,7 +75,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
                     new ThreadLocal<>();
 
     /**
-     * Creates EntityManager instances.
+     * Creates EntityAgent and EntityManager instances.
      */
     private final EntityManagerBuilder builder;
 
@@ -406,6 +406,8 @@ public class RepositoryImpl<R> implements InvocationHandler {
             } catch (SQLException x) {
                 throw new DataConnectionException(x);
             }
+        } else if ("jakarta.persistence.EntityAgent".equals(type.getName())) {
+            resource = builder.getEntityAgent();
         }
 
         if (resource == null)
@@ -508,7 +510,9 @@ public class RepositoryImpl<R> implements InvocationHandler {
                                '.' + method.getName(),
                      provider.loggable(repositoryInterface, method, args));
 
-        EntityManager em = null;
+        // EntityManager and EntityAgent inherit from AutoCloseable
+        // via their common superclass, EntityHandler:
+        AutoCloseable eh = null;
         try {
             if (isDisposed.get())
                 throw exc(IllegalStateException.class,
@@ -583,23 +587,25 @@ public class RepositoryImpl<R> implements InvocationHandler {
                 }
 
                 if (queryType != RESOURCE_ACCESS)
-                    em = builder.getEntityManager(stateful);
+                    eh = stateful || queryInfo.entityInfo.simulateStateless() //
+                                    ? builder.getEntityManager(stateful) //
+                                    : builder.getEntityAgent();
 
                 returnValue = switch (queryType) {
-                    case FIND, FIND_AND_DELETE -> queryInfo.find(em, txStatus, args);
-                    case COUNT -> queryInfo.count(em, args);
-                    case EXISTS -> queryInfo.exists(em, args);
-                    case INSERT -> queryInfo.insert(args[0], em);
-                    case SAVE -> queryInfo.save(args[0], em);
-                    case QM_UPDATE, QM_DELETE -> queryInfo.execute(em, args);
-                    case LC_DELETE -> queryInfo.delete(args[0], em);
-                    case LC_UPDATE -> queryInfo.update(args[0], em);
-                    case LC_UPDATE_MERGE -> queryInfo.findAndUpdate(args[0], em);
-                    case DETACH -> queryInfo.detach(args[0], em);
-                    case MERGE -> queryInfo.merge(args[0], em);
-                    case PERSIST -> queryInfo.persist(args[0], em);
-                    case REFRESH -> queryInfo.refresh(args[0], em);
-                    case REMOVE -> queryInfo.remove(args[0], em);
+                    case FIND, FIND_AND_DELETE -> queryInfo.find(eh, txStatus, args);
+                    case COUNT -> queryInfo.count(eh, args);
+                    case EXISTS -> queryInfo.exists(eh, args);
+                    case INSERT -> queryInfo.insert(args[0], eh);
+                    case SAVE -> queryInfo.save(args[0], eh);
+                    case QM_UPDATE, QM_DELETE -> queryInfo.execute(eh, args);
+                    case LC_DELETE -> queryInfo.delete(args[0], eh);
+                    case LC_UPDATE -> queryInfo.update(args[0], eh);
+                    case LC_UPDATE_MERGE -> queryInfo.findAndUpdate(args[0], eh);
+                    case DETACH -> queryInfo.detach(args[0], (EntityManager) eh);
+                    case MERGE -> queryInfo.merge(args[0], (EntityManager) eh);
+                    case PERSIST -> queryInfo.persist(args[0], (EntityManager) eh);
+                    case REFRESH -> queryInfo.refresh(args[0], (EntityManager) eh);
+                    case REMOVE -> queryInfo.remove(args[0], (EntityManager) eh);
                     case RESOURCE_ACCESS -> getResource(queryInfo);
                     default -> throw new UnsupportedOperationException(queryType.operationName);
                 };
@@ -624,14 +630,15 @@ public class RepositoryImpl<R> implements InvocationHandler {
                             provider.tranMgr.commit();
                         }
                     } else {
-                        boolean detach = em != null &&
+                        boolean detach = eh != null &&
                                          queryType.detachEntities(stateful);
                         if (Status.STATUS_ACTIVE == provider.tranMgr.getStatus()) {
                             if (failed) {
                                 if (trace && tc.isDebugEnabled())
                                     Tr.debug(this, tc, "set rollback only");
                                 provider.tranMgr.setRollbackOnly();
-                            } else if (detach) {
+                            } else if (detach &&
+                                       eh instanceof EntityManager em) {
                                 // flush changes first because detach interferes with updates
                                 if (trace && tc.isDebugEnabled())
                                     Tr.debug(this, tc, "flush");
@@ -640,7 +647,8 @@ public class RepositoryImpl<R> implements InvocationHandler {
                                     Tr.debug(this, tc, "clear");
                                 em.clear();
                             }
-                        } else if (detach) {
+                        } else if (detach &&
+                                   eh instanceof EntityManager em) {
                             if (trace && tc.isDebugEnabled())
                                 Tr.debug(this, tc, "clear");
                             em.clear();
@@ -654,8 +662,8 @@ public class RepositoryImpl<R> implements InvocationHandler {
                             provider.localTranCurrent.resume(suspendedLTC);
                         }
                     } finally {
-                        if (!stateful && em != null)
-                            em.close();
+                        if (!stateful && eh != null)
+                            eh.close();
                     }
                 }
             }

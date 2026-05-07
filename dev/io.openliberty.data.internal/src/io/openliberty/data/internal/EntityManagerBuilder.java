@@ -459,6 +459,17 @@ public abstract class EntityManagerBuilder {
                                              Class<?> repoInterface);
 
     /**
+     * Obtains an EntityAgent from the Jakarta Persistence provider.
+     *
+     * @return the EntityAgent.
+     * @throws Exception if an error occurs.
+     */
+    AutoCloseable getEntityAgent() throws Exception {
+        // TODO EntityAgent
+        return getEntityManager(false);
+    }
+
+    /**
      * Obtains a shared EntityManager instance if running in a transaction
      * and the repository is stateful. Otherwise create a new instance.
      *

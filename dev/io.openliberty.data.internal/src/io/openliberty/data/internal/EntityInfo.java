@@ -246,6 +246,17 @@ public class EntityInfo {
     }
 
     /**
+     * Indicates if stateless repositories must be simulated by using EntityManager.
+     *
+     * @return whether to simulate stateless repositories with EntityManager.
+     */
+    @Trivial
+    boolean simulateStateless() {
+        // TODO temporarily approximated by assuming only Hibernate has EntityAgent
+        return !isHibernate;
+    }
+
+    /**
      * Converts a generated entity back to its record equivalent.
      *
      * @param entity generated entity.
