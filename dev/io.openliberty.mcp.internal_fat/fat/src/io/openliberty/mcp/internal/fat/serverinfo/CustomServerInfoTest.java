@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025, 2026 IBM Corporation and others.
+ * Copyright (c) 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -7,7 +7,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
-package io.openliberty.mcp.internal.fat.lifecycle.tests;
+package io.openliberty.mcp.internal.fat.serverinfo;
 
 import static com.ibm.websphere.simplicity.ShrinkHelper.DeployOptions.SERVER_ONLY;
 
@@ -30,23 +30,24 @@ import io.openliberty.mcp.internal.fat.tool.basicToolApp.BasicTools;
 import io.openliberty.mcp.internal.fat.utils.McpClient;
 
 /**
- *
+ * Test that verifies custom mcpServerInfo configuration is properly applied
+ * when specified in server.xml
  */
 @RunWith(FATRunner.class)
-public class LifecycleTest {
-
-    @Server("mcp-server")
-    public static LibertyServer server;
+public class CustomServerInfoTest {
 
     @Rule
-    public McpClient client = new McpClient(server, "/lifecycleTest");
+    public McpClient client = new McpClient(server, "/customServerInfoTest");
+
+    @Server("mcp-server-custom-info")
+    public static LibertyServer server;
 
     @BeforeClass
     public static void setup() throws Exception {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "lifecycleTest.war")
+        WebArchive war = ShrinkWrap.create(WebArchive.class, "customServerInfoTest.war")
                                    .addPackage(BasicTools.class.getPackage());
 
-        ShrinkHelper.exportDropinAppToServer(server, war, SERVER_ONLY);
+        ShrinkHelper.exportAppToServer(server, war, SERVER_ONLY);
 
         server.startServer();
     }
@@ -57,36 +58,30 @@ public class LifecycleTest {
     }
 
     @Test
-    public void testInitialization() throws Exception {
+    public void testCustomServerInfoInInitializeResponse() throws Exception {
         String request = """
                         {
                           "jsonrpc": "2.0",
-                          "id": "1",
+                          "id": 1,
                           "method": "initialize",
                           "params": {
                             "protocolVersion": "2025-11-25",
-                            "capabilities": {
-                              "roots": {
-                                "listChanged": true
-                              },
-                              "sampling": {},
-                              "elicitation": {}
-                            },
                             "clientInfo": {
-                              "name": "ExampleClient",
-                              "title": "Example Client Display Name",
-                              "version": "1.0.0"
-                            }
+                              "name": "test-client",
+                              "version": "1.0"
+                            },
+                            "capabilities": {}
                           }
                         }
                         """;
 
         String response = client.callMCP(request);
 
+        // Verify custom serverInfo values from server.xml
         String expectedResponse = """
                         {
                           "jsonrpc": "2.0",
-                          "id": "1",
+                          "id": 1,
                           "result": {
                             "protocolVersion": "2025-11-25",
                             "capabilities": {
@@ -95,46 +90,16 @@ public class LifecycleTest {
                               }
                             },
                             "serverInfo": {
-                              "name": "mcp-server",
-                              "version": "1.0.0"
+                              "name": "my-custom-server",
+                              "title": "My Custom MCP Server",
+                              "version": "2.5.0",
+                              "description": "My custom description"
                             }
                           }
                         }
                         """;
+
         JSONAssert.assertEquals(expectedResponse, response, JSONCompareMode.STRICT);
     }
 
-    @Test
-    public void testClientInitializedNotification() throws Exception {
-        String request = """
-                         {
-                           "jsonrpc": "2.0",
-                           "method": "notifications/initialized"
-                         }
-                        """;
-
-        client.callMCPNotification(request);
-    }
-
-    @Test
-    public void testPing() throws Exception {
-        String request = """
-                        {
-                          "jsonrpc": "2.0",
-                          "id": "123",
-                          "method": "ping"
-                        }
-                        """;
-
-        String response = client.callMCP(request);
-
-        String expectedResponse = """
-                          {
-                          "jsonrpc": "2.0",
-                          "id": "123",
-                          "result": {}
-                        }
-                        """;
-        JSONAssert.assertEquals(expectedResponse, response, JSONCompareMode.STRICT);
-    }
 }

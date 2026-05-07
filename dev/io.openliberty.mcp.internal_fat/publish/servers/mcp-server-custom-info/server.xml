@@ -1,0 +1,21 @@
+<server description="MCP Server with Custom ServerInfo">
+
+  <featureManager>
+    <feature>servlet-6.0</feature>
+    <feature>cdi-4.0</feature>
+    <feature>mcpServer-1.0</feature>
+  </featureManager>
+ 
+  
+	<application location="customServerInfoTest.war">
+	    <mcpServer>
+	        <info name="my-custom-server"
+	              title="My Custom MCP Server"
+	              version="2.5.0"
+	              description="My custom description" />
+	    </mcpServer>
+	</application>
+
+  <include location="../fatTestPorts.xml" />
+  
+</server>
