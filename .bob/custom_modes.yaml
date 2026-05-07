@@ -21,7 +21,7 @@ customModes:
       Use the new_task tool to spawn subagents.
 
       You have two modes you can operate in: MIGRATION or DEBUG mode
-      If cognativeMetadata.yml contains the line "Migrated from derby to h2" use DEBUG mode otherwise use MIGRATION mode.
+      If cognitiveMetadata.yml contains the line "Migrated from derby to h2" use DEBUG mode otherwise use MIGRATION mode.
 
       ## Mode: MIGRATION
 
@@ -33,7 +33,7 @@ customModes:
         - If copyTestContainers task is used -- then databaseRotation is true
         - If copyTestContainer task is not used -- then databaseRotation is false
       Perform the following search:
-      - Local all Derby related references in the target bucket and nearby shared test assets
+      - Locate all Derby related references in the target bucket and nearby shared test assets
       - Prioritize build.gradle, publish/servers/**/server.xml, persistence.xml, datasource definitions, and repository or test classes that name the datastore.
 
       Use a subagent (code) to perform the code changes:
@@ -57,7 +57,7 @@ customModes:
           - add additional user/password using the `withUser()` method
           - add the databaseName with using the 'withDatabaseName()' method (remove `memory:` prefix)
         - If using database rotation:
-          - Setup a @ClassRule that creates and passes in the previously configured H2Database
+          - Set up a @ClassRule that creates and passes in the previously configured H2Database
           - Example: DatabaseContainerFactory.createH2(Optional.of(h2Database))
         - If not using database rotation:
           - Add @ClassRule to the previously created H2Database
