@@ -4,36 +4,63 @@
 # are made available under the terms of the Eclipse Public License 2.0
 # which accompanies this distribution, and is available at
 # http://www.eclipse.org/legal/epl-2.0/
-# 
+#
 # SPDX-License-Identifier: EPL-2.0
 #
 # Contributors:
 #     IBM Corporation - initial API and implementation
 #*******************************************************************************
 -include= ~../cnf/resources/bnd/bundle.props
+
+# Enable multifat - include all bucket .bnd files
+-sub: *.bnd
+
 bVersion=1.0
 
+# Source directories - BND will compile all of these
 src: \
     fat/src,\
     test-applications/callback/src,\
     test-applications/helpers/DatabaseManagement/src
 
-test.project: true
-publish.wlp.jar.disabled: true
+# This is a runnable FAT (not just a library)
+fat.project: true
+
+# Allow publishing (needed for FAT execution)
 instrument.disabled: true
 
-# Dependencies may be local bundles (e.g. com.ibm.websphere.javaee.servlet.3.1)
-#      or binaries from Artifactory (e.g. commons-logging:commons-logging)
+# Common feature tested by all buckets
+tested.features: databaserotation
+
+# Build-time dependencies (for compilation)
 -buildpath: \
     com.ibm.ws.jpa_testframework;version=latest,\
     com.ibm.websphere.javaee.annotation.1.1;version=latest,\
-    com.ibm.websphere.javaee.cdi.2.0;version=latest,\
     com.ibm.websphere.javaee.ejb.3.2;version=latest,\
-    com.ibm.websphere.javaee.jms.2.0;version=latest,\
+    com.ibm.websphere.javaee.servlet.3.0;version=latest,\
+    com.ibm.websphere.javaee.servlet.3.1;version=latest,\
     com.ibm.websphere.javaee.servlet.4.0;version=latest,\
     com.ibm.websphere.javaee.persistence.2.1;version=latest,\
     com.ibm.websphere.javaee.transaction.1.2;version=latest,\
-    com.ibm.websphere.javaee.validation.2.0;version=latest,\
-    io.openliberty.org.testcontainers;version=latest,\
-    org.jboss.shrinkwrap:shrinkwrap-impl-base;version=1.2.3,\
-    org.jboss.shrinkwrap:shrinkwrap-spi;version=1.2.3
+    io.openliberty.jakarta.annotation.2.0;version=latest,\
+    io.openliberty.jakarta.annotation.2.1;version=latest,\
+    io.openliberty.jakarta.annotation.3.0;version=latest,\
+    io.openliberty.jakarta.enterpriseBeans.4.0;version=latest,\
+    io.openliberty.jakarta.servlet.5.0;version=latest,\
+    io.openliberty.jakarta.servlet.6.0;version=latest,\
+    io.openliberty.jakarta.servlet.6.1;version=latest,\
+    io.openliberty.jakarta.persistence.3.0;version=latest,\
+    io.openliberty.jakarta.persistence.3.1;version=latest,\
+    io.openliberty.jakarta.persistence.3.2;version=latest,\
+    io.openliberty.jakarta.transaction.2.0;version=latest,\
+    io.openliberty.org.testcontainers;version=latest
+
+# Test classpath - includes servlet APIs
+# This is required for the FAT test framework to scan @TestServlet annotations
+-testpath: \
+    com.ibm.websphere.javaee.servlet.3.0;version=latest,\
+    com.ibm.websphere.javaee.servlet.3.1;version=latest,\
+    com.ibm.websphere.javaee.servlet.4.0;version=latest,\
+    io.openliberty.jakarta.servlet.5.0;version=latest,\
+    io.openliberty.jakarta.servlet.6.0;version=latest,\
+    io.openliberty.jakarta.servlet.6.1;version=latest
