@@ -1374,7 +1374,6 @@ public abstract class QueryInfo {
         return null;
     }
 
-    // TODO EntityAgent impl in QueryInfo_1_1 for the next 6 methods
     /**
      * Delegates to the EntityAgent or EntityManager to create a
      * Jakarta Persistence Query, typically used for DELETE and
@@ -1384,10 +1383,9 @@ public abstract class QueryInfo {
      * @param jpql          the query represented as JPQL
      * @return the query, ready to execute
      */
-    protected jakarta.persistence.Query ehCreateQuery(AutoCloseable entityHandler,
-                                                      String jpql) {
-        return ((EntityManager) entityHandler).createQuery(jpql);
-    }
+    protected abstract jakarta.persistence.Query //
+                    ehCreateQuery(AutoCloseable entityHandler,
+                                  String jpql);
 
     /**
      * Delegates to the EntityAgent or EntityManager to create a TypedQuery.
@@ -1398,13 +1396,10 @@ public abstract class QueryInfo {
      * @param resultType    the result type of the query
      * @return the query, ready to execute
      */
-    @SuppressWarnings("unchecked")
-    protected <T> TypedQuery<T> ehCreateTypedQuery(AutoCloseable entityHandler,
-                                                   String jpql,
-                                                   Class<?> resultType) {
-        return (TypedQuery<T>) ((EntityManager) entityHandler) //
-                        .createQuery(jpql, Object.class);
-    }
+    protected abstract <T> TypedQuery<T> //
+                    ehCreateTypedQuery(AutoCloseable entityHandler,
+                                       String jpql,
+                                       Class<?> resultType);
 
     /**
      * Delegates to the EntityAgent or EntityManager to delete or remove
@@ -1413,9 +1408,7 @@ public abstract class QueryInfo {
      * @param entityHandler EntityAgent or EntityManager
      * @param entity        the entity to remove
      */
-    protected void ehDelete(AutoCloseable entityHandler, Object entity) {
-        ((EntityManager) entityHandler).remove(entity);
-    }
+    protected abstract void ehDelete(AutoCloseable entityHandler, Object entity);
 
     /**
      * Delegates to the EntityAgent or EntityManager to insert or persist
@@ -1424,9 +1417,7 @@ public abstract class QueryInfo {
      * @param entityHandler EntityAgent or EntityManager
      * @param entity        the entity to insert
      */
-    protected void ehInsert(AutoCloseable entityHandler, Object entity) {
-        ((EntityManager) entityHandler).persist(entity);
-    }
+    protected abstract void ehInsert(AutoCloseable entityHandler, Object entity);
 
     /**
      * Delegates to the EntityAgent or EntityManager to update or merge
@@ -1435,9 +1426,7 @@ public abstract class QueryInfo {
      * @param entityHandler EntityAgent or EntityManager
      * @param entity        the entity to update
      */
-    protected Object ehUpdate(AutoCloseable entityHandler, Object entity) {
-        return ((EntityManager) entityHandler).merge(entity);
-    }
+    protected abstract Object ehUpdate(AutoCloseable entityHandler, Object entity);
 
     /**
      * Delegates to the EntityAgent or EntityManager to upsert or merge
@@ -1446,9 +1435,8 @@ public abstract class QueryInfo {
      * @param entityHandler EntityAgent or EntityManager
      * @param entity        the entity to update or insert
      */
-    protected Object ehUpsert(AutoCloseable entityHandler, Object entity) {
-        return ((EntityManager) entityHandler).merge(entity);
-    }
+    @Trivial
+    protected abstract Object ehUpsert(AutoCloseable entityHandler, Object entity);
 
     /**
      * Indicates if the characters leading up to, but not including, the endBefore position

@@ -24,6 +24,7 @@ import static io.openliberty.data.internal.QueryType.REMOVE;
 import static io.openliberty.data.internal.QueryType.SAVE;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -71,6 +72,7 @@ import jakarta.data.constraint.NotIn;
 import jakarta.data.constraint.NotLike;
 import jakarta.data.constraint.NotNull;
 import jakarta.data.constraint.Null;
+import jakarta.data.exceptions.DataException;
 import jakarta.data.expression.Expression;
 import jakarta.data.expression.NavigableExpression;
 import jakarta.data.expression.TemporalExpression;
@@ -101,6 +103,8 @@ import jakarta.data.spi.expression.function.TextFunctionExpression;
 import jakarta.data.spi.expression.literal.Literal;
 import jakarta.data.spi.expression.path.NavigablePath;
 import jakarta.data.spi.expression.path.Path;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 
 /**
  * QueryInfo implementation for Jakarta Data 1.1.
@@ -358,6 +362,136 @@ public class QueryInfo_1_1 extends QueryInfo {
                         sort.isAscending(), //
                         sort.ignoreCase(), //
                         sort.nullOrdering());
+    }
+
+    @Override
+    @Trivial
+    protected jakarta.persistence.Query ehCreateQuery(AutoCloseable entityHandler,
+                                                      String jpql) {
+        // TODO Persistence 4.0 API
+        //return entityHandler instanceof EntityHandler handler //
+        //                ? handler.createQuery(jpql) //
+        //                : super.ehCreateQuery(entityHandler, jpql);
+        try {
+            return (jakarta.persistence.Query) entityHandler.getClass() //
+                            .getMethod("createQuery", String.class) //
+                            .invoke(entityHandler, jpql);
+        } catch (IllegalAccessException | //
+                        InvocationTargetException | //
+                        NoSuchMethodException x) {
+            throw new RuntimeException(x); // should be impossible
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    @Trivial
+    protected <T> TypedQuery<T> ehCreateTypedQuery(AutoCloseable entityHandler,
+                                                   String jpql,
+                                                   Class<?> resultType) {
+        // TODO Persistence 4.0 API
+        //return entityHandler instanceof EntityHandler handler //
+        //                ? handler.createQuery(jpql, resultType) //
+        //                : super.ehCreateQuery(entityHandler, jpql, resultType);
+        try {
+            return (TypedQuery<T>) entityHandler.getClass() //
+                            .getMethod("createQuery", String.class, Class.class) //
+                            .invoke(entityHandler, jpql, resultType);
+        } catch (IllegalAccessException | //
+                        InvocationTargetException | //
+                        NoSuchMethodException x) {
+            throw new RuntimeException(x); // should be impossible
+        }
+    }
+
+    @Override
+    @Trivial
+    protected void ehDelete(AutoCloseable entityHandler, Object entity) {
+        // TODO Persistence 4.0 API
+        // return entityHandler instanceof EntityAgent agent //
+        //                ? agent.delete(entity) //
+        //                : ((EntityManager) entityHandler).remove(entity);
+
+        if (entityHandler instanceof EntityManager manager)
+            manager.remove(entity);
+        else
+            try {
+                entityHandler.getClass().getMethod("delete").invoke(entity);
+            } catch (IllegalAccessException | NoSuchMethodException x) {
+                throw new RuntimeException(x); // should be impossible
+            } catch (InvocationTargetException x) {
+                throw new DataException(x.getCause());
+            }
+        // TODO deleteMultiple
+    }
+
+    @Override
+    @Trivial
+    protected void ehInsert(AutoCloseable entityHandler, Object entity) {
+        // TODO Persistence 4.0 API
+        // return entityHandler instanceof EntityAgent agent //
+        //                ? agent.insert(entity) //
+        //                : ((EntityManager) entityHandler).persist(entity);
+
+        if (entityHandler instanceof EntityManager manager)
+            manager.persist(entity);
+        else
+            try {
+                entityHandler.getClass().getMethod("insert").invoke(entity);
+            } catch (IllegalAccessException | NoSuchMethodException x) {
+                throw new RuntimeException(x); // should be impossible
+            } catch (InvocationTargetException x) {
+                throw new DataException(x.getCause());
+            }
+        // TODO insertMultiple
+    }
+
+    @Override
+    @Trivial
+    protected Object ehUpdate(AutoCloseable entityHandler, Object entity) {
+        // TODO Persistence 4.0 API
+        // return entityHandler instanceof EntityAgent agent //
+        //                ? agent.update(entity) //
+        //                : ((EntityManager) entityHandler).merge(entity);
+
+        Object updated;
+        if (entityHandler instanceof EntityManager manager)
+            updated = manager.merge(entity);
+        else
+            try {
+                updated = entityHandler.getClass().getMethod("update") //
+                                .invoke(entity);
+            } catch (IllegalAccessException | NoSuchMethodException x) {
+                throw new RuntimeException(x); // should be impossible
+            } catch (InvocationTargetException x) {
+                throw new DataException(x.getCause());
+            }
+        // TODO updateMultiple
+        return updated;
+    }
+
+    @Override
+    @Trivial
+    protected Object ehUpsert(AutoCloseable entityHandler, Object entity) {
+        // TODO Persistence 4.0 API
+        // return entityHandler instanceof EntityAgent agent //
+        //                ? agent.upsert(entity) //
+        //                : ((EntityManager) entityHandler).merge(entity);
+
+        Object upserted;
+        if (entityHandler instanceof EntityManager manager)
+            upserted = manager.merge(entity);
+        else
+            try {
+                upserted = entityHandler.getClass().getMethod("upsert") //
+                                .invoke(entity);
+            } catch (IllegalAccessException | NoSuchMethodException x) {
+                throw new RuntimeException(x); // should be impossible
+            } catch (InvocationTargetException x) {
+                throw new DataException(x.getCause());
+            }
+        // TODO upsertMultiple
+        return upserted;
     }
 
     /**
