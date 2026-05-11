@@ -64,8 +64,8 @@ import com.ibm.wsspi.resource.ResourceConfig;
 import com.ibm.wsspi.resource.ResourceFactory;
 
 import io.openliberty.data.internal.DataProvider;
+import io.openliberty.data.internal.EntityHandlerFactory;
 import io.openliberty.data.internal.EntityInfo;
-import io.openliberty.data.internal.EntityManagerBuilder;
 import io.openliberty.data.internal.Util;
 import io.openliberty.data.internal.orm.EntityParser;
 import jakarta.data.exceptions.DataException;
@@ -75,14 +75,18 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EntityManager;
 
 /**
- * This builder is used when a data source JNDI name, id, resource reference,
- * or a dataStore id is configured as the repository dataStore.
- * It creates entity managers from a PersistenceServiceUnit from the persistence service.
+ * This factory is used when the repository dataStore is configured to be a
+ * data source JNDI name,
+ * data source id,
+ * data source resource reference, or
+ * dataStore id.
+ * It uses a PersistenceServiceUnit from the persistence service to create
+ * EntityAgent and EntityManager instances.
  */
-public class DBStoreEMBuilder extends EntityManagerBuilder implements DDLGenerationParticipant {
+public class DBStoreEHFactory extends EntityHandlerFactory implements DDLGenerationParticipant {
     private static final long MAX_WAIT_FOR_SERVICE_NS = TimeUnit.SECONDS.toNanos(60);
 
-    private static final TraceComponent tc = Tr.register(DBStoreEMBuilder.class);
+    private static final TraceComponent tc = Tr.register(DBStoreEHFactory.class);
 
     private final ClassDefiner classDefiner = new ClassDefiner();
 
@@ -129,7 +133,7 @@ public class DBStoreEMBuilder extends EntityManagerBuilder implements DDLGenerat
      * @param entityTypes           entity classes as known by the user, not generated.
      * @throws Exception if an error occurs.
      */
-    public DBStoreEMBuilder(DataProvider provider,
+    public DBStoreEHFactory(DataProvider provider,
                             ClassLoader repositoryClassLoader,
                             Set<Class<?>> repositoryInterfaces,
                             String dataStore,
@@ -669,7 +673,7 @@ public class DBStoreEMBuilder extends EntityManagerBuilder implements DDLGenerat
     @Trivial
     public String toString() {
         return new StringBuilder(26 + configDisplayId.length()) //
-                        .append("DBStoreEMBuilder@") //
+                        .append(getClass().getSimpleName()).append('@') //
                         .append(Integer.toHexString(hashCode())) //
                         .append(":").append(configDisplayId) //
                         .toString();
@@ -683,8 +687,8 @@ public class DBStoreEMBuilder extends EntityManagerBuilder implements DDLGenerat
      */
     @Override
     public void generate(Writer out) throws Exception {
-        // Note that exceptions thrown here or by the persistence service will be logged by the
-        // direct caller (FutureEMBuilder) or the DDL generation MBean.
+        // Note that exceptions thrown here or by the persistence service will be
+        // logged by the direct caller (FutureEHFactory) or the DDL generation MBean.
         if (persistenceServiceUnit == null) {
             throw new IllegalStateException("EntityManagerFactory for Jakarta Data repository has not been initialized for the " + configDisplayId + " DatabaseStore.");
         }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023,2025 IBM Corporation and others.
+ * Copyright (c) 2023,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -26,17 +26,19 @@ import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
 import io.openliberty.data.internal.DataProvider;
-import io.openliberty.data.internal.EntityManagerBuilder;
+import io.openliberty.data.internal.EntityHandlerFactory;
 import jakarta.persistence.CacheRetrieveMode;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.PersistenceException;
 
 /**
- * This builder is used when a persistence unit reference JNDI name is configured as the repository dataStore.
+ * This factory is used when the repository dataStore is configure to be a
+ * persistence unit name (Data 1.1+) or
+ * persistence unit reference JNDI name.
  */
-public class PUnitEMBuilder extends EntityManagerBuilder {
-    private static final TraceComponent tc = Tr.register(PUnitEMBuilder.class);
+public class PUnitEHFactory extends EntityHandlerFactory {
+    private static final TraceComponent tc = Tr.register(PUnitEHFactory.class);
 
     private final EntityManagerFactory emf;
 
@@ -52,7 +54,7 @@ public class PUnitEMBuilder extends EntityManagerBuilder {
      * @param entityTypes           entity classes as known by the user, not generated.
      * @throws Exception if an error occurs.
      */
-    public PUnitEMBuilder(DataProvider provider,
+    public PUnitEHFactory(DataProvider provider,
                           ClassLoader repositoryClassLoader,
                           Set<Class<?>> repositoryInterfaces,
                           EntityManagerFactory emf,
@@ -116,7 +118,7 @@ public class PUnitEMBuilder extends EntityManagerBuilder {
     @Trivial
     public String toString() {
         return new StringBuilder(27 + dataStore.length()) //
-                        .append("PUnitEMBuilder@") //
+                        .append(getClass().getSimpleName()).append('@') //
                         .append(Integer.toHexString(hashCode())) //
                         .append(":").append(dataStore) //
                         .toString();

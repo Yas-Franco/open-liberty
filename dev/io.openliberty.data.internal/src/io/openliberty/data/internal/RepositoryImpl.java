@@ -75,9 +75,9 @@ public class RepositoryImpl<R> implements InvocationHandler {
                     new ThreadLocal<>();
 
     /**
-     * Creates EntityManager instances.
+     * Creates EntityAgent and EntityManager instances.
      */
-    private final EntityManagerBuilder builder;
+    private final EntityHandlerFactory factory;
 
     /**
      * Indicates if the bean for the repository has been disposed.
@@ -117,7 +117,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
      * @param provider              OSGi service for the built-in Jakarta Data
      *                                  provider for EclipseLink.
      * @param extension             CDI extension for the Jakarta Data provider.
-     * @param builder               Builder of EntityManager instances.
+     * @param factory               Creates EntityAgent and EntityManager
      * @param repositoryInterface   The repository interface.
      * @param primaryEntityClass    The primary entity class for the repository.
      *                                  Null if the repository does not have one.
@@ -127,17 +127,17 @@ public class RepositoryImpl<R> implements InvocationHandler {
      */
     public RepositoryImpl(DataProvider provider,
                           DataExtension extension,
-                          EntityManagerBuilder builder,
+                          EntityHandlerFactory factory,
                           Class<R> repositoryInterface,
                           Class<?> primaryEntityClass,
                           Map<Class<?>, List<QueryInfo>> queriesPerEntityClass) {
-        this.builder = builder;
+        this.factory = factory;
 
-        // EntityManagerBuilder implementations guarantee that the future
+        // EntityHandlerFactory implementations guarantee that the future
         // in the following map will be completed even if an error occurs
         this.primaryEntityInfoFuture = primaryEntityClass == null //
                         ? null //
-                        : builder.entityInfoMap.computeIfAbsent(primaryEntityClass,
+                        : factory.entityInfoMap.computeIfAbsent(primaryEntityClass,
                                                                 EntityInfo::newFuture);
         this.provider = provider;
         this.repositoryInterface = repositoryInterface;
@@ -161,7 +161,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
                 entitylessQueryInfos = entry.getValue();
             } else {
                 CompletableFuture<EntityInfo> entityInfoFuture = //
-                                builder.entityInfoMap.computeIfAbsent(entityClass,
+                                factory.entityInfoMap.computeIfAbsent(entityClass,
                                                                       EntityInfo::newFuture);
                 entityInfoFutures.add(entityInfoFuture);
 
@@ -287,11 +287,11 @@ public class RepositoryImpl<R> implements InvocationHandler {
      * jakarta.persistence.PersistenceException (and subclasses).
      *
      * @param original exception to possibly replace.
-     * @param emb      entity manager builder.
+     * @param factory  creates EntityAgent and EntityManager
      * @return exception to replace with, if any. Otherwise, the original.
      */
     @Trivial
-    static RuntimeException failure(Exception original, EntityManagerBuilder emb) {
+    static RuntimeException failure(Exception original, EntityHandlerFactory factory) {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         RuntimeException x = null;
         if (original instanceof PersistenceException) {
@@ -302,7 +302,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
                 String sqlState = null;
                 if (cause instanceof SQLException c) {
                     sqlState = c.getSQLState();
-                    if (emb.isConnectionError(c))
+                    if (factory.isConnectionError(c))
                         x = new DataConnectionException(original);
                 }
                 if (x == null)
@@ -395,17 +395,19 @@ public class RepositoryImpl<R> implements InvocationHandler {
         Class<?> type = info.method.getReturnType();
 
         if (EntityManager.class.equals(type)) {
-            resource = builder.getEntityManager(stateful);
+            resource = factory.getEntityManager(stateful);
             resourceAutoCloses = stateful;
         } else if (DataSource.class.equals(type)) {
-            resource = builder.getDataSource(info.method, repositoryInterface);
+            resource = factory.getDataSource(info.method, repositoryInterface);
         } else if (Connection.class.equals(type)) {
             try {
-                resource = builder.getDataSource(info.method, repositoryInterface) //
+                resource = factory.getDataSource(info.method, repositoryInterface) //
                                 .getConnection();
             } catch (SQLException x) {
                 throw new DataConnectionException(x);
             }
+        } else if ("jakarta.persistence.EntityAgent".equals(type.getName())) {
+            resource = factory.getEntityAgent();
         }
 
         if (resource == null)
@@ -457,7 +459,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
     public void introspect(PrintWriter writer, String indent) {
 
         writer.println(indent + "RepositoryImpl@" + Integer.toHexString(hashCode()));
-        writer.println(indent + "  builder: " + builder);
+        writer.println(indent + "  factory: " + factory);
         writer.println(indent + "  isDisposed? " + isDisposed);
         writer.println(indent + "  primary entity future: " + primaryEntityInfoFuture);
         writer.println(indent + "  provider: " + provider);
@@ -508,7 +510,9 @@ public class RepositoryImpl<R> implements InvocationHandler {
                                '.' + method.getName(),
                      provider.loggable(repositoryInterface, method, args));
 
-        EntityManager em = null;
+        // EntityManager and EntityAgent inherit from AutoCloseable
+        // via their common superclass, EntityHandler:
+        AutoCloseable eh = null;
         try {
             if (isDisposed.get())
                 throw exc(IllegalStateException.class,
@@ -583,23 +587,25 @@ public class RepositoryImpl<R> implements InvocationHandler {
                 }
 
                 if (queryType != RESOURCE_ACCESS)
-                    em = builder.getEntityManager(stateful);
+                    eh = stateful || queryInfo.entityInfo.simulateStateless() //
+                                    ? factory.getEntityManager(stateful) //
+                                    : factory.getEntityAgent();
 
                 returnValue = switch (queryType) {
-                    case FIND, FIND_AND_DELETE -> queryInfo.find(em, txStatus, args);
-                    case COUNT -> queryInfo.count(em, args);
-                    case EXISTS -> queryInfo.exists(em, args);
-                    case INSERT -> queryInfo.insert(args[0], em);
-                    case SAVE -> queryInfo.save(args[0], em);
-                    case QM_UPDATE, QM_DELETE -> queryInfo.execute(em, args);
-                    case LC_DELETE -> queryInfo.delete(args[0], em);
-                    case LC_UPDATE -> queryInfo.update(args[0], em);
-                    case LC_UPDATE_MERGE -> queryInfo.findAndUpdate(args[0], em);
-                    case DETACH -> queryInfo.detach(args[0], em);
-                    case MERGE -> queryInfo.merge(args[0], em);
-                    case PERSIST -> queryInfo.persist(args[0], em);
-                    case REFRESH -> queryInfo.refresh(args[0], em);
-                    case REMOVE -> queryInfo.remove(args[0], em);
+                    case FIND, FIND_AND_DELETE -> queryInfo.find(eh, txStatus, args);
+                    case COUNT -> queryInfo.count(eh, args);
+                    case EXISTS -> queryInfo.exists(eh, args);
+                    case INSERT -> queryInfo.insert(args[0], eh);
+                    case SAVE -> queryInfo.save(args[0], eh);
+                    case QM_UPDATE, QM_DELETE -> queryInfo.execute(eh, args);
+                    case LC_DELETE -> queryInfo.delete(args[0], eh);
+                    case LC_UPDATE -> queryInfo.update(args[0], eh);
+                    case LC_UPDATE_MERGE -> queryInfo.findAndUpdate(args[0], eh);
+                    case DETACH -> queryInfo.detach(args[0], (EntityManager) eh);
+                    case MERGE -> queryInfo.merge(args[0], (EntityManager) eh);
+                    case PERSIST -> queryInfo.persist(args[0], (EntityManager) eh);
+                    case REFRESH -> queryInfo.refresh(args[0], (EntityManager) eh);
+                    case REMOVE -> queryInfo.remove(args[0], (EntityManager) eh);
                     case RESOURCE_ACCESS -> getResource(queryInfo);
                     default -> throw new UnsupportedOperationException(queryType.operationName);
                 };
@@ -624,14 +630,15 @@ public class RepositoryImpl<R> implements InvocationHandler {
                             provider.tranMgr.commit();
                         }
                     } else {
-                        boolean detach = em != null &&
+                        boolean detach = eh != null &&
                                          queryType.detachEntities(stateful);
                         if (Status.STATUS_ACTIVE == provider.tranMgr.getStatus()) {
                             if (failed) {
                                 if (trace && tc.isDebugEnabled())
                                     Tr.debug(this, tc, "set rollback only");
                                 provider.tranMgr.setRollbackOnly();
-                            } else if (detach) {
+                            } else if (detach &&
+                                       eh instanceof EntityManager em) {
                                 // flush changes first because detach interferes with updates
                                 if (trace && tc.isDebugEnabled())
                                     Tr.debug(this, tc, "flush");
@@ -640,7 +647,8 @@ public class RepositoryImpl<R> implements InvocationHandler {
                                     Tr.debug(this, tc, "clear");
                                 em.clear();
                             }
-                        } else if (detach) {
+                        } else if (detach &&
+                                   eh instanceof EntityManager em) {
                             if (trace && tc.isDebugEnabled())
                                 Tr.debug(this, tc, "clear");
                             em.clear();
@@ -654,8 +662,8 @@ public class RepositoryImpl<R> implements InvocationHandler {
                             provider.localTranCurrent.resume(suspendedLTC);
                         }
                     } finally {
-                        if (!stateful && em != null)
-                            em.close();
+                        if (!stateful && eh != null)
+                            eh.close();
                     }
                 }
             }
@@ -671,7 +679,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
             return returnValue;
         } catch (Throwable x) {
             if (!isDefaultMethod && x instanceof Exception)
-                x = failure((Exception) x, builder);
+                x = failure((Exception) x, factory);
             if (trace && tc.isEntryEnabled())
                 Tr.exit(this, tc, "invoke " + repositoryInterface.getSimpleName() +
                                   '.' + method.getName(),

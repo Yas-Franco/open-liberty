@@ -72,12 +72,12 @@ import jakarta.transaction.Transaction;
  * Creates EntityManager instances from an EntityManagerFactory (from a persistence unit reference)
  * or from a PersistenceServiceUnit of a databaseStore.
  */
-public abstract class EntityManagerBuilder {
-    private static final TraceComponent tc = Tr.register(EntityManagerBuilder.class);
+public abstract class EntityHandlerFactory {
+    private static final TraceComponent tc = Tr.register(EntityHandlerFactory.class);
 
     /**
      * Entity attribute types that have an AttributeConverter.
-     * Only available when invoked by DBStoreEMBuilder. Otherwise null.
+     * Only available when invoked by DBStoreEHFactory. Otherwise null.
      */
     Set<Class<?>> convertibleTypes;
 
@@ -97,7 +97,7 @@ public abstract class EntityManagerBuilder {
 
     /**
      * Map of Transaction to EntityManager that allows stateful repositories to
-     * reuse the same EnityManager within a transaction when there is no request
+     * reuse the same EntityManager within a transaction when there is no request
      * scope. Otherwise, the EntityManager life cycle is tied to the request scope.
      */
     private final Map<Transaction, EntityManager> entityManagerPerTx = //
@@ -128,7 +128,7 @@ public abstract class EntityManagerBuilder {
      *                                  Repository annotation
      */
     @Trivial
-    protected EntityManagerBuilder(DataProvider provider,
+    protected EntityHandlerFactory(DataProvider provider,
                                    ClassLoader repositoryClassLoader,
                                    Set<Class<?>> repositoryInterfaces,
                                    String dataStore) {
@@ -144,7 +144,7 @@ public abstract class EntityManagerBuilder {
      *
      * @param entityTypes      entity classes as known by the user, not generated.
      * @param convertibleTypes types that have an AttributeConverter. Only available
-     *                             when invoked by DBStoreEMBuilder. Otherwise null.
+     *                             when invoked by DBStoreEHFactory. Otherwise null.
      * @throws Exception if an error occurs.
      */
     // FFDC is not needed because exceptions are logged to Tr.error
@@ -457,6 +457,18 @@ public abstract class EntityManagerBuilder {
      */
     public abstract DataSource getDataSource(Method repoMethod,
                                              Class<?> repoInterface);
+
+    /**
+     * Obtains an EntityAgent from the Jakarta Persistence provider.
+     *
+     * @return the EntityAgent.
+     * @throws Exception if an error occurs.
+     */
+    AutoCloseable getEntityAgent() throws Exception {
+        // TODO EntityAgent, which can be reused within a transaction, but
+        // otherwise should be a new instance
+        return getEntityManager(false);
+    }
 
     /**
      * Obtains a shared EntityManager instance if running in a transaction

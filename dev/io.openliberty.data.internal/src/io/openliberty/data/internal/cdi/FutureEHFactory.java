@@ -12,7 +12,7 @@
  *******************************************************************************/
 package io.openliberty.data.internal.cdi;
 
-import static io.openliberty.data.internal.EntityManagerBuilder.getClassNames;
+import static io.openliberty.data.internal.EntityHandlerFactory.getClassNames;
 import static io.openliberty.data.internal.cdi.DataExtension.exc;
 
 import java.io.PrintWriter;
@@ -49,19 +49,20 @@ import com.ibm.ws.threadContext.ComponentMetaDataAccessorImpl;
 import com.ibm.wsspi.persistence.DDLGenerationParticipant;
 
 import io.openliberty.data.internal.DataProvider;
-import io.openliberty.data.internal.EntityManagerBuilder;
+import io.openliberty.data.internal.EntityHandlerFactory;
 import io.openliberty.data.internal.Util;
-import io.openliberty.data.internal.provider.PUnitEMBuilder;
-import io.openliberty.data.internal.service.DBStoreEMBuilder;
+import io.openliberty.data.internal.provider.PUnitEHFactory;
+import io.openliberty.data.internal.service.DBStoreEHFactory;
 import jakarta.data.exceptions.DataException;
 import jakarta.persistence.EntityManagerFactory;
 
 /**
- * A completable future for an EntityManagerBuilder that can be
- * completed by invoking the createEMBuilder method.
+ * A completable future for an EntityHandlerFactory that can be
+ * completed by invoking the createFactory method.
  */
-public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> implements DDLGenerationParticipant, Comparable<FutureEMBuilder> {
-    private static final TraceComponent tc = Tr.register(FutureEMBuilder.class);
+public class FutureEHFactory extends CompletableFuture<EntityHandlerFactory> //
+                implements DDLGenerationParticipant, Comparable<FutureEHFactory> {
+    private static final TraceComponent tc = Tr.register(FutureEHFactory.class);
     private static final long DDLGEN_WAIT_TIME = 30;
 
     /**
@@ -123,7 +124,7 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
      * @param emf                   entity manager factory.
      * @param dataStore             configured dataStore value of the Repository annotation.
      */
-    FutureEMBuilder(DataProvider provider,
+    FutureEHFactory(DataProvider provider,
                     Class<?> repositoryInterface,
                     ClassLoader repositoryClassLoader,
                     String dataStore) {
@@ -179,7 +180,7 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
     }
 
     /**
-     * Adds a Repository interface represented by this FutureEmBuilder
+     * Adds a Repository interface represented by this FutureEHFactory.
      *
      * @param repositoryInterface repository interface
      */
@@ -192,106 +193,13 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
     }
 
     /**
-     * Registers this future with the DDL generation MBean so that the ddlgen command
-     * will generate DDL for the EntityManagerBuilder produced by this future. <p>
+     * Invoked to complete this future with the resulting EntityHandlerFactory value.
      *
-     * Not all EntityManagerBuilder instances will participate in DDL generation;
-     * only those that use the Persistence Service. This is not determined until the
-     * EntityManagerBuilder has been created. If not participating, a null DDL file
-     * name will be provided and the DDL generation command will skip generation.
-     *
-     * @param appName application name
-     */
-    public void registerDDLGenerationParticipant(String appName) {
-        // Register as a DDL generator for use by the ddlGen command and add to list for cleanup on application stop
-        BundleContext thisbc = FrameworkUtil.getBundle(getClass()).getBundleContext();
-        ServiceRegistration<DDLGenerationParticipant> ddlgenreg = thisbc.registerService(DDLGenerationParticipant.class, this, null);
-        Queue<ServiceRegistration<DDLGenerationParticipant>> ddlgenRegistrations = provider.ddlgeneratorsAllApps.get(appName);
-        if (ddlgenRegistrations == null) {
-            Queue<ServiceRegistration<DDLGenerationParticipant>> empty = new ConcurrentLinkedQueue<>();
-            if ((ddlgenRegistrations = provider.ddlgeneratorsAllApps.putIfAbsent(appName, empty)) == null)
-                ddlgenRegistrations = empty;
-        }
-        ddlgenRegistrations.add(ddlgenreg);
-    }
-
-    @Override
-    @Trivial // defer to EntityManagerBuilder
-    public String getDDLFileName() {
-        try {
-            EntityManagerBuilder builder = get(DDLGEN_WAIT_TIME, TimeUnit.SECONDS);
-            if (builder instanceof DDLGenerationParticipant) {
-                return ((DDLGenerationParticipant) builder).getDDLFileName();
-            }
-        } catch (TimeoutException e) {
-            // DDL generation MBean does not log errors; The following covers both
-            // logging the error and raising an exception with the same message.
-            throw exc(DataException.class,
-                      "CWWKD1067.ddlgen.emf.timeout",
-                      getClassNames(repositoryInterfaces),
-                      dataStore,
-                      DDLGEN_WAIT_TIME,
-                      entityTypes.stream().map(Class::getName).collect(Collectors.toList()));
-        } catch (Throwable ex) {
-            // DDL generation MBean does not log errors; The following covers both
-            // logging the error and raising an exception with the same message.
-            Throwable cause = (ex instanceof ExecutionException) ? ex.getCause() : ex;
-            DataException dx = exc(DataException.class,
-                                   "CWWKD1066.ddlgen.failed",
-                                   getClassNames(repositoryInterfaces),
-                                   dataStore,
-                                   entityTypes.stream() //
-                                                   .map(Class::getName) //
-                                                   .collect(Collectors.toList()),
-                                   cause.getMessage());
-            throw (DataException) dx.initCause(ex);
-        }
-
-        // Not using persistence service; return null and DDL generation will skip this future
-        return null;
-    }
-
-    @Override
-    @Trivial // defer to EntityManagerBuilder
-    public void generate(Writer out) throws Exception {
-        try {
-            EntityManagerBuilder builder = get(DDLGEN_WAIT_TIME, TimeUnit.SECONDS);
-            if (builder instanceof DDLGenerationParticipant) {
-                ((DDLGenerationParticipant) builder).generate(out);
-            }
-        } catch (TimeoutException e) {
-            // DDL generation MBean does not log errors; The following covers both
-            // logging the error and raising an exception with the same message.
-            throw exc(DataException.class,
-                      "CWWKD1065.ddlgen.timeout",
-                      getClassNames(repositoryInterfaces),
-                      dataStore,
-                      DDLGEN_WAIT_TIME,
-                      entityTypes.stream().map(Class::getName).collect(Collectors.toList()));
-        } catch (Throwable ex) {
-            // DDL generation MBean does not log errors; The following covers both
-            // logging the error and raising an exception with the same message.
-            Throwable cause = (ex instanceof ExecutionException) ? ex.getCause() : ex;
-            DataException dx = exc(DataException.class,
-                                   "CWWKD1066.ddlgen.failed",
-                                   getClassNames(repositoryInterfaces),
-                                   dataStore,
-                                   entityTypes.stream() //
-                                                   .map(Class::getName) //
-                                                   .collect(Collectors.toList()),
-                                   cause.getMessage());
-            throw (DataException) dx.initCause(ex);
-        }
-    }
-
-    /**
-     * Invoked to complete this future with the resulting EntityManagerBuilder value.
-     *
-     * @return PUnitEMBuilder (for persistence unit references) or
-     *         DBStoreEMBuilder (data sources, databaseStore)
+     * @return PUnitEHFactory (for persistence units) or
+     *         DBStoreEHFactory (data sources, databaseStore)
      */
     @FFDCIgnore({ NamingException.class, Throwable.class })
-    public EntityManagerBuilder createEMBuilder() {
+    public EntityHandlerFactory createFactory() {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
 
         // Avoid a web container deadlock (#31106) on metadataIdSvc.getMetaData
@@ -384,7 +292,8 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
                                      jndiName + " is the JNDI name for " + resource);
 
                         if (resource instanceof EntityManagerFactory)
-                            return new PUnitEMBuilder(provider, //
+                            return new PUnitEHFactory( //
+                                            provider, //
                                             repositoryClassLoader, //
                                             repositoryInterfaces, //
                                             (EntityManagerFactory) resource, //
@@ -405,7 +314,7 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
 
             boolean javacolon = namespace != null; // any java: namespace
 
-            return new DBStoreEMBuilder(provider, //
+            return new DBStoreEHFactory(provider, //
                             repositoryClassLoader, //
                             repositoryInterfaces, //
                             dataStore, //
@@ -434,12 +343,110 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
         }
     }
 
+    /**
+     * Registers this future with the DDL generation MBean so that the ddlgen command
+     * will generate DDL for the EntityHandlerFactory produced by this future. <p>
+     *
+     * Not all EntityHandlerFactory instances will participate in DDL generation;
+     * only those that use the Persistence Service. This is not determined until the
+     * EntityHandlerFactory has been created. If not participating, a null DDL file
+     * name will be provided and the DDL generation command will skip generation.
+     *
+     * @param appName application name
+     */
+    public void registerDDLGenerationParticipant(String appName) {
+        // Register as a DDL generator for use by the ddlGen command and add to list
+        // for cleanup on application stop
+        BundleContext thisbc = FrameworkUtil.getBundle(getClass()).getBundleContext();
+        ServiceRegistration<DDLGenerationParticipant> ddlgenreg = //
+                        thisbc.registerService(DDLGenerationParticipant.class, this, null);
+        Queue<ServiceRegistration<DDLGenerationParticipant>> ddlgenRegistrations = //
+                        provider.ddlgeneratorsAllApps.get(appName);
+        if (ddlgenRegistrations == null) {
+            Queue<ServiceRegistration<DDLGenerationParticipant>> empty = //
+                            new ConcurrentLinkedQueue<>();
+            if ((ddlgenRegistrations = provider.ddlgeneratorsAllApps //
+                            .putIfAbsent(appName, empty)) == null)
+                ddlgenRegistrations = empty;
+        }
+        ddlgenRegistrations.add(ddlgenreg);
+    }
+
+    @Override
+    @Trivial // defer to EntityHandlerFactory
+    public String getDDLFileName() {
+        try {
+            EntityHandlerFactory factory = get(DDLGEN_WAIT_TIME, TimeUnit.SECONDS);
+            if (factory instanceof DDLGenerationParticipant participant) {
+                return participant.getDDLFileName();
+            }
+        } catch (TimeoutException e) {
+            // DDL generation MBean does not log errors; The following covers both
+            // logging the error and raising an exception with the same message.
+            throw exc(DataException.class,
+                      "CWWKD1067.ddlgen.emf.timeout",
+                      getClassNames(repositoryInterfaces),
+                      dataStore,
+                      DDLGEN_WAIT_TIME,
+                      entityTypes.stream().map(Class::getName).collect(Collectors.toList()));
+        } catch (Throwable ex) {
+            // DDL generation MBean does not log errors; The following covers both
+            // logging the error and raising an exception with the same message.
+            Throwable cause = (ex instanceof ExecutionException) ? ex.getCause() : ex;
+            DataException dx = exc(DataException.class,
+                                   "CWWKD1066.ddlgen.failed",
+                                   getClassNames(repositoryInterfaces),
+                                   dataStore,
+                                   entityTypes.stream() //
+                                                   .map(Class::getName) //
+                                                   .collect(Collectors.toList()),
+                                   cause.getMessage());
+            throw (DataException) dx.initCause(ex);
+        }
+
+        // Not using persistence service; return null and DDL generation will skip this future
+        return null;
+    }
+
+    @Override
+    @Trivial // defer to EntityHandlerFactory
+    public void generate(Writer out) throws Exception {
+        try {
+            EntityHandlerFactory factory = get(DDLGEN_WAIT_TIME, TimeUnit.SECONDS);
+            if (factory instanceof DDLGenerationParticipant participant) {
+                participant.generate(out);
+            }
+        } catch (TimeoutException e) {
+            // DDL generation MBean does not log errors; The following covers both
+            // logging the error and raising an exception with the same message.
+            throw exc(DataException.class,
+                      "CWWKD1065.ddlgen.timeout",
+                      getClassNames(repositoryInterfaces),
+                      dataStore,
+                      DDLGEN_WAIT_TIME,
+                      entityTypes.stream().map(Class::getName).collect(Collectors.toList()));
+        } catch (Throwable ex) {
+            // DDL generation MBean does not log errors; The following covers both
+            // logging the error and raising an exception with the same message.
+            Throwable cause = (ex instanceof ExecutionException) ? ex.getCause() : ex;
+            DataException dx = exc(DataException.class,
+                                   "CWWKD1066.ddlgen.failed",
+                                   getClassNames(repositoryInterfaces),
+                                   dataStore,
+                                   entityTypes.stream() //
+                                                   .map(Class::getName) //
+                                                   .collect(Collectors.toList()),
+                                   cause.getMessage());
+            throw (DataException) dx.initCause(ex);
+        }
+    }
+
     @Override
     @Trivial
     public boolean equals(Object o) {
-        FutureEMBuilder b;
-        return this == o || o instanceof FutureEMBuilder
-                            && dataStore.equals((b = (FutureEMBuilder) o).dataStore)
+        FutureEHFactory b;
+        return this == o || o instanceof FutureEHFactory
+                            && dataStore.equals((b = (FutureEHFactory) o).dataStore)
                             && Objects.equals(application, b.application)
                             && Objects.equals(module, b.module)
                             && Objects.equals(repositoryClassLoader, b.repositoryClassLoader);
@@ -712,12 +719,14 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
      *
      * @param writer writes to the introspection file.
      * @param indent indentation for lines.
-     * @return EntityManagerBuilder if available from this FutureEMBuilder.
+     * @return EntityHandlerFactory if available from this FutureEHFactory
      */
     @FFDCIgnore(Throwable.class)
     @Trivial
-    public Optional<EntityManagerBuilder> introspect(PrintWriter writer, String indent) {
-        writer.println(indent + "FutureEMBuilder@" + Integer.toHexString(hashCode()));
+    public Optional<EntityHandlerFactory> introspect(PrintWriter writer,
+                                                     String indent) {
+        writer.println(indent + "FutureEHFactory@" +
+                       Integer.toHexString(hashCode()));
         writer.println(indent + "  dataStore: " + dataStore);
         writer.println(indent + "  namespace: " + namespace);
         writer.println(indent + "    application: " + application);
@@ -733,13 +742,13 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
             writer.println(indent + "  entity: " + (e == null ? null : e.getName()));
         });
 
-        EntityManagerBuilder builder = null;
+        EntityHandlerFactory factory = null;
         writer.print(indent + "  state: ");
         if (isCancelled())
             writer.println("cancelled");
         else if (isDone())
             try {
-                builder = join();
+                factory = join();
                 writer.println("completed");
             } catch (Throwable x) {
                 writer.println("failed");
@@ -748,8 +757,8 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
         else
             writer.println("not completed");
 
-        writer.println(indent + "  builder: " + builder);
-        return Optional.ofNullable(builder);
+        writer.println(indent + "  factory: " + factory);
+        return Optional.ofNullable(factory);
     }
 
     @Override
@@ -762,7 +771,7 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
         // output in Liberty trace, which prints toString for values and method args
         // but uses uses identityHashCode (id=...) when printing trace for a class
         StringBuilder b = new StringBuilder(len) //
-                        .append("FutureEMBuilder@") //
+                        .append(getClass().getSimpleName()).append('@') //
                         .append(Integer.toHexString(hashCode())) //
                         .append("(id=") //
                         .append(Integer.toHexString(System.identityHashCode(this))) //
@@ -775,7 +784,7 @@ public class FutureEMBuilder extends CompletableFuture<EntityManagerBuilder> imp
     // Ensures order of DDL generation based on fields
     @Override
     @Trivial
-    public int compareTo(FutureEMBuilder o) {
+    public int compareTo(FutureEHFactory o) {
         if (this.equals(o)) {
             return 0;
         }

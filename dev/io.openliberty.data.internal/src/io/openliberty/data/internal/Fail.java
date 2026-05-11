@@ -1164,7 +1164,7 @@ public class Fail {
      *                                          a query parameter.
      */
     private static void validateParameterPositions(QueryInfo info) {
-        DataVersionCompatibility compat = info.entityInfo.builder.provider.compat;
+        DataVersionCompatibility compat = info.entityInfo.factory.provider.compat;
 
         Class<?>[] paramTypes = info.method.getParameterTypes();
         Set<Class<?>> specParamTypes = compat.specialParamTypes();

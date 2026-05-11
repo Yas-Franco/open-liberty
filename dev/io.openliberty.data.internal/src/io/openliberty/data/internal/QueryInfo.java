@@ -848,7 +848,7 @@ public abstract class QueryInfo {
                            Map<Object, Object> jpqlParams,
                            PageRequest pageReq,
                            List<Sort<Object>> sortsOverride) {
-        DataVersionCompatibility compat = entityInfo.builder.provider.compat;
+        DataVersionCompatibility compat = entityInfo.factory.provider.compat;
 
         QueryInfo info = compat.createQueryInfo(producer, //
                                                 repositoryInterface, //
@@ -968,8 +968,8 @@ public abstract class QueryInfo {
     /**
      * Execute a repository count query.
      *
-     * @param em   entity manager.
-     * @param args method parameters.
+     * @param entityHandler the EntityAgent or EntityManager
+     * @param args          method parameters
      * @return the count, converted to a type that is compatible with the
      *         method signature.
      * @throws Exception        if an error occurs.
@@ -977,7 +977,7 @@ public abstract class QueryInfo {
      *                              requested type.
      */
     @Trivial
-    Object count(EntityManager em, Object... args) throws Exception {
+    Object count(AutoCloseable entityHandler, Object... args) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "count",
@@ -985,8 +985,9 @@ public abstract class QueryInfo {
                      "to be returned as " + singleType.getName());
 
         @SuppressWarnings("unchecked")
-        TypedQuery<Long> query = //
-                        (TypedQuery<Long>) createQuery(em, Long.class, args);
+        TypedQuery<Long> query = (TypedQuery<Long>) createQuery(entityHandler,
+                                                                Long.class,
+                                                                args);
 
         Long count = query.getSingleResult();
 
@@ -1041,14 +1042,14 @@ public abstract class QueryInfo {
      * Creates and prepares a query, including setting parameters basd on the
      * repository method arguments and any Constraints and Restrictions.
      *
-     * @param em               entity manager.
+     * @param entityHandler    the EntityAgent or EntityManager
      * @param typeOfTypedQuery TypedQuery type. Null to avoid using TypedQuery
      *                             (for UPDATE or DELETE).
      * @param args             method parameters.
      * @return the query, ready to execute.
      */
     @Trivial // avoid tracing repository method args
-    private jakarta.persistence.Query createQuery(EntityManager em,
+    private jakarta.persistence.Query createQuery(AutoCloseable entityHandler,
                                                   Class<?> typeOfTypedQuery,
                                                   Object[] args) {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
@@ -1097,8 +1098,10 @@ public abstract class QueryInfo {
                         : this;
 
         jakarta.persistence.Query query = typeOfTypedQuery == null //
-                        ? em.createQuery(queryInfo.jpql) //
-                        : em.createQuery(queryInfo.jpql, typeOfTypedQuery);
+                        ? ehCreateQuery(entityHandler, queryInfo.jpql) //
+                        : ehCreateTypedQuery(entityHandler,
+                                             queryInfo.jpql,
+                                             typeOfTypedQuery);
 
         if (trace && tc.isDebugEnabled())
             Tr.debug(this, tc, "created query " + query);
@@ -1133,12 +1136,12 @@ public abstract class QueryInfo {
     /**
      * Deletes entities that were found by a find-and-delete operation.
      *
-     * @param results entities or record entities to delete from the database.
-     * @param em      entity manager.
+     * @param results       entities or record entities to delete from the database
+     * @param entityHandler EntityAgent or EntityManager
      * @throws Exception if an error occurs.
      */
     @Trivial
-    private void delete(List<?> results, EntityManager em) throws Exception {
+    private void delete(List<?> results, AutoCloseable entityHandler) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "delete", loggable(results));
@@ -1147,9 +1150,10 @@ public abstract class QueryInfo {
             if (result == null) {
                 throw Fail.resultConversion(this, null, null);
             } else if (entityInfo.entityClass.isInstance(result)) {
-                em.remove(result);
+                ehDelete(entityHandler, result);
             } else if (entityInfo.idClassAttributeAccessors != null) {
-                jakarta.persistence.Query delete = em.createQuery(jpqlDelete);
+                jakarta.persistence.Query delete = ehCreateQuery(entityHandler,
+                                                                 jpqlDelete);
                 int numParams = 0;
                 for (Member accessor : entityInfo.idClassAttributeAccessors.values()) {
                     Object value = accessor instanceof Method //
@@ -1184,7 +1188,8 @@ public abstract class QueryInfo {
                         throw Fail.returnTypeInvalidForDelete(this);
                 }
 
-                jakarta.persistence.Query delete = em.createQuery(jpqlDelete);
+                jakarta.persistence.Query delete = ehCreateQuery(entityHandler,
+                                                                 jpqlDelete);
                 if (trace && tc.isDebugEnabled())
                     Tr.debug(this, tc, jpqlDelete,
                              "set ?1 " + loggable(value));
@@ -1201,14 +1206,14 @@ public abstract class QueryInfo {
      * An error is raised if any of the entities (or records) are not found
      * in the database.
      *
-     * @param arg the entity or record, or array/Iterable/Stream of entity or record
-     * @param em  the entity manager
+     * @param arg           the entity or record, or array/Iterable/Stream of entity or record
+     * @param entityHandler EntityAgent or EntityManager
      * @return the deleted entity count, boolean indicator of any deletion, or void
      *         return type that is required by the Delete method signature.
      * @throws Exception if an error occurs.
      */
     @Trivial
-    Object delete(Object arg, EntityManager em) throws Exception {
+    Object delete(Object arg, AutoCloseable entityHandler) throws Exception {
         arg = arg instanceof Stream //
                         ? ((Stream<?>) arg).sequential().toList() //
                         : arg;
@@ -1223,15 +1228,15 @@ public abstract class QueryInfo {
         if (arg instanceof Iterable) {
             for (Object e : ((Iterable<?>) arg)) {
                 numExpected++;
-                updateCount += deleteOne(e, em);
+                updateCount += deleteOne(e, entityHandler);
             }
         } else if (entityParamType.isArray()) {
             numExpected = Array.getLength(arg);
             for (int i = 0; i < numExpected; i++)
-                updateCount += deleteOne(Array.get(arg, i), em);
+                updateCount += deleteOne(Array.get(arg, i), entityHandler);
         } else {
             numExpected = 1;
-            updateCount = deleteOne(arg, em);
+            updateCount = deleteOne(arg, entityHandler);
         }
 
         if (numExpected == 0)
@@ -1251,14 +1256,14 @@ public abstract class QueryInfo {
      * Removes the entity (or record) from the database if its attributes
      * match the database.
      *
-     * @param e  the entity or record.
-     * @param em the entity manager.
+     * @param e             the entity or record.
+     * @param entityHandler the EntityAgent or EntityManager
      * @return the number of entities deleted (1 or 0).
      * @throws Exception if an error occurs or the repository method return type is
      *                       void and the entity (or correct version of the entity)
      *                       was not found.
      */
-    private int deleteOne(Object e, EntityManager em) throws Exception {
+    private int deleteOne(Object e, AutoCloseable entityHandler) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "deleteOne", loggable(e));
@@ -1295,7 +1300,7 @@ public abstract class QueryInfo {
             && jpql != this.jpql)
             Tr.debug(this, tc, "JPQL adjusted for NULL id or version", jpql);
 
-        jakarta.persistence.Query delete = em.createQuery(jpql);
+        jakarta.persistence.Query delete = ehCreateQuery(entityHandler, jpql);
 
         if (entityInfo.idClassAttributeAccessors == null) {
             int p = 1;
@@ -1370,6 +1375,70 @@ public abstract class QueryInfo {
     }
 
     /**
+     * Delegates to the EntityAgent or EntityManager to create a
+     * Jakarta Persistence Query, typically used for DELETE and
+     * UPDATE.
+     *
+     * @param entityHandler EntityAgent or EntityManager
+     * @param jpql          the query represented as JPQL
+     * @return the query, ready to execute
+     */
+    protected abstract jakarta.persistence.Query //
+                    ehCreateQuery(AutoCloseable entityHandler,
+                                  String jpql);
+
+    /**
+     * Delegates to the EntityAgent or EntityManager to create a TypedQuery.
+     *
+     * @param <T>           result type of the query
+     * @param entityHandler EntityAgent or EntityManager
+     * @param jpql          the query represented as JPQL
+     * @param resultType    the result type of the query
+     * @return the query, ready to execute
+     */
+    protected abstract <T> TypedQuery<T> //
+                    ehCreateTypedQuery(AutoCloseable entityHandler,
+                                       String jpql,
+                                       Class<?> resultType);
+
+    /**
+     * Delegates to the EntityAgent or EntityManager to delete or remove
+     * an entity.
+     *
+     * @param entityHandler EntityAgent or EntityManager
+     * @param entity        the entity to remove
+     */
+    protected abstract void ehDelete(AutoCloseable entityHandler, Object entity);
+
+    /**
+     * Delegates to the EntityAgent or EntityManager to insert or persist
+     * an entity.
+     *
+     * @param entityHandler EntityAgent or EntityManager
+     * @param entity        the entity to insert
+     */
+    protected abstract void ehInsert(AutoCloseable entityHandler, Object entity);
+
+    /**
+     * Delegates to the EntityAgent or EntityManager to update or merge
+     * an entity.
+     *
+     * @param entityHandler EntityAgent or EntityManager
+     * @param entity        the entity to update
+     */
+    protected abstract Object ehUpdate(AutoCloseable entityHandler, Object entity);
+
+    /**
+     * Delegates to the EntityAgent or EntityManager to upsert or merge
+     * an entity.
+     *
+     * @param entityHandler EntityAgent or EntityManager
+     * @param entity        the entity to update or insert
+     */
+    @Trivial
+    protected abstract Object ehUpsert(AutoCloseable entityHandler, Object entity);
+
+    /**
      * Indicates if the characters leading up to, but not including, the endBefore position
      * in the text matches the searchFor. For example, a true value will be returned by
      * endsWith("Not", "findByNameNotNullAndPriceLessThan", 13).
@@ -1406,20 +1475,20 @@ public abstract class QueryInfo {
     /**
      * Execute JPQL for a repository delete or update query.
      *
-     * @param em   entity manager.
-     * @param args method parameters.
+     * @param entityHandler the EntityManager or EntityAgent
+     * @param args          method parameters
      * @return void, boolean, int, or long value representing a count of
      *         matching entities, or a CompletableFuture for the value,
      *         whichever is compatible with the method signature.
      * @throws Exception if an error occurs.
      */
-    @Trivial // em and method args have already been logged if loggable
-    Object execute(EntityManager em, Object... args) throws Exception {
+    @Trivial // entityHandler and method args have already been logged if loggable
+    Object execute(AutoCloseable entityHandler, Object... args) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "execute", type); // DELETE or UPDATE
 
-        jakarta.persistence.Query update = createQuery(em, null, args);
+        jakarta.persistence.Query update = createQuery(entityHandler, null, args);
 
         int updateCount = update.executeUpdate();
 
@@ -1439,19 +1508,21 @@ public abstract class QueryInfo {
     /**
      * Execute a repository exists query.
      *
-     * @param em   entity manager.
-     * @param args method parameters.
+     * @param entityHandler the EntityAgent or EntityManager
+     * @param args          method parameters
      * @return boolean value or CompletableFuture for a boolean value,
      *         whichever is compatible with the method signature.
      * @throws Exception if an error occurs.
      */
-    @Trivial // em and method args have already been logged if loggable
-    Object exists(EntityManager em, Object... args) throws Exception {
+    @Trivial // entityHandler and method args have already been logged if loggable
+    Object exists(AutoCloseable entityHandler, Object... args) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "exists");
 
-        jakarta.persistence.Query query = createQuery(em, Object.class, args);
+        jakarta.persistence.Query query = createQuery(entityHandler,
+                                                      Object.class,
+                                                      args);
         query.setMaxResults(1);
 
         List<?> results = query.getResultList();
@@ -1479,20 +1550,20 @@ public abstract class QueryInfo {
      * Execute a repository find query, and possibly also a delete operation
      * if find-and-delete.
      *
-     * @param em       entity manager.
+     * @param eh       EntityAgent or EntityManager, both of which are EntityHandler
      * @param txStatus transaction status.
      * @param args     method parameters.
      * @return results, after wrapping in an Optional or CompletionStage if required
      *         by the repository method signature.
      * @throws Exception if an error occurs.
      */
-    @Trivial // em, txStatus, and method args have already been logged if loggable
-    Object find(EntityManager em, int txStatus, Object... args) throws Exception {
+    @Trivial // eh, txStatus, and method args have already been logged if loggable
+    Object find(AutoCloseable eh, int txStatus, Object... args) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "find", type);
 
-        DataVersionCompatibility compat = entityInfo.builder.provider.compat;
+        DataVersionCompatibility compat = entityInfo.factory.provider.compat;
         Limit limit = null;
         int max = maxResults;
         PageRequest pageReq = null;
@@ -1580,7 +1651,7 @@ public abstract class QueryInfo {
         Object returnValue = queryInfo.find(limit,
                                             max,
                                             pageReq,
-                                            em,
+                                            eh,
                                             txStatus,
                                             args,
                                             deferredConstraints,
@@ -1614,7 +1685,7 @@ public abstract class QueryInfo {
      * @param limit               Limit, if a repository method parameter
      * @param max                 maximum number of results to return
      * @param pageReq             PageRequest, if a repository method parameter
-     * @param em                  entity manager.
+     * @param entityHandler       EntityAgent or EntityManager
      * @param txStatus            transaction status.
      * @param args                method parameters.
      * @param deferredConstraints map of method parameter index to non-Literal
@@ -1629,7 +1700,7 @@ public abstract class QueryInfo {
     private Object find(Limit limit,
                         int max,
                         PageRequest pageReq,
-                        EntityManager em,
+                        AutoCloseable entityHandler,
                         int txStatus,
                         Object[] args,
                         Map<Integer, Object> deferredConstraints,
@@ -1650,7 +1721,7 @@ public abstract class QueryInfo {
         if (CursoredPage.class.equals(multiType)) {
             returnValue = new CursoredPageImpl<>(//
                             this, //
-                            em, //
+                            entityHandler, //
                             pageReq, //
                             args, //
                             deferredConstraints, //
@@ -1659,7 +1730,7 @@ public abstract class QueryInfo {
             PageRequest req = limit == null ? pageReq : toPageRequest(limit);
             returnValue = new PageImpl<>(//
                             this, //
-                            em, //
+                            entityHandler, //
                             req, //
                             args, //
                             deferredConstraints, //
@@ -1673,7 +1744,9 @@ public abstract class QueryInfo {
                          jpql,
                          entityInfo.entityClass.getName());
 
-            TypedQuery<?> query = em.createQuery(jpql, Object.class);
+            TypedQuery<?> query = ehCreateTypedQuery(entityHandler,
+                                                     jpql,
+                                                     Object.class);
             setParameters(query, args, deferredConstraints, addedJPQLParams);
 
             if (type == FIND_AND_DELETE)
@@ -1727,7 +1800,7 @@ public abstract class QueryInfo {
                 }
 
                 if (type == FIND_AND_DELETE)
-                    delete(results, em);
+                    delete(results, entityHandler);
 
                 if (results.isEmpty() && isOptional) {
                     returnValue = null;
@@ -1839,14 +1912,15 @@ public abstract class QueryInfo {
     /**
      * Finds and updates entities (or records) in the database.
      *
-     * @param arg the entity or record, or array/Iterable/Stream of entity or record
-     * @param em  the entity manager.
+     * @param arg           the entity or record, or array/Iterable/Stream
+     *                          of entity or record
+     * @param entityHandler the EntityAgent or EntityManager
      * @return the updated entities, using the return type that is required by the
      *         repository Update method signature.
      * @throws OptimisticLockingFailureException if an entity is not found in the database.
      * @throws Exception                         if an error occurs.
      */
-    Object findAndUpdate(Object arg, EntityManager em) throws Exception {
+    Object findAndUpdate(Object arg, AutoCloseable entityHandler) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "findAndUpdate", loggable(arg));
@@ -1858,7 +1932,7 @@ public abstract class QueryInfo {
             int length = Array.getLength(arg);
             results = new ArrayList<>(length);
             for (int i = 0; i < length; i++)
-                results.add(findAndUpdateOne(Array.get(arg, i), em));
+                results.add(findAndUpdateOne(Array.get(arg, i), entityHandler));
         } else {
             arg = arg instanceof Stream //
                             ? ((Stream<?>) arg).sequential().toList() //
@@ -1867,15 +1941,15 @@ public abstract class QueryInfo {
             results = new ArrayList<>();
             if (arg instanceof Iterable) {
                 for (Object e : ((Iterable<?>) arg))
-                    results.add(findAndUpdateOne(e, em));
+                    results.add(findAndUpdateOne(e, entityHandler));
             } else {
                 hasSingularEntityParam = true;
                 results = new ArrayList<>(1);
-                results.add(findAndUpdateOne(arg, em));
+                results.add(findAndUpdateOne(arg, entityHandler));
             }
         }
 
-        if (!results.isEmpty()) {
+        if (!results.isEmpty() && entityHandler instanceof EntityManager em) {
             if (trace && tc.isDebugEnabled())
                 Tr.debug(this, tc, "flush");
             em.flush();
@@ -1947,13 +2021,14 @@ public abstract class QueryInfo {
      * and updates the entity found in the database to match the desired state
      * of the supplied entity.
      *
-     * @param e  the entity or record.
-     * @param em the entity manager.
+     * @param e             the entity or record
+     * @param entityHandler the EntityAgent or Entitymanager
      * @return the entity that is written to the database. Never null.
      * @throws OptimisticLockingException if the entity is not found.
      * @throws Exception                  if an error occurs.
      */
-    private Object findAndUpdateOne(Object e, EntityManager em) throws Exception {
+    private Object findAndUpdateOne(Object e, AutoCloseable entityHandler) //
+                    throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "findAndUpdateOne", loggable(e));
@@ -1987,7 +2062,7 @@ public abstract class QueryInfo {
         if (TraceComponent.isAnyTracingEnabled() && jpql != this.jpql)
             Tr.debug(this, tc, "JPQL adjusted for NULL id or version", jpql);
 
-        TypedQuery<?> query = em.createQuery(jpql, Object.class);
+        TypedQuery<?> query = ehCreateTypedQuery(entityHandler, jpql, Object.class);
         query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
 
         if (entityInfo.idClassAttributeAccessors == null) {
@@ -2014,12 +2089,12 @@ public abstract class QueryInfo {
         if (trace && tc.isDebugEnabled())
             Tr.debug(this, tc, "found", loggable(results.get(0)));
 
-        e = toEntity(e, em);
+        e = toEntity(e);
 
         if (trace && tc.isDebugEnabled())
             Tr.debug(this, tc, "merge", loggable(e));
 
-        Object returnValue = em.merge(e);
+        Object returnValue = ehUpdate(entityHandler, e);
 
         if (trace && tc.isEntryEnabled())
             Tr.exit(this, tc, "findAndUpdateOne", loggable(returnValue));
@@ -2567,7 +2642,7 @@ public abstract class QueryInfo {
 
         String o = entityVar;
         String o_ = entityVar_;
-        DataVersionCompatibility compat = entityInfo.builder.provider.compat;
+        DataVersionCompatibility compat = entityInfo.factory.provider.compat;
 
         Boolean isNamePresent = null; // unknown
         Parameter[] params = null;
@@ -2824,7 +2899,7 @@ public abstract class QueryInfo {
         StringBuilder q = new StringBuilder(200);
         String o = entityVar;
 
-        String[] cols, selections = entityInfo.builder.provider.compat.getSelections(method);
+        String[] cols, selections = entityInfo.factory.provider.compat.getSelections(method);
         if (selections.length == 0) {
             cols = null;
         } else if (type == FIND_AND_DELETE) {
@@ -2882,7 +2957,7 @@ public abstract class QueryInfo {
 
                     String[] names = new String[recordComponents.length];
                     for (int i = 0; i < recordComponents.length; i++) {
-                        String[] select = entityInfo.builder.provider.compat //
+                        String[] select = entityInfo.factory.provider.compat //
                                         .getSelections(recordComponents[i]);
                         if (select == null || select.length == 0)
                             names[i] = recordComponents[i].getName();
@@ -3897,14 +3972,15 @@ public abstract class QueryInfo {
      * An error is raised if any of the entities (or records) already exist
      * in the database.
      *
-     * @param arg the entity or record, or array/Iterable/Stream of entity or record
-     * @param em  the entity manager
+     * @param arg           the entity or record, or array/Iterable/Stream
+     *                          of entity or record
+     * @param entityHandler the EntityAgent or EntityManager
      * @return the inserted entities, using the return type that is required by the
      *         Insert method signature.
      * @throws Exception if an error occurs.
      */
     @Trivial
-    Object insert(Object arg, EntityManager em) throws Exception {
+    Object insert(Object arg, AutoCloseable entityHandler) throws Exception {
         arg = arg instanceof Stream //
                         ? ((Stream<?>) arg).sequential().toList() //
                         : arg;
@@ -3923,8 +3999,8 @@ public abstract class QueryInfo {
             int length = Array.getLength(arg);
             results = resultVoid ? null : new ArrayList<>(length);
             for (; entityCount < length; entityCount++) {
-                Object entity = toEntity(Array.get(arg, entityCount), em);
-                em.persist(entity);
+                Object entity = toEntity(Array.get(arg, entityCount));
+                ehInsert(entityHandler, entity); // TODO entityAgent.insertMultiple?
                 if (results != null)
                     results.add(entity);
             }
@@ -3932,8 +4008,8 @@ public abstract class QueryInfo {
             results = resultVoid ? null : new ArrayList<>();
             for (Object e : ((Iterable<?>) arg)) {
                 entityCount++;
-                Object entity = toEntity(e, em);
-                em.persist(entity);
+                Object entity = toEntity(e);
+                ehInsert(entityHandler, entity);
                 if (results != null)
                     results.add(entity);
             }
@@ -3941,8 +4017,8 @@ public abstract class QueryInfo {
             entityCount = 1;
             hasSingularEntityParam = true;
             results = resultVoid ? null : new ArrayList<>(1);
-            Object entity = toEntity(arg, em);
-            em.persist(entity);
+            Object entity = toEntity(arg);
+            ehInsert(entityHandler, entity);
             if (results != null)
                 results.add(entity);
         }
@@ -3950,9 +4026,11 @@ public abstract class QueryInfo {
         if (entityCount == 0)
             throw Fail.emptyLifeCycleParam(this);
 
-        if (trace && tc.isDebugEnabled())
-            Tr.debug(this, tc, "flush");
-        em.flush();
+        if (entityHandler instanceof EntityManager em) {
+            if (trace && tc.isDebugEnabled())
+                Tr.debug(this, tc, "flush");
+            em.flush();
+        }
 
         Class<?> returnType = method.getReturnType();
         Object returnValue;
@@ -4201,7 +4279,7 @@ public abstract class QueryInfo {
      *         method parameters.
      */
     private int locateSpecialParameters(Class<?>[] paramTypes) {
-        DataVersionCompatibility compat = entityInfo.builder.provider.compat;
+        DataVersionCompatibility compat = entityInfo.factory.provider.compat;
         Set<Class<?>> specialParamTypes = compat.specialParamTypes();
         int specialParamsStartAt = paramTypes.length; // not found yet
 
@@ -4243,7 +4321,7 @@ public abstract class QueryInfo {
      */
     @Trivial
     final Object loggable(Object value) {
-        return entityInfo.builder.provider.loggable(repositoryInterface,
+        return entityInfo.factory.provider.loggable(repositoryInterface,
                                                     method,
                                                     value);
     }
@@ -4258,7 +4336,7 @@ public abstract class QueryInfo {
      */
     @Trivial
     final String loggableAppend(String prefix, Object... possibleSuffix) {
-        return entityInfo.builder.provider.loggableAppend(repositoryInterface,
+        return entityInfo.factory.provider.loggableAppend(repositoryInterface,
                                                           method,
                                                           prefix,
                                                           possibleSuffix);
@@ -5230,14 +5308,15 @@ public abstract class QueryInfo {
      * Saves entities (or records) to the database, which can involve an update
      * or an insert, depending on whether the entity already exists.
      *
-     * @param arg the entity or record, or array/Iterable/Stream of entity or record
-     * @param em  the entity manager.
+     * @param arg           the entity or record, or array/Iterable/Stream
+     *                          of entity or record
+     * @param entityHandler the EntityAgent or EntityManager
      * @return the updated entities, using the return type that is required by the
      *         repository Save method signature.
      * @throws Exception if an error occurs.
      */
     @Trivial // avoid logging customer data
-    Object save(Object arg, EntityManager em) throws Exception {
+    Object save(Object arg, AutoCloseable entityHandler) throws Exception {
         arg = arg instanceof Stream //
                         ? ((Stream<?>) arg).sequential().toList() //
                         : arg;
@@ -5257,19 +5336,22 @@ public abstract class QueryInfo {
             int length = Array.getLength(arg);
             for (; entityCount < length; entityCount++)
                 // workaround is not possible when multiple entities
-                results.add(em.merge(toEntity(Array.get(arg, entityCount), null)));
+                results.add(ehUpsert(entityHandler,
+                                     toEntity(Array.get(arg, entityCount))));
         } else if (Iterable.class.isAssignableFrom(entityParamType)) {
             results = new ArrayList<>();
             for (Object e : ((Iterable<?>) arg)) {
                 entityCount++;
                 // workaround is not possible when multiple entities
-                results.add(em.merge(toEntity(e, null)));
+                results.add(ehUpsert(entityHandler,
+                                     toEntity(e)));
             }
         } else {
             entityCount = 1;
             hasSingularEntityParam = true;
             results = resultVoid ? null : new ArrayList<>(1);
-            Object entity = em.merge(toEntity(arg, em));
+            Object entity = ehUpsert(entityHandler,
+                                     toEntity(arg));
             if (results != null)
                 results.add(entity);
         }
@@ -5277,9 +5359,11 @@ public abstract class QueryInfo {
         if (entityCount == 0)
             throw Fail.emptyLifeCycleParam(this);
 
-        if (trace && tc.isDebugEnabled())
-            Tr.debug(this, tc, "flush");
-        em.flush();
+        if (entityHandler instanceof EntityManager em) {
+            if (trace && tc.isDebugEnabled())
+                Tr.debug(this, tc, "flush");
+            em.flush();
+        }
 
         Class<?> returnType = method.getReturnType();
         Object returnValue;
@@ -5688,16 +5772,15 @@ public abstract class QueryInfo {
      * Converts a record to its generated entity equivalent,
      * or does nothing if not a record.
      *
-     * @param o  a record that needs conversion to an entity,
-     *               or an entity that is already an entity and does not
-     *               need conversion.
-     * @param em entity manager.
+     * @param o a record that needs conversion to an entity,
+     *              or an entity that is already an entity and does not
+     *              need conversion.
      * @return entity.
      * @throws NullPointerException if the record is null, with a CWWKD1015 message
      *                                  that is appropriate for life cycle operations
      */
     @Trivial
-    private final Object toEntity(Object o, EntityManager em) {
+    private final Object toEntity(Object o) {
         if (o == null)
             throw Fail.entityNull(this);
 
@@ -5835,14 +5918,15 @@ public abstract class QueryInfo {
      * An error is raised if any of the entities (or records) are not found
      * in the database.
      *
-     * @param arg the entity or record, or array/Iterable/Stream of entity or record
-     * @param em  the entity manager
+     * @param arg           the entity or record, or array/Iterable/Stream
+     *                          of entity or record
+     * @param entityHandler the EntityAgent or EntityManager
      * @return count of matching entities, boolean indicator of whether any matched,
      *         or void return type that is required by the Update method signature.
      * @throws Exception if an error occurs.
      */
     @Trivial
-    Object update(Object arg, EntityManager em) throws Exception {
+    Object update(Object arg, AutoCloseable entityHandler) throws Exception {
         arg = arg instanceof Stream //
                         ? ((Stream<?>) arg).sequential().toList() //
                         : arg;
@@ -5857,20 +5941,22 @@ public abstract class QueryInfo {
         if (arg instanceof Iterable) {
             for (Object e : ((Iterable<?>) arg)) {
                 numExpected++;
-                updateCount += updateOne(e, em);
+                updateCount += updateOne(e, entityHandler);
             }
         } else if (entityParamType.isArray()) {
             numExpected = Array.getLength(arg);
             for (int i = 0; i < numExpected; i++)
-                updateCount += updateOne(Array.get(arg, i), em);
+                updateCount += updateOne(Array.get(arg, i), entityHandler);
         } else {
             numExpected = 1;
-            updateCount = updateOne(arg, em);
+            updateCount = updateOne(arg, entityHandler);
         }
 
-        if (trace && tc.isDebugEnabled())
-            Tr.debug(this, tc, "flush");
-        em.flush();
+        if (entityHandler instanceof EntityManager em) {
+            if (trace && tc.isDebugEnabled())
+                Tr.debug(this, tc, "flush");
+            em.flush();
+        }
 
         if (numExpected == 0)
             throw Fail.emptyLifeCycleParam(this);
@@ -5889,13 +5975,13 @@ public abstract class QueryInfo {
      * Updates the entity (or record) from the database if its attributes match
      * the database.
      *
-     * @param e  the entity or record.
-     * @param em the entity manager.
+     * @param e             the entity or record
+     * @param entityHandler the EntityAgent or EntityManager
      * @return the number of entities updated (1 or 0).
      * @throws Exception if an error occurs.
      */
     @Trivial
-    private int updateOne(Object e, EntityManager em) throws Exception {
+    private int updateOne(Object e, AutoCloseable entityHandler) throws Exception {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         if (trace && tc.isEntryEnabled())
             Tr.entry(this, tc, "updateOne", loggable(e));
@@ -5924,7 +6010,7 @@ public abstract class QueryInfo {
         if (TraceComponent.isAnyTracingEnabled() && jpql != this.jpql)
             Tr.debug(this, tc, "JPQL adjusted for NULL id", jpql);
 
-        jakarta.persistence.Query update = em.createQuery(jpql);
+        jakarta.persistence.Query update = ehCreateQuery(entityHandler, jpql);
 
         // parameters for entity attributes to update:
         int p = 1;
