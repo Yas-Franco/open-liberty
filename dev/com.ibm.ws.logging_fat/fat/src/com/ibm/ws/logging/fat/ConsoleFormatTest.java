@@ -209,6 +209,9 @@ public class ConsoleFormatTest {
         // Retrieve the consoleLogFile RemoteFile
         RemoteFile consoleLogFile = server.getConsoleLogFile();
 
+        // Set to dev format first to ensure the change occurs.
+        setServerConfiguration(server, SIMPLE_FORMAT, false, false, consoleLogFile);
+
         // Set the consoleFormat="tbasic" and traceSpec=off in server.xml
         setServerConfiguration(server, TBASIC_FORMAT, false, false, consoleLogFile);
 
