@@ -252,7 +252,7 @@ public class EntityInfo {
     @Trivial
     boolean simulateStateless() {
         // TODO temporarily approximated by assuming only Hibernate has EntityAgent
-        return !isHibernate;
+        return !isHibernate || !factory.provider.compat.atLeast(1, 1);
     }
 
     /**

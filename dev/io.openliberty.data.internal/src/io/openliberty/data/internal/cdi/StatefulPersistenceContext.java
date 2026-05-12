@@ -51,7 +51,7 @@ public class StatefulPersistenceContext {
      * Closes all EntityManagers at the end of the request scope.
      */
     @PreDestroy
-    private void dispose() throws Exception {
+    private void dispose() {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
 
         for (Iterator<Entry<EntityHandlerFactory, EntityManager>> it = //
@@ -93,7 +93,7 @@ public class StatefulPersistenceContext {
                 } catch (Exception x) {
                     // TODO better NLS message for error writing changes to database
                     Tr.error(tc, "CWWKD1000.repo.general.err", "", "", x.toString());
-                    throw x;
+                    x.printStackTrace(System.err);
                 } finally {
                     try {
                         if (startedTransaction)
@@ -121,7 +121,7 @@ public class StatefulPersistenceContext {
                     } catch (Exception x) {
                         // TODO better NLS message for error comitting changes to database
                         Tr.error(tc, "CWWKD1000.repo.general.err", "", "", x.toString());
-                        throw x;
+                        x.printStackTrace(System.err);
                     } finally {
                         em.close();
                     }
