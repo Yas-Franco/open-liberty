@@ -96,11 +96,11 @@ public class CVEResponseTest extends FATServletClient {
 
         try {
             if (server.isStarted()) {
-                server.stopServer();
+                server.stopServer("CWWKE1102W", "CWWKE1107W");
             }
         } finally {
             if (testServer.isStarted()) {
-                testServer.stopServer();
+                testServer.stopServer("CWWKE1102W", "CWWKE1107W");
             }
         }
         testServer.restoreServerConfiguration();
