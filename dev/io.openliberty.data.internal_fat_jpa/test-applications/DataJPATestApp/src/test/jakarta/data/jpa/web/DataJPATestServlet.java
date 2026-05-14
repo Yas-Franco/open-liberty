@@ -2320,6 +2320,54 @@ public class DataJPATestServlet extends FATServlet {
     }
 
     /**
+     * Verify that JPQL can be used to EXTRACT the DATE from a LocalDateTime.
+     */
+    @Test
+    public void testExtractDate() throws Exception {
+
+        // TODO enable once EclipseLink 34899 is fixed to run EXTRACT(DATE FROM...) on H2
+        if (!isHibernate())
+            return;
+
+        PurchaseTime may14_2_07_PM = new PurchaseTime( //
+                        LocalTime.of(14, 7, 0), LocalDate.of(2026, 5, 14));
+
+        PurchaseTime may15_1_30_PM = new PurchaseTime( //
+                        LocalTime.of(13, 30, 0), LocalDate.of(2026, 5, 15));
+
+        PurchaseTime may14_10_45_AM = new PurchaseTime( //
+                        LocalTime.of(10, 45, 10), LocalDate.of(2026, 5, 14));
+
+        purchases.removeByTimeOfPurchaseBetween(may14_10_45_AM,
+                                                may15_1_30_PM);
+
+        purchases.make(Purchase.of((short) 501,
+                                   "TestExtractDate-1",
+                                   may14_2_07_PM,
+                                   22.94f));
+
+        purchases.make(Purchase.of((short) 502,
+                                   "TestExtractDate-2",
+                                   may15_1_30_PM,
+                                   115.05f));
+
+        purchases.make(Purchase.of((short) 503,
+                                   "TestExtractDate-3",
+                                   may14_10_45_AM,
+                                   36.99f));
+
+        assertEquals(List.of("TestExtractDate-3",
+                             "TestExtractDate-1"),
+                     purchases.madeOn(LocalDate.of(2026, 5, 14))
+                                     .stream()
+                                     .map(p -> p.itemName)
+                                     .toList());
+
+        purchases.removeByTimeOfPurchaseBetween(may14_10_45_AM,
+                                                may15_1_30_PM);
+    }
+
+    /**
      * Verify EXTRACT YEAR/QUARTER/MONTH/DAY functions to compare different parts
      * of a date.
      */
@@ -2399,6 +2447,52 @@ public class DataJPATestServlet extends FATServlet {
                      creditCards.findByIssuedOnWithDayBetween(20, 29)
                                      .map(cc -> cc.number)
                                      .collect(Collectors.toList()));
+    }
+
+    /**
+     * Verify that JPQL can be used to EXTRACT the TIME from a LocalDateTime.
+     */
+    @Test
+    public void testExtractTime() throws Exception {
+
+        // TODO enable once EclipseLink 34899 is fixed to run EXTRACT(TIME FROM...) on H2
+        if (!isHibernate())
+            return;
+
+        PurchaseTime may12_10_31_AM = new PurchaseTime( //
+                        LocalTime.of(10, 31, 30), LocalDate.of(2026, 5, 12));
+
+        PurchaseTime may13_12_42_PM = new PurchaseTime( //
+                        LocalTime.of(12, 42, 00), LocalDate.of(2026, 5, 13));
+
+        PurchaseTime June4_08_55_AM = new PurchaseTime( //
+                        LocalTime.of(8, 55, 20), LocalDate.of(2026, 6, 4));
+
+        purchases.removeByTimeOfPurchaseBetween(may12_10_31_AM,
+                                                June4_08_55_AM);
+
+        purchases.make(Purchase.of((short) 601,
+                                   "TestExtractTime-1",
+                                   may12_10_31_AM,
+                                   100.97f));
+
+        purchases.make(Purchase.of((short) 602,
+                                   "TestExtractTime-2",
+                                   may13_12_42_PM,
+                                   39.33f));
+
+        purchases.make(Purchase.of((short) 603,
+                                   "TestExtractTime-3",
+                                   June4_08_55_AM,
+                                   83.19f));
+
+        assertEquals(List.of(LocalTime.of(12, 42, 00),
+                             LocalTime.of(8, 55, 20),
+                             LocalTime.of(10, 31, 30)),
+                     purchases.timesOfPurchase());
+
+        purchases.removeByTimeOfPurchaseBetween(may12_10_31_AM,
+                                                June4_08_55_AM);
     }
 
     /**
