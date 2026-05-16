@@ -16,13 +16,13 @@
  * useful to a number of different areas of the UI javascript runtime.
  */
 
-define(['dojo/request/xhr',
+define(['dojo/request',
         'dojo/Deferred',
         'dojox/validate/web',
         'dojo/json',
         'dojo/i18n!./nls/catalogMessages',
         'js/common/tr'
-     ], function(xhr, Deferred, web, JSON, i18n, tr) {
+     ], function(request, Deferred, web, JSON, i18n, tr) {
     'use strict';
 
     return {
@@ -83,7 +83,7 @@ define(['dojo/request/xhr',
             }
             var url = '/ibm/api/adminCenter/v1/utils/url/getTool?url=' + targetURL;
             var options = { handleAs: 'json' };
-            var xhrDef = xhr.get(url, options);
+            var xhrDef = request.get(url, options);
 
             // Establish the Deferred to be returned.
             // This allows the caller to cancel the underlying XHR request.

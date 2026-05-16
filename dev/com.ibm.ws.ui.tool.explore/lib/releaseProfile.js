@@ -11,9 +11,9 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-var dojoVersion = '1.13.10';
+var dojoVersion = '1.14.9';
 var gridxVersion = '1.3.9';
-var idxVersion = '1.5.2.6_2';
+var idxVersion = '1.5.2.6_3';
 var d3Version = '3.5.10';
 
 var profile = {
