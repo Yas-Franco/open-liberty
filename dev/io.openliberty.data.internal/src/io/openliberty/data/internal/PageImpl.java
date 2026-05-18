@@ -210,29 +210,30 @@ public class PageImpl<T> implements Page<T> {
                       queryInfo.jpqlCount,
                       queryInfo.jpql);
 
-        EntityHandlerFactory factory = queryInfo.entityInfo.factory;
         boolean stateful = queryInfo.producer.stateful();
-        AutoCloseable entityHandler = null;
+        EntityHandlerFactory factory = queryInfo.entityInfo.factory;
+        EntityHandlerFactory.Sync<? extends AutoCloseable> entityHandlerSync = null;
         try {
-            entityHandler = stateful || queryInfo.entityInfo.simulateStateless() //
+            entityHandlerSync = stateful || queryInfo.entityInfo.simulateStateless() //
                             ? factory.getEntityManager(stateful) //
                             : factory.getEntityAgent();
 
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
                 Tr.debug(this, tc, "query for count: " + queryInfo.jpqlCount);
 
-            TypedQuery<Long> query = queryInfo.ehCreateTypedQuery(entityHandler,
-                                                                  queryInfo.jpqlCount,
-                                                                  Long.class);
+            TypedQuery<Long> query = queryInfo //
+                            .ehCreateTypedQuery(entityHandlerSync.entityHandler(),
+                                                queryInfo.jpqlCount,
+                                                Long.class);
             queryInfo.setParameters(query, args, deferredConstraints, addedJPQLParams);
 
             return query.getSingleResult();
         } catch (Exception x) {
             throw RepositoryImpl.failure(x, factory);
         } finally {
-            if (!stateful && entityHandler != null)
+            if (entityHandlerSync != null && !entityHandlerSync.automaticallyCloses())
                 try {
-                    entityHandler.close();
+                    entityHandlerSync.entityHandler().close();
                 } catch (Exception x) {
                     throw RepositoryImpl.failure(x, factory);
                 }

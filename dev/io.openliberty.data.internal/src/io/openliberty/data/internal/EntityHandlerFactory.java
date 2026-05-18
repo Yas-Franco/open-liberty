@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
@@ -89,6 +90,13 @@ public abstract class EntityHandlerFactory {
     protected final String dataStore;
 
     /**
+     * Map of Transaction to EntityAgent that allows statefulless repositories to
+     * reuse the same EntityAgent within a transaction.
+     */
+    private final Map<Transaction, Sync<AutoCloseable>> entityAgentSyncPerTx = //
+                    new ConcurrentHashMap<>();
+
+    /**
      * Mapping of entity class (as seen by the user, not a generated record entity class)
      * to entity information.
      */
@@ -100,7 +108,7 @@ public abstract class EntityHandlerFactory {
      * reuse the same EntityManager within a transaction when there is no request
      * scope. Otherwise, the EntityManager life cycle is tied to the request scope.
      */
-    private final Map<Transaction, EntityManager> entityManagerPerTx = //
+    private final Map<Transaction, Sync<EntityManager>> entityManagerSyncPerTx = //
                     new ConcurrentHashMap<>();
 
     /**
@@ -469,54 +477,82 @@ public abstract class EntityHandlerFactory {
                                              Class<?> repoInterface);
 
     /**
-     * Obtains an EntityAgent from the Jakarta Persistence provider.
+     * Obtains a shared EntityAgent instance if running in a request scope or
+     * transaction. Otherwise a new instance that must be closed by the method invoker.
      * Requires Jakarta Persistence 4.0+, which corresponds to Jakarta EE 12+.
      *
-     * @return the EntityAgent.
+     * @return the EntityAgent and indicator of whether it automatically closes.
      * @throws Exception if an error occurs.
      */
-    AutoCloseable getEntityAgent() throws Exception {
-        // TODO EntityAgent, which can be reused within a transaction, but
-        // otherwise should be a new instance
-        return createEntityAgent();
+    Sync<AutoCloseable> getEntityAgent() throws Exception {
+        Sync<AutoCloseable> agentSync;
+        Transaction tx = provider.tranMgr.getTransaction();
+        if (tx == null) {
+            agentSync = new Sync<>( //
+                            createEntityAgent(), //
+                            null, // not in a transaction
+                            null, // not in a transaction
+                            false);
+        } else {
+            agentSync = entityAgentSyncPerTx.get(tx);
+            if (agentSync == null) {
+                agentSync = new Sync<AutoCloseable>( //
+                                createEntityAgent(), //
+                                entityAgentSyncPerTx, //
+                                tx, //
+                                true);
+                entityAgentSyncPerTx.put(tx, agentSync);
+                tx.registerSynchronization(agentSync);
+            }
+        }
+
+        return agentSync;
     }
 
     /**
-     * Obtains a shared EntityManager instance if running in a transaction
-     * and the repository is stateful. Otherwise create a new instance.
+     * Obtains a shared EntityManager instance if running in a request scope
+     * and the repository is stateful or within a transaction regardless of
+     * whether stateful. Otherwise create a new instance that must be closed
+     * by the method invoker.
      *
      * @param stateful indicates a stateful repository.
-     * @return the EntityManager.
+     * @return the EntityManager and indicator of whether it automatically closes.
      * @throws Exception if an error occurs.
      */
     @FFDCIgnore({ ContextNotActiveException.class, // RequestScope not available on unmanaged thread
                   IllegalStateException.class }) // CDI not available on unmanaged thread
-    EntityManager getEntityManager(boolean stateful) throws Exception {
-        EntityManager em = null;
+    Sync<EntityManager> getEntityManager(boolean stateful) throws Exception {
+        Sync<EntityManager> emSync = null;
 
         if (stateful) {
             try {
-                // Use an EnityManager that follows the life cycle of the current
+                // Use an EntityManager that follows the life cycle of the current
                 // request scope.
                 Instance<StatefulPersistenceContext> instance;
                 instance = CDI.current().select(StatefulPersistenceContext.class);
                 if (instance != null && instance.isResolvable()) {
                     StatefulPersistenceContext bean = instance.get();
-                    em = bean.get(this);
+                    EntityManager em = bean.get(this);
                     if (!em.isJoinedToTransaction() &&
                         provider.tranMgr.getStatus() != Status.STATUS_NO_TRANSACTION)
                         em.joinTransaction();
+                    emSync = new Sync<>( //
+                                    em, //
+                                    null, // not closed by a transaction
+                                    null, // not closed by a transaction
+                                    true);
                 }
             } catch (ContextNotActiveException x) {
                 // raised by bean.get() when on unmanaged thread
             } catch (IllegalStateException x) {
                 // raised by CDI.current() when on unmanaged thread
             }
-            if (em == null) {
-                // Use an EntityManager that follows the life cycle of the current
-                // transaction.
-                Transaction tx = provider.tranMgr.getTransaction();
-                if (tx == null) {
+        }
+
+        if (emSync == null) {
+            Transaction tx = provider.tranMgr.getTransaction();
+            if (tx == null) {
+                if (stateful)
                     // TODO NLS message. Can mention using RequestContextController
                     // .activate()/deactivate() around repository operations to
                     // establish a request scope context.
@@ -526,21 +562,31 @@ public abstract class EntityHandlerFactory {
                                                     " or a transaction so that the" +
                                                     " persistence context can" +
                                                     " follow its life cycle.");
-                } else {
-                    em = entityManagerPerTx.get(tx);
-                    if (em == null) {
-                        em = createEntityManager();
-                        em.joinTransaction();
-                        tx.registerSynchronization(new EntityManagerCleanup(tx));
-                        entityManagerPerTx.put(tx, em);
-                    }
+                else
+                    emSync = new Sync<>( //
+                                    createEntityManager(), //
+                                    null, // not closed by a transaction
+                                    null, // not closed by a transaction
+                                    false);
+            } else {
+                // Use an EntityManager that follows the life cycle of the current
+                // transaction.
+                emSync = entityManagerSyncPerTx.get(tx);
+                if (emSync == null) {
+                    EntityManager em = createEntityManager();
+                    em.joinTransaction();
+                    emSync = new Sync<>( //
+                                    em, //
+                                    entityManagerSyncPerTx, //
+                                    tx, //
+                                    true);
+                    entityManagerSyncPerTx.put(tx, emSync);
+                    tx.registerSynchronization(emSync);
                 }
             }
-        } else {
-            em = createEntityManager();
         }
 
-        return em;
+        return emSync;
     }
 
     @FFDCIgnore(NoSuchFieldException.class)
@@ -682,11 +728,16 @@ public abstract class EntityHandlerFactory {
                 writer.println(indent + "    " + c.getName());
         }
 
-        if (!entityManagerPerTx.isEmpty()) {
-            writer.println(indent + "  stateless entity manager per transaction" +
-                           " and not within a request scope:");
-            entityManagerPerTx.forEach((tx, em) -> writer //
-                            .println(indent + "    " + tx + " -> " + em));
+        if (!entityAgentSyncPerTx.isEmpty()) {
+            writer.println(indent + "  entity agents to be closed by transaction:");
+            entityAgentSyncPerTx.values() //
+                            .forEach(sync -> writer.println(indent + "    " + sync));
+        }
+
+        if (!entityManagerSyncPerTx.isEmpty()) {
+            writer.println(indent + "  entity managers to be closed by transaction:");
+            entityManagerSyncPerTx.values() //
+                            .forEach(sync -> writer.println(indent + "    " + sync));
         }
     }
 
@@ -704,28 +755,89 @@ public abstract class EntityHandlerFactory {
     }
 
     /**
-     * Cleans up the state of the entityManagerPerTx map and closes the
-     * respective EntityManager instance after the transaction completes.
+     * Result of getEntityAgent or getEntityManager and an indicator of
+     * whether the returned instance automatically closes.
+     * Also can be registered as a transaction synchronization to
+     * clean up the state of the given entityHandlerPerTx map and
+     * close the respective EntityAgent or EntityManager instance
+     * after the transaction completes.
+     *
+     * @param <T>                    EntityManager or EntityAgent/AutoCloseable
+     * @param entityHandler          EntityManager or EntityAgent/AutoCloseable
+     * @param entityHandlerSyncPerTx Map of Transaction to EntityManager/EntityAgent.
+     *                                   Null if not registered with a transaction
+     * @param transaction            The transaction.
+     *                                   Null if not registered with a transaction
+     * @param automaticallyCloses    indicates if the EntityHandler automatically
+     *                                   closes, which might be at the end of the
+     *                                   request scope (if stateful) or at
+     *                                   transaction resolution
+     *
      */
-    private class EntityManagerCleanup implements Synchronization {
-        private final Transaction tx;
+    static record Sync<T extends AutoCloseable>(
+                    T entityHandler,
+                    Map<Transaction, Sync<T>> entityHandlerSyncPerTx,
+                    Transaction transaction,
+                    boolean automaticallyCloses)
+                    implements Synchronization {
 
-        private EntityManagerCleanup(Transaction tx) {
-            this.tx = tx;
-        }
-
+        @FFDCIgnore(IllegalStateException.class) // can happen if already closed
         @Override
         public void afterCompletion(int status) {
-            EntityManager em = entityManagerPerTx.remove(tx);
-            if (em != null) {
-                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
-                    Tr.debug(this, tc, "close " + em);
-                em.close();
-            }
+            entityHandlerSyncPerTx.remove(transaction);
+            if (entityHandler instanceof EntityManager em)
+                if (em.isOpen()) {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                        Tr.debug(this, tc, "close " + entityHandler);
+                    em.close();
+                } else {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                        Tr.debug(this, tc, "already closed: " + entityHandler);
+                }
+            else if (entityHandler != null)
+                // TODO check EntityHandler.isOpen()?
+                try {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                        Tr.debug(this, tc, "close " + entityHandler);
+                    entityHandler.close();
+                } catch (IllegalStateException x) {
+                    // ignore, already closed
+                } catch (Exception x) {
+                    // automatically logged to FFDC
+                }
         }
 
         @Override
         public void beforeCompletion() {
+        }
+
+        /**
+         * Avoid infinite recursion.
+         */
+        @Override
+        @Trivial
+        public int hashCode() {
+            return Objects.hash(entityHandler,
+                                System.identityHashCode(entityHandlerSyncPerTx),
+                                transaction,
+                                automaticallyCloses);
+        }
+
+        /**
+         * More concise form for debug
+         */
+        @Override
+        @Trivial
+        public String toString() {
+            StringBuilder s = new StringBuilder(100) //
+                            .append("Sync@") //
+                            .append(Integer.toHexString(hashCode())) //
+                            .append('(').append(entityHandler).append(')');
+            if (transaction != null)
+                s.append(" tx=").append(transaction);
+            if (automaticallyCloses)
+                s.append(" autocloses");
+            return s.toString();
         }
     }
 }

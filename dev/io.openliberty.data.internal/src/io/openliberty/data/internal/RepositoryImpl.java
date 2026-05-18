@@ -396,8 +396,10 @@ public class RepositoryImpl<R> implements InvocationHandler {
         Class<?> type = info.method.getReturnType();
 
         if (EntityManager.class.equals(type)) {
-            resource = factory.getEntityManager(stateful);
-            resourceAutoCloses = stateful;
+            EntityHandlerFactory.Sync<EntityManager> emSync = //
+                            factory.getEntityManager(stateful);
+            resource = emSync.entityHandler();
+            resourceAutoCloses = emSync.automaticallyCloses();
         } else if (DataSource.class.equals(type)) {
             resource = factory.getDataSource(info.method, repositoryInterface);
         } else if (Connection.class.equals(type)) {
@@ -408,7 +410,10 @@ public class RepositoryImpl<R> implements InvocationHandler {
                 throw new DataConnectionException(x);
             }
         } else if ("jakarta.persistence.EntityAgent".equals(type.getName())) {
-            resource = factory.getEntityAgent();
+            EntityHandlerFactory.Sync<AutoCloseable> agentSync = //
+                            factory.getEntityAgent();
+            resource = agentSync.entityHandler();
+            resourceAutoCloses = agentSync.automaticallyCloses();
         }
 
         if (resource == null)
@@ -420,7 +425,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
                       Util.names(provider.compat.resourceAccessorTypes(stateful)));
 
         if (!resourceAutoCloses &&
-            resource instanceof AutoCloseable) {
+            resource instanceof AutoCloseable closeable) {
             Deque<AutoCloseable> resources = defaultMethodResources.get();
             if (resources == null) {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
@@ -440,7 +445,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
                              (Object[]) shortened);
                 }
             } else {
-                resources.add((AutoCloseable) resource);
+                resources.add(closeable);
             }
         }
 
@@ -513,7 +518,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
 
         // EntityManager and EntityAgent inherit from AutoCloseable
         // via their common superclass, EntityHandler:
-        AutoCloseable eh = null;
+        EntityHandlerFactory.Sync<? extends AutoCloseable> ehSync = null;
         try {
             if (isDisposed.get())
                 throw Fail.disposed(this, proxy, method);
@@ -559,10 +564,15 @@ public class RepositoryImpl<R> implements InvocationHandler {
                     Tr.debug(this, tc, Util.txStatusToString(txStatus));
                 }
 
-                if (queryType != RESOURCE_ACCESS)
-                    eh = stateful || queryInfo.entityInfo.simulateStateless() //
+                AutoCloseable eh;
+                if (queryType == RESOURCE_ACCESS) {
+                    eh = null;
+                } else {
+                    ehSync = stateful || queryInfo.entityInfo.simulateStateless() //
                                     ? factory.getEntityManager(stateful) //
                                     : factory.getEntityAgent();
+                    eh = ehSync.entityHandler();
+                }
 
                 returnValue = switch (queryType) {
                     case FIND, FIND_AND_DELETE -> queryInfo.find(eh, txStatus, args);
@@ -603,7 +613,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
                             provider.tranMgr.commit();
                         }
                     } else {
-                        boolean detach = eh != null &&
+                        boolean detach = ehSync != null &&
                                          queryType.detachEntities(stateful);
                         if (Status.STATUS_ACTIVE == provider.tranMgr.getStatus()) {
                             if (failed) {
@@ -611,7 +621,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
                                     Tr.debug(this, tc, "set rollback only");
                                 provider.tranMgr.setRollbackOnly();
                             } else if (detach &&
-                                       eh instanceof EntityManager em) {
+                                       ehSync.entityHandler() instanceof EntityManager em) {
                                 // flush changes first because detach interferes with updates
                                 if (trace && tc.isDebugEnabled())
                                     Tr.debug(this, tc, "flush");
@@ -621,7 +631,7 @@ public class RepositoryImpl<R> implements InvocationHandler {
                                 em.clear();
                             }
                         } else if (detach &&
-                                   eh instanceof EntityManager em) {
+                                   ehSync.entityHandler() instanceof EntityManager em) {
                             if (trace && tc.isDebugEnabled())
                                 Tr.debug(this, tc, "clear");
                             em.clear();
@@ -635,8 +645,8 @@ public class RepositoryImpl<R> implements InvocationHandler {
                             provider.localTranCurrent.resume(suspendedLTC);
                         }
                     } finally {
-                        if (!stateful && eh != null)
-                            eh.close();
+                        if (ehSync != null && !ehSync.automaticallyCloses())
+                            ehSync.entityHandler().close();
                     }
                 }
             }
