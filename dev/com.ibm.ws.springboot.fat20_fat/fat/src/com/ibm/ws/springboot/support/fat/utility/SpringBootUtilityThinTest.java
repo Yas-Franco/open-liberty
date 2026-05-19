@@ -26,6 +26,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -69,6 +71,7 @@ public class SpringBootUtilityThinTest extends CommonWebServerTests {
     private final static String PROPERTY_KEY_INSTALL_DIR = "install.dir";
     private static String SPRING_BOOT_20_BASE_THIN = SPRING_BOOT_20_APP_BASE.substring(0, SPRING_BOOT_20_APP_BASE.length() - 3) + SPRING_APP_TYPE;
     private static String SPRING_BOOT_20_WAR_THIN = SPRING_BOOT_20_APP_WAR.substring(0, SPRING_BOOT_20_APP_WAR.length() - 3) + SPRING_APP_TYPE;
+    private static final String extractingFilesMessage = "Extracting files to ";
     private static String installDir = null;
     private static boolean wlpLibExtractCreated;
     private String application = SPRING_BOOT_20_APP_BASE;
@@ -386,9 +389,9 @@ public class SpringBootUtilityThinTest extends CommonWebServerTests {
             // Printing trace logs to understand why the application has not started
             if (line == null) {
                 if (extractedWLP != null) {
-                    String extractedTraceLogsLocation = extractedWLP + "/usr/servers/" + server.getServerName() + "/logs/trace.log";
+                    Path extractedTraceLogsLocation = Paths.get(extractedWLP, "usr", "servers", server.getServerName(), "logs", "trace.log");
                     Log.info(getClass(), method, "==============================================BELOW ARE THE WLP TRACE LOGS EXTRACTED FROM " + extractedTraceLogsLocation);
-                    printTrace(extractedTraceLogsLocation, method);
+                    printTrace(extractedTraceLogsLocation.toString(), method);
                     Log.info(getClass(), method, "========================================================================================================================");
                 } else {
                     Log.warning(getClass(), "Extraced WLP location not found in logs");
@@ -429,8 +432,13 @@ public class SpringBootUtilityThinTest extends CommonWebServerTests {
                 Log.info(getClass(), method, line);
                 if (line.contains(message)) {
                     break;
-                } else if (line.contains("Extracting files to")) {
-                    extractedWLP = line.substring(line.indexOf("/"), line.length());
+                } else if (line.contains(extractingFilesMessage)) {
+                    // This line will have something like the following in case of linux and windows respectively
+                    // Extracting files to /path/to/extract/location
+                    // Extracting files to c:\\path\to\extract\location
+                    // Must handle paths with / or \
+                    int startIndex = line.indexOf(extractingFilesMessage) + extractingFilesMessage.length();
+                    extractedWLP = line.substring(startIndex).trim();
                 }
                 line = readTimeout(reader);
             }
