@@ -172,7 +172,7 @@ public class InstallServerTest extends FeatureUtilityToolTest {
 		copyFileToMinifiedRoot("usr/servers/serverX", "publish/tmp/plainServerXml/server.xml");
 
 		// install the server
-		String[] param1s = { "installServerFeatures", "serverX" };
+		String[] param1s = { "installServerFeatures", "serverX", "--verbose" };
 		ProgramOutput po = runFeatureUtility(METHOD_NAME, param1s);
 		checkCommandOutput(po, 0, null, null);
 
@@ -293,7 +293,7 @@ public class InstallServerTest extends FeatureUtilityToolTest {
 		copyFileToMinifiedRoot("usr/servers/serverX", "publish/tmp/plainServerXml2/server.xml");
 
 		// install the server
-		String[] param1s = { "installServerFeatures", "serverX" };
+		String[] param1s = { "installServerFeatures", "serverX", "--verbose" };
 		ProgramOutput po = runFeatureUtility(METHOD_NAME, param1s);
 		checkCommandOutput(po, 0, null, null);
 
@@ -380,7 +380,7 @@ public class InstallServerTest extends FeatureUtilityToolTest {
 
 		copyFileToMinifiedRoot("usr/servers/serverX", "publish/tmp/adminCenterServerXml/server.xml");
 
-		String[] param1s = { "installServerFeatures", "serverX" };
+		String[] param1s = { "installServerFeatures", "serverX", "--verbose" };
 		String[] filesList = { "/lib/features/io.openliberty.adminCenter1.0.internal.ee-9.0.mf" };
 
 		// Run isf first
@@ -388,7 +388,7 @@ public class InstallServerTest extends FeatureUtilityToolTest {
 		checkCommandOutput(po, 0, null, null);
 
 		// Install jakartaee-9.1 and check if private feature is installed.
-		String[] param2s = { "installFeature", "jakartaee-9.1" };
+		String[] param2s = { "installFeature", "jakartaee-9.1", "--verbose" };
 		po = runFeatureUtility(METHOD_NAME, param2s);
 		try {
 			checkCommandOutput(po, 0, null, filesList);
