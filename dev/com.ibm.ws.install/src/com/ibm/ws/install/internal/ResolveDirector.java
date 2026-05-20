@@ -675,9 +675,9 @@ class ResolveDirector extends AbstractDirector {
             }
 
         } catch (RepositoryResolutionException e) {
-            throw ExceptionUtils.create(e, assetNamesProcessed, product.getInstallDir(), installingAsset, isOpenLiberty, false);
+            throw ExceptionUtils.create(e, assetNamesProcessed, product.getInstallDir(), installingAsset, isOpenLiberty);
         } catch (RepositoryException e) {
-            throw ExceptionUtils.create(e, assetNamesProcessed, installingAsset, proxy, defaultRepo(), isOpenLiberty, false);
+            throw ExceptionUtils.create(e, assetNamesProcessed, installingAsset, proxy, defaultRepo(), isOpenLiberty);
         }
 
         List<List<RepositoryResource>> installResourcesCollection = new ArrayList<List<RepositoryResource>>(installResources.size());
