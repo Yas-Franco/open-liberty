@@ -25,5 +25,5 @@ public interface McpConfig {
      *
      * @return ServerInfo with name, title, version, and description
      */
-    ServerInfo getServerInfo();
+    ServerInfo serverInfo();
 }

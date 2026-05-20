@@ -37,7 +37,7 @@ public record McpServerConfigProps(boolean stateless,
     public static final McpServerConfigProps DEFAULT_CONFIG = new McpServerConfigProps(false, null, FALLBACK_PATH, null, null);
 
     @Override
-    public ServerInfo getServerInfo() {
+    public ServerInfo serverInfo() {
         if (serverInfo != null) {
             return serverInfo;
         }

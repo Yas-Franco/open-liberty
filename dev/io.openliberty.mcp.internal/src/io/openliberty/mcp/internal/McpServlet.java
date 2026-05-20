@@ -454,7 +454,7 @@ public class McpServlet extends HttpServlet {
 
         ServerCapabilities caps = ServerCapabilities.of(new Capabilities.Tools(false));
 
-        ServerInfo info = mcpConfig.getServerInfo();
+        ServerInfo info = mcpConfig.serverInfo();
         McpInitializeResult result = new McpInitializeResult(version, caps, info, null);
 
         transport.setResponseHeader(McpTransport.MCP_SESSION_ID_HEADER, sessionId);
