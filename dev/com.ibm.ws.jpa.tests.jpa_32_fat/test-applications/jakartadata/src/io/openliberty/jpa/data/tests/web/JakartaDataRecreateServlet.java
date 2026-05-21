@@ -2681,4 +2681,73 @@ public class JakartaDataRecreateServlet extends FATServlet {
         tx.commit();
     }
 
+    @Test
+    @Ignore("Reference issue: https://github.com/OpenLiberty/open-liberty/issues/33842")
+    public void testOLGH33842() throws Exception {
+        // Setup test data
+        Prime prime2 = Prime.of(2, "II", "two");
+        Prime prime3 = Prime.of(3, "III", "three");
+        Prime prime5 = Prime.of(5, "V", "five");
+        Prime prime7 = Prime.of(7, "VII", "seven");
+
+        List<Object[]> results;
+
+        tx.begin();
+        try {
+            // Persist test entities
+            em.persist(prime2);
+            em.persist(prime3);
+            em.persist(prime5);
+            em.persist(prime7);
+
+            // Execute the problematic JPQL query
+            results = em.createQuery(
+                "SELECT numberId, CASE WHEN even = TRUE THEN 'even' ELSE 'odd' END " +
+                "FROM Prime " +
+                "WHERE numberId BETWEEN ?1 AND ?2 " +
+                "ORDER BY numberId ASC",
+                Object[].class)
+                .setParameter(1, 2L)
+                .setParameter(2, 7L)
+                .getResultList();
+
+            tx.commit();
+        } catch (Exception e) {
+            tx.rollback();
+
+            /*
+            * Recreated from issue #33842
+            * Exception [EclipseLink-0] (Eclipse Persistence Services - 5.0.0-B11):
+            * org.eclipse.persistence.exceptions.JPQLException
+            * Exception Description: Problem compiling [SELECT numberId, 
+            * CASE WHEN even = TRUE THEN 'even' ELSE 'odd' END
+            * FROM Prime
+            * WHERE numberId BETWEEN ?1 and ?2
+            * ORDER BY numberId ASC].
+            * [27, 31] 'even' cannot be resolved to a type.
+            */
+            throw e;
+        }
+
+        // Verify results
+        assertNotNull(results);
+        assertEquals(4, results.size());
+
+        // Verify first result (2 is even)
+        assertEquals(2L, results.get(0)[0]);
+        assertEquals("even", results.get(0)[1]);
+
+        // Verify second result (3 is odd)
+        assertEquals(3L, results.get(1)[0]);
+        assertEquals("odd", results.get(1)[1]);
+
+        // Verify third result (5 is odd)
+        assertEquals(5L, results.get(2)[0]);
+        assertEquals("odd", results.get(2)[1]);
+
+        // Verify fourth result (7 is odd)
+        assertEquals(7L, results.get(3)[0]);
+        assertEquals("odd", results.get(3)[1]);
+    }
+
 }
