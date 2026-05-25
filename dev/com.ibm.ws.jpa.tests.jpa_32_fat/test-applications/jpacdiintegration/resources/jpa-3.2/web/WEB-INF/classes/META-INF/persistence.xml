@@ -7,7 +7,7 @@
     <scope>jakarta.enterprise.context.ApplicationScoped</scope>
 
     <properties>
-      <property name="jakarta.persistence.schema-generation.database.action" value="create"/>
+      <property name="jakarta.persistence.schema-generation.database.action" value="drop-and-create"/>
       <property name="eclipselink.logging.parameters" value="true"/>
       <property name="jakarta.persistence.bean.classes"
                 value="jakarta.persistence.EntityManager,
@@ -24,7 +24,7 @@
     <scope>jakarta.enterprise.context.Dependent</scope>
 
     <properties>
-      <property name="jakarta.persistence.schema-generation.database.action" value="create"/>
+      <property name="jakarta.persistence.schema-generation.database.action" value="drop-and-create"/>
       <property name="eclipselink.logging.parameters" value="true"/>
       <property name="jakarta.persistence.bean.classes"
                 value="jakarta.persistence.EntityManager,
@@ -38,7 +38,7 @@
 
   <persistence-unit name="DefaultScopedPU">
     <properties>
-      <property name="jakarta.persistence.schema-generation.database.action" value="create"/>
+      <property name="jakarta.persistence.schema-generation.database.action" value="drop-and-create"/>
       <property name="eclipselink.logging.parameters" value="true"/>
       <property name="jakarta.persistence.bean.classes"
                 value="jakarta.persistence.EntityManager,
