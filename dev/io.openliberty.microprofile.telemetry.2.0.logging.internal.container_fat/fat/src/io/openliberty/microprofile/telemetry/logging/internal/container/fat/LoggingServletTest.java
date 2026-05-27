@@ -109,7 +109,6 @@ public class LoggingServletTest {
         TimeUnit.SECONDS.sleep(WAIT_TIMEOUT);
 
         // Get logs for remaining assertions
-        
         final String logs = container.getLogs();
         assertTrue("Info message could not be found.", TestUtils.assertLogContains("testMessageLogs", logs, "Body: Str(info message)"));
         assertTrue("Extension appName could not be found.", TestUtils.assertLogContains("testMessageLogs", logs, "io.openliberty.ext.app_name: Str(MpTelemetryLogApp)"));
@@ -186,8 +185,6 @@ public class LoggingServletTest {
         //Allow time for the collector to receive and bridge logs.
         TimeUnit.SECONDS.sleep(WAIT_TIMEOUT);
 
-
-        // assertTrue("FFDC message log could not be found.", TestUtils.assertLogContains("testFFDCLogs", logs, "Body: Str(FFDC_TEST_DOGET"));
         assertTrue("FFDC message log could not be found.", pollForLogMessage("testFFDCLogs", "Body: Str(FFDC_TEST_DOGET"));
 
         final String logs = container.getLogs();
