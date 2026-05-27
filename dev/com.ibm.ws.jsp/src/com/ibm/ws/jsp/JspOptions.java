@@ -109,7 +109,7 @@ public class JspOptions {
     protected boolean    deleteClassFilesBeforeRecompile = false; //PI12939
     protected boolean    allowMultipleAttributeValues = false; //PI30519
     protected boolean    allowPrecedenceInJspExpressionsWithConstantString = false; //PI37304
-    protected boolean    loadTagFilesFromJars = true; // Load tag files from META-INF/resources/WEB-INF/tags in JARs
+    protected boolean    loadTagFilesFromJars = false; // Load tag files from META-INF/resources/WEB-INF/tags in JARs
 
     //@BLB Pretouch End
     // defect 400645
