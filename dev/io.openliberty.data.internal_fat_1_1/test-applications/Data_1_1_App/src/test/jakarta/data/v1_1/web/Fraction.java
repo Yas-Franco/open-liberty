@@ -13,13 +13,19 @@
 package test.jakarta.data.v1_1.web;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 
 /**
  * Entity for representing fractions less than 1, such as 3/4 or 5/6.
@@ -44,6 +50,18 @@ public class Fraction {
 
     @Column(nullable = false)
     boolean reduced;
+
+    @ElementCollection
+    @CollectionTable //
+    (name = "Fraction_rounded",
+     joinColumns = @JoinColumn//
+     (name = "Fraction_name",
+      foreignKey = @ForeignKey//
+      (name = "FK_Fraction_rounded",
+       foreignKeyDefinition = //
+       "FOREIGN KEY (Fraction_name) REFERENCES Fraction(name) ON DELETE CASCADE")))
+    @Column(precision = 10, scale = 3)
+    List<BigDecimal> rounded;
 
     @Embeddable
     public static record Decimal(
@@ -221,6 +239,16 @@ public class Fraction {
             if (numerator % i == 0 &&
                 denominator % i == 0)
                 f.reduced = false;
+
+        // rounded to nearest tenth, hundreth, and thousandth:
+        long halfUp = denominator / 2;
+        f.rounded = new ArrayList<>(3);
+        f.rounded.add(BigDecimal //
+                        .valueOf((numerator * 10 + halfUp) / denominator, 1));
+        f.rounded.add(BigDecimal //
+                        .valueOf((numerator * 100 + halfUp) / denominator, 2));
+        f.rounded.add(BigDecimal //
+                        .valueOf((numerator * 1000 + halfUp) / denominator, 3));
 
         return f;
     }
