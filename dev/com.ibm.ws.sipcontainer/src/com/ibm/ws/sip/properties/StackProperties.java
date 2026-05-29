@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2003, 2021 IBM Corporation and others.
+ * Copyright (c) 2003, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -195,7 +195,7 @@ public class StackProperties {
 	public static final int TIMER_B_DEFAULT = 64*TIMER_T1_DEFAULT;
 	
 	/** Timer C - INVITE client transaction timeout timer */
-	public static final String TIMER_C = "javax.sip.transaction.timer.c";
+	public static final String TIMER_C = "timerC";
 	public static final int TIMER_C_DEFAULT = 180000;
 	
 	/** Timer D - Wait time for INVITE response retransmits */
