@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2026 Contributors to the Eclipse Foundation. All rights reserved.
  * Copyright (c) 2025 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 IBM Corporation. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0 which is available at
@@ -144,6 +145,11 @@ public class PostgreSQL10Platform extends PostgreSQLPlatform {
         // Mapping for JSON type.
         getJsonPlatform().updateClassTypes(classTypeMapping);
         return classTypeMapping;
+    }
+
+    @Override
+    public void printFieldTypeSize(Writer writer, FieldDefinition field, FieldDefinition.DatabaseType databaseType, boolean shouldPrintFieldIdentityClause) throws IOException {
+        super.printFieldTypeSize(writer, field, databaseType, false);
     }
 
     @Override
