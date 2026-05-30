@@ -50,7 +50,7 @@ public class H2Helper extends DatabaseHelper {
         // - 08006 (connection failure)
         // - 08S01 (communication link failure)
         Collections.addAll(staleConCodes,
-            8000,   // ERROR_OPENING_DATABASE_1 - Error opening database (SQLSTATE 08000)
+            8000,   // ERROR_OPENING_DATABASE_1 - Problem trying to create a database lock.
             90007,  // OBJECT_CLOSED - JDBC object (connection/statement) has been closed
             90020,  // DATABASE_ALREADY_OPEN_1 - Database already open (embedded mode conflict)
             90067,  // CONNECTION_BROKEN_1 - Client connection lost or broken
@@ -114,22 +114,12 @@ public class H2Helper extends DatabaseHelper {
 
     /**
      * Extension of TraceWriter that filters sensitive information from H2 driver logs.
-     * Filters exact H2 Type:/Content: pairs for password and url values.
+     * Filters all lines starting with "Content: " to prevent sensitive data exposure.
      */
     private static class FilteringTraceWriter extends TraceWriter {
-        private enum PendingFilter {
-            NONE,
-            PASSWORD,
-            URL
-        }
-
-        private static final String PASSWORD_TYPE = "password";
-        private static final String URL_TYPE = "url";
-        private static final String TYPE_PREFIX = "Type: ";
         private static final String CONTENT_PREFIX = "Content: ";
         private static final String FILTERED_VALUE = "******";
 
-        private PendingFilter pendingFilter = PendingFilter.NONE;
         private final com.ibm.ejs.ras.TraceComponent traceDestination;
 
         public FilteringTraceWriter(com.ibm.ejs.ras.TraceComponent dest) {
@@ -151,45 +141,15 @@ public class H2Helper extends DatabaseHelper {
         }
 
         /**
-         * Filters a single line based on exact H2 Type:/Content: pairs.
-         * Type: password masks the following Content: line.
-         * Type: url filters the following Content: line using existing URL filtering.
+         * Filters all lines starting with "Content: " to mask sensitive information.
          */
         private String filterLine(String line) {
             String trimmed = line.trim();
 
-            if (trimmed.startsWith(TYPE_PREFIX)) {
-                String propertyType = trimmed.substring(TYPE_PREFIX.length()).trim();
-                if (PASSWORD_TYPE.equals(propertyType)) {
-                    pendingFilter = PendingFilter.PASSWORD;
-                } else if (URL_TYPE.equals(propertyType)) {
-                    pendingFilter = PendingFilter.URL;
-                } else {
-                    pendingFilter = PendingFilter.NONE;
-                }
-                return line;
-            }
-
             if (trimmed.startsWith(CONTENT_PREFIX)) {
-                String content = trimmed.substring(CONTENT_PREFIX.length()).trim();
-                PendingFilter filterToApply = pendingFilter;
-                pendingFilter = PendingFilter.NONE;
-
-                switch (filterToApply) {
-                    case PASSWORD:
-                        return withOriginalIndentation(line, CONTENT_PREFIX + FILTERED_VALUE);
-                    case URL:
-                        return withOriginalIndentation(line, CONTENT_PREFIX + PropertyService.filterURL(content));
-                    case NONE:
-                    default:
-                        if (content.startsWith("jdbc:")) {
-                            return withOriginalIndentation(line, CONTENT_PREFIX + PropertyService.filterURL(content));
-                        }
-                        return line;
-                }
+                return withOriginalIndentation(line, CONTENT_PREFIX + FILTERED_VALUE);
             }
 
-            pendingFilter = PendingFilter.NONE;
             return line;
         }
 

@@ -78,22 +78,14 @@ public class H2Test extends FATServletClient {
         assertTrue("Type: password should be present in trace.log",
                    !passwordTypeLines.isEmpty());
 
-        List<String> filteredPasswords = server.findStringsInLogsAndTrace("Content: \\*\\*\\*\\*\\*\\*");
-        assertTrue("Filtered password markers (Content: ******) should be present in trace.log",
-                   !filteredPasswords.isEmpty());
+        List<String> filteredContent = server.findStringsInLogsAndTrace("Content: \\*\\*\\*\\*\\*\\*");
+        assertTrue("Filtered content markers (Content: ******) should be present in trace.log",
+                   !filteredContent.isEmpty());
 
-        // Verify exact Type:/Content: URL filtering behavior
-        List<String> urlTypeLines = server.findStringsInLogsAndTrace("Type: url");
-        assertTrue("Type: url should be present in trace.log",
-                   !urlTypeLines.isEmpty());
-
-        List<String> filteredUrls = server.findStringsInLogsAndTrace("Content: jdbc:h2:mem:\\*\\*\\*\\*");
-        assertTrue("Filtered URL markers (Content: jdbc:h2:mem:****) should be present in trace.log",
-                   !filteredUrls.isEmpty());
-
-        List<String> unfilteredJdbcUrls = server.findStringsInLogsAndTrace("Content: jdbc:h2:mem:(?!\\*\\*\\*\\*).*");
-        assertEquals("Unfiltered H2 JDBC URLs should not appear in trace.log",
-                     0, unfilteredJdbcUrls.size());
+        // Verify that all Content: lines are filtered (no unfiltered content should appear)
+        List<String> unfilteredContent = server.findStringsInLogsAndTrace("Content: (?!\\*\\*\\*\\*\\*\\*).*");
+        assertEquals("All Content: lines should be filtered in trace.log",
+                     0, unfilteredContent.size());
 
         server.stopServer();
     }
