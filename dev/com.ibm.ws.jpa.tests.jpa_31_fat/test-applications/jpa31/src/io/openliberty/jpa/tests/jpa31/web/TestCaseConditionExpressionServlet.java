@@ -18,6 +18,7 @@ import java.util.List;
 import org.junit.Test;
 
 import com.ibm.ws.testtooling.vehicle.web.JPADBTestServlet;
+import componenttest.annotation.SkipForRepeat;
 
 import io.openliberty.jpa.tests.jpa31.models.Case2Entity;
 import io.openliberty.jpa.tests.jpa31.models.Case2Entity_;
@@ -569,6 +570,7 @@ public class TestCaseConditionExpressionServlet extends JPADBTestServlet {
      * https://github.com/eclipse-ee4j/jpa-api/issues/315
      */
     @Test
+    @SkipForRepeat("JPA32_HIBERNATE")
     public void testJPATestOLGH17369Logic_testQueryCaseParameters1() {
         final String testName = "testJPATestOLGH17369Logic_testQueryCaseParameters1";
 

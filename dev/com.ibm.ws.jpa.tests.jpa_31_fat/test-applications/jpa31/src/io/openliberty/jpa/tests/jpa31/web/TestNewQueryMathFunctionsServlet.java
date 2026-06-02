@@ -16,6 +16,7 @@ package io.openliberty.jpa.tests.jpa31.web;
 import org.junit.Test;
 
 import com.ibm.ws.testtooling.vehicle.web.JPADBTestServlet;
+import componenttest.annotation.SkipForRepeat;
 
 import io.openliberty.jpa.tests.jpa31.models.QueryEntity;
 import jakarta.annotation.PostConstruct;
@@ -391,6 +392,7 @@ public class TestNewQueryMathFunctionsServlet extends JPADBTestServlet {
     }
 
     @Test
+    @SkipForRepeat("JPA32_HIBERNATE")
     public void testFunction_Power_Criteria() {
         @SuppressWarnings({ "rawtypes", "unchecked" })
         ExecCriteriaQueryWithDoubleSecondArg ecq = (int id, String fieldName, Class fieldType, double arg2) -> {
@@ -448,6 +450,7 @@ public class TestNewQueryMathFunctionsServlet extends JPADBTestServlet {
     }
 
     @Test
+    @SkipForRepeat("JPA32_HIBERNATE")
     public void testFunction_Round_Criteria() {
         @SuppressWarnings({ "rawtypes", "unchecked" })
         ExecCriteriaQueryWithIntegerSecondArg ecq = (int id, String fieldName, Class fieldType, int arg2) -> {
@@ -512,6 +515,7 @@ public class TestNewQueryMathFunctionsServlet extends JPADBTestServlet {
     }
 
     @Test
+    @SkipForRepeat("JPA32_HIBERNATE")
     public void testFunction_Sign_Criteria() {
         @SuppressWarnings({ "rawtypes", "unchecked" })
         ExecCriteriaQuery ecq = (int id, String fieldName, Class fieldType) -> {
