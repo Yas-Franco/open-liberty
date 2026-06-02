@@ -36,6 +36,9 @@ import com.ibm.ws.wsoc.ServiceManager;
 import com.ibm.ws.wsoc.WebSocketContainerManager;
 import com.ibm.ws.wsoc.injection.InjectionProvider;
 import com.ibm.ws.wsoc.injection.InjectionProvider12;
+import com.ibm.ws.managedobject.ManagedObject;
+import com.ibm.ws.managedobject.ManagedObjectFactory;
+import com.ibm.ws.managedobject.ManagedObjectService;
 import com.ibm.wsspi.injectionengine.ComponentNameSpaceConfiguration;
 import com.ibm.wsspi.injectionengine.InjectionException;
 import com.ibm.wsspi.injectionengine.InjectionTarget;
@@ -190,12 +193,21 @@ public class DefaultServerEndpointConfigurator extends ServerEndpointConfig.Conf
             }
 
             if (tc.isDebugEnabled()) {
-                Tr.debug(tc, "Did not create the bean using the CDI service.  Will create the instance without CDI.");
+                Tr.debug(tc, "Did not create the bean using the CDI service.  Will create the instance using managed object factory.");
             }
 
-            T ep = endpointClass.newInstance();
+            T ep = createManagedObjectInstance(endpointClass);
 
-            attemptNonCDIInjection(ep);
+            //Keep the original code path as a final fallback
+            if (ep == null) {
+
+                if (tc.isDebugEnabled()) {
+                    Tr.debug(tc, "Did not create the bean using the CDI service.  Will create the instance without CDI.");
+                }
+
+                endpointClass.newInstance();
+                attemptNonCDIInjection(ep);
+            }
 
             return ep;
 
@@ -219,6 +231,45 @@ public class DefaultServerEndpointConfigurator extends ServerEndpointConfig.Conf
                 ip.releaseCC(key, map);
             }
         }
+    }
+
+    /**
+     * Creates a managed object instance for the given class using the ManagedObjectService.
+     *
+     * @param <T> the type of the class
+     * @param clazz the class to create a managed object for
+     * @return the actual object instance created by the ManagedObjectFactory
+     */
+    public <T> T createManagedObjectInstance(Class<T> clazz) {
+        try { 
+        // 1) Get the ManagedObjectService from the ServiceManager
+            ManagedObjectService managedObjectService = ServiceManager.getManagedObjectService();
+
+            ComponentMetaData cmd = ComponentMetaDataAccessorImpl.getComponentMetaDataAccessor().getComponentMetaData();
+            if (cmd != null && managedObjectService != null) {
+                final ModuleMetaData mmd = cmd.getModuleMetaData();
+
+                if (managedObjectService == null) {
+                    throw new IllegalStateException("ManagedObjectService is not available");
+                }
+
+                // 2) Get the ManagedObjectFactory for the class
+                ManagedObjectFactory<T> factory = managedObjectService.createManagedObjectFactory(mmd, clazz, true);
+
+                // 3) Use the factory to create a ManagedObject
+                ManagedObject<T> managedObject = factory.createManagedObject();
+
+                // 4) Return the actual Object
+                return managedObject.getObject();
+            }
+        } catch (Exception e) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "Couldn't create object instance from ManagedObjectFactory for : " + clazz.getName() + ", but ignore the FFDC: " + e.toString());
+            }
+        }
+
+        //allow for fallback
+        return null;
     }
 
 }
