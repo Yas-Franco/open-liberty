@@ -111,10 +111,12 @@ public class JPA31Test extends JPAFATServletClient {
         
         server.startServer();
 
-        // Determine DDL file prefix based on Jakarta EE version
-        // Use JPA32 DDL files for Jakarta EE 11 (JPA 3.2), otherwise use JPA31 DDL files
-        String ddlPrefix = JakartaEEAction.isEE11OrLaterActive() ? "JPA32" : "JPA31";
-        System.out.println(JPA31Test.class.getName() + " Using DDL prefix: " + ddlPrefix + " (EE11 active: " + JakartaEEAction.isEE11OrLaterActive() + ")");
+        // Determine DDL file prefix based on repeat phase
+        // Use JPA32 DDL files for JPA 3.2 repeats (both EclipseLink and Hibernate), otherwise use JPA31 DDL files
+        String ddlPrefix = (AbstractFATSuite.repeatPhase != null &&
+                           (AbstractFATSuite.repeatPhase.contains("jpa32") || AbstractFATSuite.repeatPhase.contains("hibernate32")))
+                           ? "JPA32" : "JPA31";
+        System.out.println(JPA31Test.class.getName() + " Using DDL prefix: " + ddlPrefix + " (repeat_phase: " + AbstractFATSuite.repeatPhase + ")");
         
         dropSet.clear();
         dropSet.add(ddlPrefix + "_DROP_${dbvendor}.ddl");
