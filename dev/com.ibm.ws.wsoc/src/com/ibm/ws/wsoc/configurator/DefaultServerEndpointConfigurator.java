@@ -169,8 +169,16 @@ public class DefaultServerEndpointConfigurator extends ServerEndpointConfig.Conf
         }
     }
 
+    /*
+     * The process for getting an EndpointInstance:
+     * 1) Try getting the EI from CDI. (requires it to be a CDI bean, e.g. if it has a CDI scope annotation).
+     * 2) Try getting the EI from the ManagedObjectFactory. If CDI is enabled this will end up going via CDI; the bean for CDI injecting into non-CDI beans.
+     * 3) If the ManagedObjectFactory says it doesn't do injection (if CDI is not enabled), call attemptNonCDIInjection which asks InjectionEngine to handle it.
+     * 4) If anything went wrong at all in 2/3, create an object ourselves and call attemptNonCDIInjection on it. (2 and 3 are newer code, 4 is a fall back to the original behaviour as a guard against regression).
+     */
     @Override
     public <T> T getEndpointInstance(Class<T> endpointClass) throws InstantiationException {
+    
         try {
             InjectionProvider12 ip12 = ServiceManager.getInjectionProvider12();
             if (ip12 != null) {
@@ -258,9 +266,15 @@ public class DefaultServerEndpointConfigurator extends ServerEndpointConfig.Conf
 
                 // 3) Use the factory to create a ManagedObject
                 ManagedObject<T> managedObject = factory.createManagedObject();
+                
+                // 4) if the factory didn't hadnle injection, do it ourselves.
+                T actualObject = managedObject.getObject();;
+                if (! factory.managesInjectionAndInterceptors() && actualObject != null) {
+                    attemptNonCDIInjection(actualObject);
+                }
 
-                // 4) Return the actual Object
-                return managedObject.getObject();
+                // 5) Return the actual Object
+                return actualObject;
             }
         } catch (Exception e) {
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
