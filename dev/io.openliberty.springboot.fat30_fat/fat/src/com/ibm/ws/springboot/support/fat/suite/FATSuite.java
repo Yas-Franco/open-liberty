@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2025 IBM Corporation and others.
+ * Copyright (c) 2018, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -15,6 +15,9 @@ package com.ibm.ws.springboot.support.fat.suite;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
+
+import componenttest.annotation.MaximumJavaLevel;
+import componenttest.annotation.MinimumJavaLevel;
 
 import com.ibm.ws.springboot.support.fat.AopSpringBootAppTests30;
 import com.ibm.ws.springboot.support.fat.AopWebAppTests30;
@@ -143,7 +146,8 @@ import com.ibm.ws.springboot.support.fat.utility.SpringBootUtilityThinTest;
                 HTTPMetricsNoContextRootTest.class,
                 HTTPMetricsWithContextRootTest.class
 })
-
+@MinimumJavaLevel(javaLevel = 17)
+@MaximumJavaLevel(javaLevel = 25) //https://docs.spring.io/spring-boot/3.5/system-requirements.html
 public class FATSuite {
     // Empty
 }
