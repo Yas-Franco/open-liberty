@@ -1510,6 +1510,16 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Use a NativeQuery method that selects the result of a count operation
+     * as a single value.
+     */
+    @Test
+    public void testNativeSelectCount() {
+        assertEquals(6L, // 1/18, 5/18, 7/18, 11/18, 13/18, 17/18
+                     fractions.numReducedWithDenominatorOf(18, true));
+    }
+
+    /**
      * Supply a Restriction to a repository method where the Restriction
      * requires navigating through 2 levels of embeddables to compute the
      * expressions that are used in its constraint.

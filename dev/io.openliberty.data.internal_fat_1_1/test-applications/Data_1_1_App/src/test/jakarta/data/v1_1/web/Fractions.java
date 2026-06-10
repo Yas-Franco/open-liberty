@@ -43,6 +43,7 @@ import jakarta.data.repository.First;
 import jakarta.data.repository.Insert;
 import jakarta.data.repository.Is;
 import jakarta.data.repository.JakartaQuery; // TODO replace with Persistence 4.0 anno once available
+import jakarta.data.repository.NativeQuery; // TODO replace with Persistence 4.0 anno once available
 import jakarta.data.repository.OrderBy;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.QueryOptions; // TODO replace with Persistence 4.0 anno once available
@@ -117,6 +118,14 @@ public interface Fractions {
     (@By(_Fraction.NAME) @Is(Like.class) String pattern,
      Order<Fraction> additionalSorting,
      PageRequest pageReq);
+
+    @NativeQuery("""
+                    SELECT COUNT(*)
+                      FROM Fraction
+                     WHERE denominator = ? AND reduced = ?
+                    """)
+    long numReducedWithDenominatorOf(int denominator,
+                                     boolean isReduced);
 
     @Find
     @QueryOptions(entityGraph = "EagerlyLoadRoundedValues")
