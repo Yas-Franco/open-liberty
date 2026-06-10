@@ -28,6 +28,7 @@
             <property name="eclipselink.cache.shared.default" value="false"/>
             <property name="hibernate.cache.use_second_level_cache" value="false"/>
             <property name="hibernate.cache.use_query_cache" value="false"/>
+            <property name="hibernate.show_sql" value="true"/>
         </properties>
     </persistence-unit>
 
@@ -40,6 +41,7 @@
             <property name="eclipselink.cache.shared.default" value="false"/>
             <property name="hibernate.cache.use_second_level_cache" value="false"/>
             <property name="hibernate.cache.use_query_cache" value="false"/>
+            <property name="hibernate.show_sql" value="true"/>
         </properties>
     </persistence-unit>
 
@@ -96,6 +98,7 @@
             <property name="eclipselink.logging.level" value="FINE"/>
             <property name="hibernate.cache.use_second_level_cache" value="false"/>
             <property name="hibernate.cache.use_query_cache" value="false"/>
+            <property name="hibernate.show_sql" value="true"/>
         </properties>
     </persistence-unit>
 
@@ -109,6 +112,7 @@
             <property name="eclipselink.logging.level" value="FINE"/>
             <property name="hibernate.cache.use_second_level_cache" value="false"/>
             <property name="hibernate.cache.use_query_cache" value="false"/>
+            <property name="hibernate.show_sql" value="true"/>
         </properties>
     </persistence-unit>
 
@@ -124,6 +128,7 @@
             <property name="eclipselink.cache.shared.default" value="false"/>
             <property name="hibernate.cache.use_second_level_cache" value="false"/>
             <property name="hibernate.cache.use_query_cache" value="false"/>
+            <property name="hibernate.show_sql" value="true"/>
         </properties>
     </persistence-unit>
 </persistence>
