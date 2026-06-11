@@ -49,7 +49,8 @@ Include-Resource: \
         OSGI-INF=resources/OSGI-INF
 
 -dsannotations: \
-        com.ibm.ws.logstash.collector.internal.LogstashCollector
+	com.ibm.ws.logstash.collector.internal.LogstashCollector, \
+	com.ibm.ws.logstash.collector.internal.LogstashCollectorASL
 
 -buildpath: \
 	com.ibm.wsspi.org.osgi.core;version=latest,\

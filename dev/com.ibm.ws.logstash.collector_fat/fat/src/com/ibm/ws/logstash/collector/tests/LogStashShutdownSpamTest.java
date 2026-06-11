@@ -39,10 +39,10 @@ import componenttest.topology.impl.LibertyServerFactory;
  *
  */
 @RunWith(FATRunner.class)
-@Mode(TestMode.LITE)
-public class LogStashShutdownTest extends LogstashCollectorTest {
+@Mode(TestMode.FULL)
+public class LogStashShutdownSpamTest extends LogstashCollectorTest {
     private static LibertyServer server = LibertyServerFactory.getLibertyServer("LogstashServer");
-    private static Class<?> c = LogStashShutdownTest.class;
+    private static Class<?> c = LogStashShutdownSpamTest.class;
     public final String WEBAPP_REMOVAL_MESSAGE_ID = "CWWKT0017I";
 
     @ClassRule
@@ -79,16 +79,27 @@ public class LogStashShutdownTest extends LogstashCollectorTest {
     }
 
     /*
-     * Verify that the server stops immediately when shutdown is triggered.
-     * This is done by verifying that the server quiesce message does not appear: CWWKE1102W
+     * Verify that the server stops immediately when shutdown is triggered while an application sends
+     * a large number of messages.
      */
     @Test
-    public void testLogstashForQuickShutdown() throws Exception {
+    public void testLogstashForQuickShutdownDuringMessageSpam() throws Exception {
         clearContainerOutput();
+        String testName = "testLogstashForQuickShutdownDuringMessageSpam";
 
-        setConfig();
+        setTraceSpec();
 
         server.setMarkToEndOfLog();
+
+        createMessageLogEvents(testName);
+
+        try {
+            Thread.sleep(1000);
+        } catch (Exception e) {
+            e.printStackTrace();
+
+        }
+
         try {
             if (server.isStarted()) {
                 Log.info(c, "testingShutdown", "---> Stopping server..");
@@ -105,7 +116,7 @@ public class LogStashShutdownTest extends LogstashCollectorTest {
 
     }
 
-    protected void setConfig() throws Exception {
+    protected void setTraceSpec() throws Exception {
         clearContainerOutput();
         Logging loggingObj;
         ServerConfiguration serverConfig = server.getServerConfiguration();

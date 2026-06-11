@@ -461,6 +461,7 @@ public abstract class Collector implements Handler, Formatter {
         if (task != null) {
             return task.checkNextEventForMessage(messageId);
         }
+
         return false;
     }
 
@@ -471,7 +472,9 @@ public abstract class Collector implements Handler, Formatter {
      * @return true if separate task should be monitored, false otherwise
      */
     public boolean shouldMonitorSeparateMessageSourceTask() {
-        return messageSourceTask != null && messageSourceTask.getMonitorWebAppRemoval();
+        boolean hasTask = (messageSourceTask != null);
+        boolean shouldMonitor = hasTask && messageSourceTask.getMonitorWebAppRemoval();
+        return shouldMonitor;
     }
 
     public void stopAllTasks() {

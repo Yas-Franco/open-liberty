@@ -18,6 +18,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 import com.ibm.ws.logstash.collector.tests.ContainerEnvVarTest;
 import com.ibm.ws.logstash.collector.tests.CustomizedTagTest;
+import com.ibm.ws.logstash.collector.tests.LogStashShutdownSpamTest;
 import com.ibm.ws.logstash.collector.tests.LogStashShutdownTest;
 import com.ibm.ws.logstash.collector.tests.LogStashWithBinaryLoggingTest;
 import com.ibm.ws.logstash.collector.tests.LogstashCollectorIndependentTest;
@@ -38,7 +39,8 @@ import componenttest.custom.junit.runner.AlwaysPassesTest;
                 LogStashWithBinaryLoggingTest.class,
                 LogstashCollectorIndependentTest.class,
                 ContainerEnvVarTest.class,
-                LogStashShutdownTest.class
+                LogStashShutdownTest.class,
+                LogStashShutdownSpamTest.class
 })
 
 /**

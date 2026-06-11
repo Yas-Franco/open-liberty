@@ -19,7 +19,6 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.ComponentContext;
@@ -37,8 +36,6 @@ import com.ibm.ws.collector.ClientPool;
 import com.ibm.ws.collector.Collector;
 import com.ibm.ws.collector.Target;
 import com.ibm.ws.collector.TaskManager;
-import com.ibm.ws.container.service.app.deploy.ApplicationInfo;
-import com.ibm.ws.container.service.state.ApplicationStateListener;
 import com.ibm.ws.logging.collector.CollectorJsonUtils;
 import com.ibm.ws.logging.data.AccessLogConfig;
 import com.ibm.ws.logstash.collector.LogstashRuntimeVersion;
@@ -55,10 +52,10 @@ import com.ibm.wsspi.ssl.SSLSupport;
  * to a Logstash instance using Lumberjack protocol
  */
 
-@Component(name = LogstashCollector.COMPONENT_NAME, service = { Handler.class, ServerQuiesceListener.class, ApplicationStateListener.class },
+@Component(name = LogstashCollector.COMPONENT_NAME, service = { Handler.class, ServerQuiesceListener.class },
            configurationPolicy = ConfigurationPolicy.OPTIONAL,
            immediate = true, property = { "service.vendor=IBM" })
-public class LogstashCollector extends Collector implements ServerQuiesceListener, ApplicationStateListener {
+public class LogstashCollector extends Collector implements ServerQuiesceListener {
 
     private static final TraceComponent tc = Tr.register(LogstashCollector.class, "logstashCollector",
                                                          "com.ibm.ws.logstash.collector.internal.resources.LoggingMessages");
@@ -98,8 +95,6 @@ public class LogstashCollector extends Collector implements ServerQuiesceListene
     public final String WEBAPP_REMOVAL_MESSAGE_ID = "CWWKT0017I";
 
     private String jsonAccessLogFields;
-
-    private final AtomicInteger runningApplicationCount = new AtomicInteger(0);
 
     @Override
     @Reference(name = EXECUTOR_SERVICE, service = ExecutorService.class)
@@ -297,65 +292,42 @@ public class LogstashCollector extends Collector implements ServerQuiesceListene
     @Override
     public void serverStopping() {
         // Only proceed if applications are running
-        if (runningApplicationCount.get() == 0) {
+        if (LogstashCollectorASL.getRunningApplicationCount() == 0) {
             return;
         }
 
-        //Setting shutdown flag in order for TaskImpl to begin parsing for CWWKT0017I
-        com.ibm.ws.logging.collector.ShutdownSignal.requestShutdown();
-        if (shouldMonitorSeparateMessageSourceTask()) {
-            // Create a separate thread to read and check for CWWKT0017I messageID
-            Thread messageMonitor = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    boolean found = false;
+        boolean shouldMonitor = shouldMonitorSeparateMessageSourceTask();
 
-                    while (!found) {
-                        try {
-                            // checkMessageSourceForMessage() blocks until next event is available
-                            // Just check each event as it arrives until we find CWWKT0017I
-                            if (checkMessageSourceForMessage(WEBAPP_REMOVAL_MESSAGE_ID)) {
-                                found = true;
-                                stopAllTasks();
-                                if (taskMgr != null) {
-                                    taskMgr.close();
-                                }
-                            }
-                        } catch (Exception e) {
-                            if (TraceComponent.isAnyTracingEnabled()) {
-                                Tr.debug(tc, "Error checking message source", e);
-                            }
-                            break;
+        if (shouldMonitor) {
+
+            // Block here and wait for CWWKT0017I message
+            // This allows serverStopping() to return only after the message is found,
+            // which signals the quiesce mechanism to proceed immediately
+            boolean found = false;
+            int checkCount = 0;
+            while (!found) {
+                try {
+                    checkCount++;
+
+                    // checkMessageSourceForMessage() blocks until next event is available
+                    // Just check each event as it arrives until we find CWWKT0017I
+                    boolean messageFound = checkMessageSourceForMessage(WEBAPP_REMOVAL_MESSAGE_ID);
+
+                    if (messageFound) {
+                        found = true;
+                        stopAllTasks();
+                        if (taskMgr != null) {
+                            taskMgr.close();
                         }
                     }
+                } catch (Exception e) {
+                    if (TraceComponent.isAnyTracingEnabled()) {
+                        Tr.debug(tc, "Error checking message source", e);
+                    }
+                    break;
                 }
-            });
-            messageMonitor.setName("MessageSourceMonitor" + WEBAPP_REMOVAL_MESSAGE_ID);
-            messageMonitor.setDaemon(true);
-            messageMonitor.start();
+            }
         }
-
-    }
-
-    // ApplicationStateListener methods
-    @Override
-    public void applicationStarting(ApplicationInfo appInfo) {
-        // Not needed
-    }
-
-    @Override
-    public void applicationStarted(ApplicationInfo appInfo) {
-        runningApplicationCount.incrementAndGet();
-    }
-
-    @Override
-    public void applicationStopping(ApplicationInfo appInfo) {
-        // Not needed
-    }
-
-    @Override
-    public void applicationStopped(ApplicationInfo appInfo) {
-        runningApplicationCount.decrementAndGet();
     }
 
 }

@@ -9,10 +9,14 @@
  *******************************************************************************/
 package com.ibm.ws.logging.collector;
 
+import com.ibm.websphere.ras.Tr;
+import com.ibm.websphere.ras.TraceComponent;
+
 /**
  * Static flag to signal collector shutdown across all tasks
  */
 public class ShutdownSignal {
+    private static final TraceComponent tc = Tr.register(ShutdownSignal.class);
     private static volatile boolean shutdownRequested = false;
 
     public static void requestShutdown() {
@@ -20,6 +24,7 @@ public class ShutdownSignal {
     }
 
     public static boolean isShutdownRequested() {
-        return shutdownRequested;
+        boolean requested = shutdownRequested;
+        return requested;
     }
 }

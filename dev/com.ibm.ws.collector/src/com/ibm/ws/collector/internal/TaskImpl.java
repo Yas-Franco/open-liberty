@@ -69,11 +69,15 @@ public class TaskImpl extends Task implements Runnable {
                     // Only check for CWWKT0017I if:
                     // 1. This task is configured to monitor for it (message source IS configured)
                     // 2. Server stopping has been initiated (ShutdownSignal.isShutdownRequested())
-                    if (getMonitorWebAppRemoval() && com.ibm.ws.logging.collector.ShutdownSignal.isShutdownRequested()) {
-                        java.lang.reflect.Method getMessageMethod = event.getClass().getMethod("getMessage");
-                        String message = (String) getMessageMethod.invoke(event);
 
-                        if (message != null && message.startsWith(TaskConstants.WEBAPP_REMOVAL_MESSAGE_ID)) {
+                    boolean shouldMonitor = getMonitorWebAppRemoval();
+                    boolean shutdownRequested = com.ibm.ws.logging.collector.ShutdownSignal.isShutdownRequested();
+
+                    if (shouldMonitor && shutdownRequested) {
+                        java.lang.reflect.Method getMessageIdMethod = event.getClass().getMethod("getMessageId");
+                        String messageID = (String) getMessageIdMethod.invoke(event);
+
+                        if (messageID != null && messageID.equals(TaskConstants.WEBAPP_REMOVAL_MESSAGE_ID)) {
                             // Flush the events buffer before shutting down
                             if (eventsBuffer != null) {
                                 eventsBuffer.flushBuffer();
