@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018, 2025 IBM Corporation and others.
+ * Copyright (c) 2018, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -15,6 +15,8 @@ package com.ibm.ws.springboot.support.fat.suite;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
+import componenttest.annotation.MinimumJavaLevel;
+import componenttest.annotation.MaximumJavaLevel;
 
 import com.ibm.ws.springboot.support.fat.AopSpringBootAppTests40;
 import com.ibm.ws.springboot.support.fat.AopWebAppTests40;
@@ -79,6 +81,8 @@ import com.ibm.ws.springboot.support.fat.WebSocketSpringBootAppTests40;
 import com.ibm.ws.springboot.support.fat.WebSocketWebAppTests40;
 import com.ibm.ws.springboot.support.fat.utility.SpringBootUtilityThinTest;
 
+@MinimumJavaLevel(javaLevel = 17)
+@MaximumJavaLevel(javaLevel = 26)  //https://docs.spring.io/spring-boot/4.0/system-requirements.html
 @RunWith(Suite.class)
 @SuiteClasses({
                 CommonWebServerTests40.class,
