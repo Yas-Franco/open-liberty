@@ -62,9 +62,7 @@ public class ReporterTask implements Runnable {
             Map<String, String> data = collector.getData();
             String productUri = (allProductInfo.containsKey("com.ibm.websphere.appserver")) ? allProductInfo.get("com.ibm.websphere.appserver").getCVEReportingUri() : allProductInfo.get("io.openliberty").getCVEReportingUri();
             String urlLink = setUrl(productUri, (String) props.get("urlLink"));
-            //JSONObject response = new CVEServiceClient().retrieveCVEData(data, urlLink);
-            new CVEServiceClient().retrieveCVEData(data, "https://USAGE_INSIGHTS_URL/serverInfo"); //Replace with usage insights url
-            //CVEResponseHandler.handleResponse(data.get("productEdition"), response);
+            new CVEServiceClient().retrieveCVEData(data, "https://ibm-usage-metering-url/api/v1/event"); //changes this to the correct URL
         } catch (MalformedURLException e) {
             Tr.warning(tc, "CWWKF1704.incorrect.url", e.getMessage());
             if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {

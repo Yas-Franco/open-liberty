@@ -11,19 +11,15 @@
 package io.openliberty.reporting.internal;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 import com.ibm.websphere.kernel.server.ServerInfoMBean;
 import com.ibm.ws.kernel.boot.internal.KernelUtils;
-import com.ibm.ws.kernel.feature.FeatureDefinition;
 import com.ibm.ws.kernel.feature.FeatureProvisioner;
 import com.ibm.ws.kernel.feature.FixManager;
-import com.ibm.ws.kernel.feature.Visibility;
 import com.ibm.ws.kernel.productinfo.ProductInfo;
 
 import io.openliberty.reporting.internal.utils.HashUtils;
@@ -43,37 +39,28 @@ public class DataCollector {
     public Map<String, String> getData() {
         Map<String, String> data = new HashMap<>();
 
-        data.put("id", uniqueID);
-        data.put("productEdition", productEdition);
-        data.put("productVersion", productVersion);
+        data.put("productId", productId);
         data.put("productName", productName);
-        data.put("features", String.join(",", installedFeatures));
-        data.put("javaVendor", javaVendor);
-        data.put("javaVersion", javaRuntimeInfo);
-        data.put("iFixes", String.join(",", iFixSet));
-        data.put("osArch", osArch);
-        data.put("os", os);
+        data.put("productMetric", productMetric);
+        data.put("metricValue", metricValue);
+        data.put("productCloudpakRatio", productCloudpakRatio);
+        data.put("cloudpakId", cloudpakId);
+        data.put("cloudpakName", cloudpakName);
+        data.put("cloudpakMetric", cloudpakMetric);
+        data.put("logDate", logDate);
 
         return data;
     }
 
-    private final String uniqueID;
-
-    private String javaVendor = "";
-    private final String javaRuntimeInfo;
-
-    private final Set<String> installedFeatures = new HashSet<>();
-
-    private final String productVersion;
-    private final String productEdition;
-
+    private final String productId;
     private final String productName = "Liberty";
-
-    private final Set<String> iFixSet = new HashSet<>();
-
-    private final String os;
-
-    private final String osArch;
+    private final String productMetric;
+    private final String metricValue = "1";
+    private final String productCloudpakRatio = "";
+    private final String cloudpakId = "";
+    private final String cloudpakName = "";
+    private final String cloudpakMetric = "";
+    private final String logDate;
 
     /**
      * <p>
@@ -89,24 +76,9 @@ public class DataCollector {
     public DataCollector(FeatureProvisioner featureProvisioner, FixManager FixManager, ServerInfoMBean serverInfo,
                          Map<String, ? extends ProductInfo> allProductInfo) throws IOException, DataCollectorException {
 
-        javaRuntimeInfo = serverInfo.getJavaRuntimeVersion();
-
-        installedFeatures.addAll(getPublicFeatures(featureProvisioner));
-
-        String javaVM = System.getProperty("java.vendor").toLowerCase();
-
-        if (javaVM == null) {
-            javaVM = System.getProperty("java.vm.name", "unknown").toLowerCase();
-        }
-
-        javaVendor = javaVM;
-
-        iFixSet.addAll(FixManager.getIFixes());
-
-        os = System.getProperty("os.name");
-
-        osArch = System.getProperty("os.arch");
-
+        String productVersion;
+        String productEdition;
+        
         // the key is the productId
         if (allProductInfo.containsKey("com.ibm.websphere.appserver")) {
             productVersion = allProductInfo.get("com.ibm.websphere.appserver").getVersion();
@@ -116,45 +88,22 @@ public class DataCollector {
             productEdition = allProductInfo.get("io.openliberty").getEdition();
         }
 
+        // Generate productId as a hash
         StringBuilder input = new StringBuilder();
-
         input.append(serverInfo.getInstallDirectory());
         input.append(productEdition);
-        input.append(javaVendor);
-        input.append(osArch);
-        input.append(os);
+        input.append(System.getProperty("java.vendor"));
+        input.append(System.getProperty("os.arch"));
+        input.append(System.getProperty("os.name"));
         input.append(KernelUtils.getServerHostName());
 
-        uniqueID = HashUtils.hashString(input.toString()); // placeholder.
-
-    }
-
-    /**
-     *
-     * @param featureProvisioner
-     * @return Set<String>
-     */
-    private Set<String> getPublicFeatures(FeatureProvisioner featureProvisioner) {
-        Set<String> publicFeatures = new TreeSet<>();
-        Iterator<String> it = featureProvisioner.getInstalledFeatures().iterator();
-        while (it.hasNext()) {
-            String feature = it.next();
-            FeatureDefinition fd = featureProvisioner.getFeatureDefinition(feature);
-
-            if (fd != null && fd.getVisibility() == Visibility.PUBLIC) {
-                if (fd.getSymbolicName().contains("versionless")) {
-                    continue;
-                }
-                // get name from feature definition.
-                // input ones come from the cache which is lower case.
-                // If we don't want to include auto features, then check each feature before
-                // adding it.
-                if (!fd.getFeatureName().contains(":")) {
-                    publicFeatures.add(fd.getFeatureName());
-                }
-            }
-        }
-        return publicFeatures;
+        this.productId = HashUtils.hashString(input.toString());
+        
+        // Use productVersion as productMetric
+        this.productMetric = productVersion;
+        
+        // Get current date in YYYY-MM-DD format
+        this.logDate = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
     }
 
 }
