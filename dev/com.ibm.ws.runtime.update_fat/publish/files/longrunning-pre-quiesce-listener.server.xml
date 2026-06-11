@@ -9,4 +9,5 @@
     
     <include location="../fatTestPorts.xml"/>
 
+    <executor coreThreads="10" maxThreads="20" />
 </server>
