@@ -31,6 +31,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import jakarta.annotation.Resource;
 import jakarta.data.Limit;
@@ -1510,11 +1511,98 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Use a NativeQuery method that returns subsets of entity attributes
+     * as an array of Java records
+     */
+    // @Test // TODO Java record results?
+    public void testNativeQueryReturnsArrayOfRecord() {
+        assertEquals(List.of("1:8",
+                             "2:7",
+                             "3:6",
+                             "4:5",
+                             "5:4",
+                             "6:3",
+                             "7:2",
+                             "8:1"),
+                     Stream.of(fractions.ratioArrayWithDenominator(9))
+                                     .map(Ratio::toString)
+                                     .toList());
+    }
+
+    /**
+     * Use a NativeQuery method that selects the first matching entity.
+     */
+    @Test
+    public void testNativeQueryReturnsFirstEntity() {
+        assertEquals("Seven Twentieths",
+                     fractions.firstValueWithin(0.334, 0.4)
+                                     .orElseThrow().name);
+    }
+
+    /**
+     * Use a NativeQuery method that selects multiple entities as a list.
+     */
+    @Test
+    public void testNativeQueryReturnsListOfEntities() {
+        assertEquals(List.of("1/2",
+                             "1/3",
+                             "1/4", "2/4",
+                             "1/5", "2/5",
+                             "1/6", "2/6",
+                             "1/7", "2/7",
+                             "1/8", "2/8",
+                             "1/9", "2/9", "3/9"),
+                     fractions.numeratorLTESquareRootOfDenominator(Limit.of(15))
+                                     .stream()
+                                     .map(f -> f.numerator + "/" + f.denominator)
+                                     .toList());
+    }
+
+    /**
+     * Use a NativeQuery method that returns subsets of entity attributes
+     * as a List of Java records
+     */
+    // @Test // TODO Java record results?
+    public void testNativeQueryReturnsListOfRecord() {
+        assertEquals(List.of("1:11",
+                             "2:12",
+                             "3:13",
+                             "4:14",
+                             "5:15",
+                             "6:16",
+                             "7:17",
+                             "8:18",
+                             "9:19"),
+                     fractions.ratioListWithDifferenceOfTerms(10)
+                                     .stream()
+                                     .map(Ratio::toString)
+                                     .toList());
+    }
+
+    /**
+     * Use a NativeQuery method that returns subsets of entity attributes
+     * as a Stream of Java records
+     */
+    // @Test // TODO Java record results?
+    public void testNativeQueryReturnsStreamOfRecord() {
+        assertEquals(List.of("1:7",
+                             "2:6",
+                             "3:5",
+                             "4:4",
+                             "5:3",
+                             "6:2",
+                             "7:1"),
+                     fractions.ratioStreamWithSumOfTerms(8)
+                                     .map(Ratio::toString)
+                                     .toList());
+    }
+
+    /**
      * Use a NativeQuery method that selects the result of a count operation
      * as a single value.
      */
     @Test
-    public void testNativeSelectCount() {
+    public void testNativeQuerySelectsCount() {
         assertEquals(6L, // 1/18, 5/18, 7/18, 11/18, 13/18, 17/18
                      fractions.numReducedWithDenominatorOf(18, true));
     }
