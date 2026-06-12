@@ -3630,12 +3630,13 @@ public abstract class QueryInfo {
                 if (i < specialParamsStartAt)
                     specialParamsStartAt = i;
                 // Reject all special parameters on native queries until we
-                // determine which, if any, can be supported
-                throw new UnsupportedOperationException //
-                ("The " + method.getName() + " method of the " +
-                 repositoryInterface.getName() + " repository cannot have a " +
-                 paramType.getSimpleName() + " parameter because the method is " +
-                 "annotated " + "@NativeQuery" + "."); // TODO NLS
+                // TODO determine which, if any, can be supported
+                if (!Limit.class.equals(paramType))
+                    throw new UnsupportedOperationException //
+                    ("The " + method.getName() + " method of the " +
+                     repositoryInterface.getName() + " repository cannot have a " +
+                     paramType.getSimpleName() + " parameter because the method is " +
+                     "annotated " + "@NativeQuery" + "."); // TODO NLS
             } else if (i > specialParamsStartAt) {
                 throw exc(UnsupportedOperationException.class,
                           "CWWKD1098.spec.param.position.err",
