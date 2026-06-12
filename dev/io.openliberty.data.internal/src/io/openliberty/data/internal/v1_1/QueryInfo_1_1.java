@@ -375,12 +375,25 @@ public class QueryInfo_1_1 extends QueryInfo {
     @Override
     protected jakarta.persistence.Query //
                     ehCreateNativeQuery(AutoCloseable entityHandler) {
+        // If the repository method return type is the entity class or multiple
+        // entities, consider the entity class to be the result type. Otherwise
+        // the result could be a count or single entity attribute.
+        Class<?> resultClass = singleType != null &&
+                               entityInfo.entityClass.isAssignableFrom(singleType) //
+                                               ? entityInfo.entityClass //
+                                               : entityInfo.isHibernate //
+                                                               ? Object.class //
+                                                               : null;
+
         // TODO Persistence 4.0 API
         //if (entityHandler instanceof EntityHandler handler) ...
 
         jakarta.persistence.Query query;
         if (entityHandler instanceof EntityManager em) {
-            query = em.createNativeQuery(ql);
+            if (resultClass == null)
+                query = em.createNativeQuery(ql);
+            else
+                query = em.createNativeQuery(ql, resultClass);
         } else {
             try {
                 query = (jakarta.persistence.Query) entityHandler.getClass() //
@@ -389,7 +402,7 @@ public class QueryInfo_1_1 extends QueryInfo {
                                            Class.class) //
                                 .invoke(entityHandler,
                                         ql,
-                                        Object.class);
+                                        resultClass);
             } catch (IllegalAccessException | NoSuchMethodException x) {
                 throw new RuntimeException(x); // should be impossible
             } catch (InvocationTargetException x) {
