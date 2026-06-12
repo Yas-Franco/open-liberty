@@ -15,16 +15,12 @@ package com.ibm.ws.springboot.support.fat.suite.jms1;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
-import componenttest.annotation.MinimumJavaLevel;
-import componenttest.annotation.MaximumJavaLevel;
 
 import com.ibm.ws.springboot.support.fat.JmsWebAppTests40;
 
 import componenttest.containers.TestContainerSuite;
 import componenttest.custom.junit.runner.AlwaysPassesTest;
 
-@MinimumJavaLevel(javaLevel = 17)
-@MaximumJavaLevel(javaLevel = 26)  //https://docs.spring.io/spring-boot/4.0/system-requirements.html
 @RunWith(Suite.class)
 @SuiteClasses({
                 AlwaysPassesTest.class,
