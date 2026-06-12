@@ -33,6 +33,8 @@ import com.meterware.httpunit.WebResponse;
 
 import componenttest.annotation.Server;
 import componenttest.custom.junit.runner.FATRunner;
+import componenttest.custom.junit.runner.Mode;
+import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
 
 /**
@@ -46,6 +48,7 @@ import componenttest.topology.impl.LibertyServer;
  * by JSP pages, matching the behavior of Apache Tomcat.
  */
 @RunWith(FATRunner.class)
+@Mode(TestMode.FULL)
 public class JSPTagFilesInJarTest {
     private static final Logger LOG = Logger.getLogger(JSPTagFilesInJarTest.class.getName());
     private static final String APP_NAME = "TestTagFilesInJar";
