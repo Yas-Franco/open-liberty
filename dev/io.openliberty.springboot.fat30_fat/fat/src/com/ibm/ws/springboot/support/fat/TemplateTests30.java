@@ -35,7 +35,7 @@ import componenttest.topology.impl.LibertyFileManager;
 import componenttest.topology.utils.LibertyServerUtils;
 
 @RunWith(FATRunner.class)
-public class TemplateTests30 {
+public class TemplateTests30 extends JavaLevel {
     private static Bootstrap bootstrap;
     private static String installPath;
 

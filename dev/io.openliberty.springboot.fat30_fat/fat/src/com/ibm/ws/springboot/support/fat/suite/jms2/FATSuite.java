@@ -19,8 +19,6 @@ import org.junit.runners.Suite.SuiteClasses;
 import com.ibm.ws.springboot.support.fat.JmsSpringBootAppTests30;
 
 import componenttest.containers.TestContainerSuite;
-import componenttest.annotation.MaximumJavaLevel;
-import componenttest.annotation.MinimumJavaLevel;
 import componenttest.custom.junit.runner.AlwaysPassesTest;
 
 @RunWith(Suite.class)
@@ -29,8 +27,6 @@ import componenttest.custom.junit.runner.AlwaysPassesTest;
                 JmsSpringBootAppTests30.class
 })
 
-@MinimumJavaLevel(javaLevel = 17)
-@MaximumJavaLevel(javaLevel = 25) //https://docs.spring.io/spring-boot/3.5/system-requirements.html
 public class FATSuite extends TestContainerSuite {
     // Empty
 }

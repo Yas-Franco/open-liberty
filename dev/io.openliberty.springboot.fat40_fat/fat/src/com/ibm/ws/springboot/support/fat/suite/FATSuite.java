@@ -15,8 +15,6 @@ package com.ibm.ws.springboot.support.fat.suite;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
-import componenttest.annotation.MinimumJavaLevel;
-import componenttest.annotation.MaximumJavaLevel;
 
 import com.ibm.ws.springboot.support.fat.AopSpringBootAppTests40;
 import com.ibm.ws.springboot.support.fat.AopWebAppTests40;
@@ -81,10 +79,11 @@ import com.ibm.ws.springboot.support.fat.WebSocketSpringBootAppTests40;
 import com.ibm.ws.springboot.support.fat.WebSocketWebAppTests40;
 import com.ibm.ws.springboot.support.fat.utility.SpringBootUtilityThinTest;
 
-@MinimumJavaLevel(javaLevel = 17)
-@MaximumJavaLevel(javaLevel = 26)  //https://docs.spring.io/spring-boot/4.0/system-requirements.html
+import componenttest.custom.junit.runner.AlwaysPassesTest;
+
 @RunWith(Suite.class)
 @SuiteClasses({
+                AlwaysPassesTest.class,
                 CommonWebServerTests40.class,
                 ErrorPage40Test.class,
                 CDITests40.class,

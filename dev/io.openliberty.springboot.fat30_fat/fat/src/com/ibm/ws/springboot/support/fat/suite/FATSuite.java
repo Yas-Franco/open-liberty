@@ -16,9 +16,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
-import componenttest.annotation.MaximumJavaLevel;
-import componenttest.annotation.MinimumJavaLevel;
-
 import com.ibm.ws.springboot.support.fat.AopSpringBootAppTests30;
 import com.ibm.ws.springboot.support.fat.AopWebAppTests30;
 import com.ibm.ws.springboot.support.fat.ApplicationArgsTests30;
@@ -81,8 +78,11 @@ import com.ibm.ws.springboot.support.fat.WebSocketSpringBootAppTests30;
 import com.ibm.ws.springboot.support.fat.WebSocketWebAppTests30;
 import com.ibm.ws.springboot.support.fat.utility.SpringBootUtilityThinTest;
 
+import componenttest.custom.junit.runner.AlwaysPassesTest;
+
 @RunWith(Suite.class)
 @SuiteClasses({
+                AlwaysPassesTest.class,
                 CommonWebServerTests30.class,
                 CommonWebFluxTests30.class,
                 UnsupportedConfigWarningTest30.class,
@@ -146,8 +146,6 @@ import com.ibm.ws.springboot.support.fat.utility.SpringBootUtilityThinTest;
                 HTTPMetricsNoContextRootTest.class,
                 HTTPMetricsWithContextRootTest.class
 })
-@MinimumJavaLevel(javaLevel = 17)
-@MaximumJavaLevel(javaLevel = 25) //https://docs.spring.io/spring-boot/3.5/system-requirements.html
 public class FATSuite {
     // Empty
 }
