@@ -29,6 +29,8 @@ import componenttest.annotation.ExpectedFFDC;
 import componenttest.annotation.Server;
 import componenttest.annotation.SkipForRepeat;
 import componenttest.custom.junit.runner.FATRunner;
+import componenttest.custom.junit.runner.Mode;
+import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
 
 /**
@@ -46,6 +48,7 @@ import componenttest.topology.impl.LibertyServer;
  */
 @SkipForRepeat("CDI-2.0")
 @RunWith(FATRunner.class)
+@Mode(TestMode.FULL)
 public class JSPEmptyIncludePathTest {
     private static final String APP_NAME = "TestEmptyIncludePath";
     private static final Logger LOG = Logger.getLogger(JSPEmptyIncludePathTest.class.getName());
