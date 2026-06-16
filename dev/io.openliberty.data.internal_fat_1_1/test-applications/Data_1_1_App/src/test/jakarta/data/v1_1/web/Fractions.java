@@ -73,6 +73,7 @@ public interface Fractions {
                      WHERE numerator = ?
                        AND denominator = ?
                     """)
+    @QueryOptions(timeout = 12000) // query timeout = 12 seconds
     boolean change(BigDecimal ceiling,
                    BigDecimal truncated,
                    int numerator,
