@@ -38,7 +38,7 @@ public class McpRequestTracker {
     private static final TraceComponent tc = Tr.register(McpRequestTracker.class);
 
     private ConcurrentMap<ExecutionRequestId, CancellationImpl> ongoingRequests = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Set<ExecutionRequestId>> sessionToRequestIds = new ConcurrentHashMap<>();
+    private final ConcurrentMap<McpSessionId, Set<ExecutionRequestId>> sessionToRequestIds = new ConcurrentHashMap<>();
 
     private McpConfig mcpConfig;
 
@@ -49,6 +49,10 @@ public class McpRequestTracker {
 
     public void deregisterOngoingRequest(ExecutionRequestId id) {
         ongoingRequests.remove(id);
+        Set<ExecutionRequestId> sessionRequests = sessionToRequestIds.get(id.sessionId());
+        if (sessionRequests != null) {
+            sessionRequests.remove(id);
+        }
     }
 
     public void registerOngoingRequest(ExecutionRequestId requestId, CancellationImpl cancellation) {
@@ -57,6 +61,7 @@ public class McpRequestTracker {
             throw new JSONRPCException(JSONRPCErrorCode.INVALID_PARAMS,
                                        Tr.formatMessage(tc, "invalid.request.params", requestId.id()));
         }
+        sessionToRequestIds.computeIfAbsent(requestId.sessionId(), k -> ConcurrentHashMap.newKeySet()).add(requestId);
     }
 
     public boolean isOngoingRequest(ExecutionRequestId id) {
@@ -78,7 +83,7 @@ public class McpRequestTracker {
             return;
         }
 
-        Set<ExecutionRequestId> requests = sessionToRequestIds.remove(sessionId.value());
+        Set<ExecutionRequestId> requests = sessionToRequestIds.remove(sessionId);
         if (requests == null) {
             return;
         }

@@ -9,6 +9,8 @@
  *******************************************************************************/
 package io.openliberty.mcp.internal.config;
 
+import java.time.Duration;
+
 import io.openliberty.mcp.internal.responses.McpInitializeResult.ServerInfo;
 
 public interface McpConfig {
@@ -20,6 +22,8 @@ public interface McpConfig {
 
     String servicePid();
 
+    Duration sessionTimeout();
+
     /**
      * Returns the ServerInfo object with the configured values (or defaults)
      *
@@ -28,9 +32,9 @@ public interface McpConfig {
     ServerInfo serverInfo();
 
     /**
-     * Returns the timeout in seconds for asynchronous tool executions
+     * Returns the timeout in milliseconds for asynchronous tool executions
      *
-     * @return the async timeout in seconds
+     * @return the async timeout in milliseconds
      */
-    int asyncTimeout();
+    long asyncTimeoutMs();
 }

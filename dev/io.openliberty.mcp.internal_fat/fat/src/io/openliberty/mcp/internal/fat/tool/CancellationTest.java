@@ -37,6 +37,7 @@ import componenttest.topology.impl.LibertyServer;
 import componenttest.topology.utils.FATServletClient;
 import io.openliberty.mcp.internal.fat.tool.cancellationApp.CancellationTools;
 import io.openliberty.mcp.internal.fat.utils.McpClient;
+import io.openliberty.mcp.internal.fat.utils.TestConstants;
 import io.openliberty.mcp.internal.fat.utils.ToolStatus;
 import io.openliberty.mcp.internal.fat.utils.ToolStatusClient;
 
@@ -132,7 +133,7 @@ public class CancellationTest extends FATServletClient {
 
         clientWithTool.callMCPNotification(cancellationRequestNotification);
 
-        String response = future.get(10, TimeUnit.SECONDS);
+        String response = future.get(TestConstants.POSITIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         String expectedResponseString = """
                         {"id":"2","jsonrpc":"2.0","result":{"content":[{"text":"An internal server error occurred while running the tool.", "type":"text"}],"isError":true}}
@@ -142,7 +143,7 @@ public class CancellationTest extends FATServletClient {
 
     @Test
     public void testCancellationToolFromWrongClient() throws Exception {
-        final String LATCH_NAME = "strId";
+        final String LATCH_NAME = "strIdWrongClient";
 
         Callable<String> threadCallingTool = () -> {
             try {
@@ -154,7 +155,7 @@ public class CancellationTest extends FATServletClient {
                                   "params": {
                                     "name": "cancellationTool",
                                     "arguments": {
-                                      "latchName": "strId"
+                                      "latchName": "strIdWrongClient"
                                     }
                                   }
                                 }
@@ -182,7 +183,7 @@ public class CancellationTest extends FATServletClient {
         clientOnWrongURL.callMCPNotification(cancellationRequestNotification);
 
         try {
-            String response = future.get(10, TimeUnit.SECONDS);
+            String response = future.get(TestConstants.NEGATIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             fail("Expected TimeoutException because cancellation from wrong client should have no effect across different modules");
         } catch (java.util.concurrent.TimeoutException e) {
             //Test passed: TimeoutException caught as expected - cancellation from wrong client had no effect
@@ -237,7 +238,7 @@ public class CancellationTest extends FATServletClient {
 
         clientWithTool.callMCPNotification(cancellationRequestNotification);
 
-        String response = future.get(10, TimeUnit.SECONDS);
+        String response = future.get(TestConstants.POSITIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         String expectedResponseString = """
                         {"id":2,"jsonrpc":"2.0","result":{"content":[{"text":"An internal server error occurred while running the tool.", "type":"text"}],"isError":true}}
@@ -266,6 +267,46 @@ public class CancellationTest extends FATServletClient {
                         {"id":"3","jsonrpc":"2.0","result":{"content":[{"type":"text", "text": "If this String is returned, then the tool was not cancelled"}],"isError":false}}
                         """;
         JSONAssert.assertEquals(expectedResponseString, response, true);
+    }
+
+    @Test
+    public void testCancellationWhenSessionDeleted() throws Exception {
+        Callable<String> threadCallingTool = () -> {
+            try {
+                String request = """
+                                  {
+                                  "jsonrpc": "2.0",
+                                  "id": "2",
+                                  "method": "tools/call",
+                                  "params": {
+                                    "name": "cancellationTool",
+                                    "arguments": {
+                                      "latchName": "sessionDeleteTest"
+                                    }
+                                  }
+                                }
+                                """;
+
+                return clientWithTool.callMCP(request);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        Future<String> future = executor.submit(threadCallingTool);
+
+        toolStatus.awaitStarted("sessionDeleteTest");
+
+        // Ending the session should cancel the tool call
+        clientWithTool.deleteSession();
+
+        String response = future.get(TestConstants.POSITIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
+        String expectedResponseString = """
+                        {"id":"2","jsonrpc":"2.0","result":{"content":[{"text":"An internal server error occurred while running the tool.", "type":"text"}],"isError":true}}
+                        """;
+        JSONAssert.assertEquals(expectedResponseString, response, true);
+
     }
 
 }
