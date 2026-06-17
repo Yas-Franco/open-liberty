@@ -863,7 +863,7 @@ public class DataSourceService extends AbstractConnectionFactoryService implemen
         }
 
         // Validate H2 URLs don't contain PASSWORD parameter
-        if (vPropsPID != null && vPropsPID.contains(".h2")) {
+        if (vPropsPID != null && vPropsPID.endsWith(".h2")) {
             String url = vProps.getProperty("URL", vProps.getProperty("url"));
             if (url != null && url.matches("(?i).*;\\bPASSWORD=.*")) {
                 throw new IllegalArgumentException(AdapterUtil.getNLSMessage("8070_H2_URL_PASSWORD", id));
