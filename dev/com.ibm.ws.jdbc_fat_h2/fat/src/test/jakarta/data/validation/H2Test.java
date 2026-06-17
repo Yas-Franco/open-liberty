@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 
 import com.ibm.websphere.simplicity.ShrinkHelper;
 
+import componenttest.annotation.AllowedFFDC;
 import componenttest.annotation.MinimumJavaLevel;
 import componenttest.annotation.Server;
 import componenttest.annotation.TestServlet;
@@ -37,6 +38,7 @@ import test.jdbc.h2.web.H2TestServlet;
 
 @RunWith(FATRunner.class)
 @MinimumJavaLevel(javaLevel = 17)
+@AllowedFFDC("java.lang.IllegalArgumentException")
 public class H2Test extends FATServletClient {
 
     @Server("com.ibm.ws.jdbc.fat.h2")
@@ -49,6 +51,51 @@ public class H2Test extends FATServletClient {
                                                       "test.jdbc.h2.web");
         ShrinkHelper.exportAppToServer(server, war);
         server.startServer();
+    }
+
+    /**
+     * Test that a datasource with password attribute (not in URL) works correctly.
+     */
+    @Test
+    public void testValidPasswordAttribute() throws Exception {
+        runTest(server, "H2TestApp/H2TestServlet", "testValidPasswordAttribute");
+    }
+
+    /**
+     * Test that a datasource with containerAuthData (not in URL) works correctly.
+     */
+    @Test
+    public void testValidContainerAuthData() throws Exception {
+        runTest(server, "H2TestApp/H2TestServlet", "testValidContainerAuthData");
+    }
+
+    /**
+     * Test that a datasource with PASSWORD in URL (uppercase) is rejected.
+     * Validates that DSRA8070E error message appears in the logs.
+     */
+    @Test
+    public void testPasswordinURL() throws Exception {
+        runTest(server, "H2TestApp/H2TestServlet", "testPasswordinURL");
+        
+        // Verify the expected error message appears in the logs
+        List<String> dsra8070e = server.findStringsInLogsAndTrace("DSRA8070E.*h2ds-invalid-password[^-].*PASSWORD");
+        assertTrue("Expected DSRA8070E error for PASSWORD in URL to appear in logs",
+                   !dsra8070e.isEmpty());
+    }
+
+    /**
+     * Test that a datasource with password in URL (any case) is rejected,
+     * even when mixed with other parameters.
+     * Validates that DSRA8070E error message appears in the logs.
+     */
+    @Test
+    public void testPasswordInURLMixedLowerCase() throws Exception {
+        runTest(server, "H2TestApp/H2TestServlet", "testPasswordInURLMixedLowerCase");
+        
+        // Verify the expected error message appears in the logs
+        List<String> dsra8070e = server.findStringsInLogsAndTrace("DSRA8070E.*h2ds-invalid-password-mixed.*PASSWORD");
+        assertTrue("Expected DSRA8070E error for password in URL to appear in logs",
+                   !dsra8070e.isEmpty());
     }
 
     @AfterClass
@@ -87,7 +134,8 @@ public class H2Test extends FATServletClient {
         assertEquals("All Content: lines should be filtered in trace.log",
                      0, unfilteredContent.size());
 
-        server.stopServer();
+        // Stop server and expect errors from URL validation tests
+        server.stopServer("DSRA8070E", "CWWKE0701E");
     }
 
 }

@@ -18,6 +18,8 @@ import static java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
 import static java.sql.Connection.TRANSACTION_REPEATABLE_READ;
 import static java.sql.Connection.TRANSACTION_SERIALIZABLE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
@@ -36,6 +38,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.transaction.UserTransaction;
 
+import javax.naming.InitialContext;
 import javax.naming.Referenceable;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
@@ -451,6 +454,49 @@ public class H2TestServlet extends FATServlet {
             pstmt.setString(1, "Sodium chloride");
             pstmt.setString(2, "Salt");
             assertEquals(1, pstmt.executeUpdate());
+        }
+    }
+
+    /**
+     * Test that a datasource with password attribute (not in URL) works correctly.
+     */
+    public void testValidPasswordAttribute() throws Exception {
+        DataSource ds = (DataSource) new InitialContext().lookup("jdbc/h2ds-valid-password");
+        assertNotNull("DataSource should be successfully created", ds);
+    }
+
+    /**
+     * Test that a datasource with containerAuthData (not in URL) works correctly.
+     */
+    public void testValidContainerAuthData() throws Exception {
+        DataSource ds = (DataSource) new InitialContext().lookup("jdbc/h2ds-valid-authdata");
+        assertNotNull("DataSource should be successfully created", ds);
+    }
+
+    /**
+     * Test that a datasource with PASSWORD in URL (uppercase) is rejected.
+     * The JNDI lookup should fail. The DSRA8070E error will be in the server logs.
+     */
+    public void testPasswordinURL() throws Exception {
+        try {
+            DataSource ds = (DataSource) new InitialContext().lookup("jdbc/h2ds-invalid-password");
+            fail("Expected exception for PASSWORD in URL, but datasource was created: " + ds);
+        } catch (Exception e) {
+            // Pass. The DSRA8070E error message will be in the server logs (checked by FAT test)
+        }
+    }
+
+    /**
+     * Test that a datasource with password in URL (any case) is rejected,
+     * even when mixed with other parameters.
+     * The JNDI lookup should fail. The DSRA8070E error will be in the server logs.
+     */
+    public void testPasswordInURLMixedLowerCase() throws Exception {
+        try {
+            DataSource ds = (DataSource) new InitialContext().lookup("jdbc/h2ds-invalid-password-mixed");
+            fail("Expected exception for password in URL, but datasource was created: " + ds);
+        } catch (Exception e) {
+			//pass
         }
     }
 }
