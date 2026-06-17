@@ -29,26 +29,26 @@
     <file name="${shared.resource.dir}/h2/h2.jar"/>
   </library>
 
-  <!-- Test Scenario 1: Valid - password attribute -->
+  <!-- Valid - password attribute -->
   <dataSource id="h2ds-valid-password" jndiName="jdbc/h2ds-valid-password">
     <jdbcDriver libraryRef="H2Lib"/>
     <properties.h2 URL="jdbc:h2:mem:testdb1" password="secret123"/>
   </dataSource>
 
-  <!-- Test Scenario 2: Valid - containerAuthData -->
+  <!-- Valid - containerAuthData -->
   <authData id="h2AuthData" user="dbuser" password="secret456"/>
   <dataSource id="h2ds-valid-authdata" jndiName="jdbc/h2ds-valid-authdata" containerAuthDataRef="h2AuthData">
     <jdbcDriver libraryRef="H2Lib"/>
     <properties.h2 URL="jdbc:h2:mem:testdb2"/>
   </dataSource>
 
-  <!-- Test Scenario 3: Invalid - PASSWORD in URL (uppercase) -->
+  <!-- Invalid - PASSWORD in URL (uppercase) -->
   <dataSource id="h2ds-invalid-password" jndiName="jdbc/h2ds-invalid-password">
     <jdbcDriver libraryRef="H2Lib"/>
     <properties.h2 URL="jdbc:h2:mem:testdb3;PASSWORD=secret789"/>
   </dataSource>
 
-  <!-- Test Scenario 4: Invalid - password in URL (any case, with or without other parameters) -->
+  <!-- Invalid - password in URL (any case, with or without other parameters) -->
   <dataSource id="h2ds-invalid-password-mixed" jndiName="jdbc/h2ds-invalid-password-mixed">
     <jdbcDriver libraryRef="H2Lib"/>
     <properties.h2 URL="jdbc:h2:mem:testdb4;DB_CLOSE_DELAY=-1;password=secret012;MODE=MySQL"/>

@@ -370,7 +370,7 @@ PROP_SET_ERROR.useraction=Verify that the value that is specified is valid for t
 # {0}        The DataSource id
 8070_H2_URL_PASSWORD=DSRA8070E: The H2 database URL for DataSource {0} contains a PASSWORD parameter. For security, use the password attribute on the properties.h2 element or configure containerAuthData instead.
 8070_H2_URL_PASSWORD.explanation=Embedding passwords in database URLs is a security risk because the password may be exposed in logs, traces, or configuration dumps. The H2 database driver supports secure alternatives for password configuration.
-8070_H2_URL_PASSWORD.useraction=Remove the PASSWORD parameter from the URL and use one of the following secure alternatives: 1) Add a password attribute to the properties.h2 element, or 2) Configure containerAuthData with user and password.
+8070_H2_URL_PASSWORD.useraction=Remove the PASSWORD parameter from the H2 URL and instead specify the password using the password attribute on the properties.h2 element or the containerAuthData configuration.
 
 # {0}        Type of Connection: XAConnection or PooledConnection.
 JAVAX_CONN_ERR=DSRA8100E: Unable to get a {0} from the DataSource.

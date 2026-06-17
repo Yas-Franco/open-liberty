@@ -478,7 +478,7 @@ public class H2TestServlet extends FATServlet {
      * Test that a datasource with PASSWORD in URL (uppercase) is rejected.
      * The JNDI lookup should fail. The DSRA8070E error will be in the server logs.
      */
-    public void testPasswordinURL() throws Exception {
+    public void testPasswordInURL() throws Exception {
         try {
             DataSource ds = (DataSource) new InitialContext().lookup("jdbc/h2ds-invalid-password");
             fail("Expected exception for PASSWORD in URL, but datasource was created: " + ds);
