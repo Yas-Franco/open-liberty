@@ -4547,7 +4547,8 @@ public abstract class QueryInfo {
 
                 setParameters(query, args, Collections.emptyMap(), null);
 
-                returnValue = query.executeUpdate();
+                returnValue = toReturnValue(query.executeUpdate(),
+                                            singleType);
             } else {
                 query = ehCreateNativeQuery(entityHandler);
 

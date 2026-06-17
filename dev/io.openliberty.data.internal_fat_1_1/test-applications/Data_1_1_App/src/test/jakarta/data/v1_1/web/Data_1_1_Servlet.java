@@ -65,6 +65,7 @@ import org.junit.Test;
 import componenttest.annotation.AllowedFFDC;
 import componenttest.app.FATServlet;
 import test.jakarta.data.v1_1.web.Fraction.Decimal;
+import test.jakarta.data.v1_1.web.Fraction.Decimal.Type;
 
 @SuppressWarnings("serial")
 @WebServlet("/*")
@@ -1116,6 +1117,9 @@ public class Data_1_1_Servlet extends FATServlet {
                          f18_23.decimal.value(),
                          0.0001);
             tx.commit();
+
+            // allow error to be raised if any
+            lockDB.get(TIMEOUT_S, TimeUnit.SECONDS);
         } finally {
             locked.countDown();
             blocked.countDown();
@@ -1511,6 +1515,47 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Use a NativeQuery method that performs SQL INSERT, UPDATE, and DELETE
+     * statements.
+     */
+    @Test
+    public void testNativeQueryExecutesStatements() {
+        // Populate with 14/23.
+        // Ensure deletion in the finally block.
+        fractions.create(14,
+                         23,
+                         "Fourteen Twenty-Thirds",
+                         true,
+                         14.0 / 23.0,
+                         23.0 / 14.0,
+                         BigDecimal.valueOf(6090L, 4),
+                         BigDecimal.valueOf(6080L, 4),
+                         Type.REPEATING.ordinal(),
+                         "",
+                         "60869565");
+        try {
+            assertEquals(BigDecimal.valueOf(6090L, 4),
+                         fractions.roundedUp(14, 23)
+                                         .orElseThrow());
+
+            System.out.println("Update 14/23");
+
+            assertEquals(true, fractions.change(BigDecimal.valueOf(6087L, 4),
+                                                BigDecimal.valueOf(6086L, 4),
+                                                14,
+                                                23));
+
+            assertEquals(BigDecimal.valueOf(6087L, 4),
+                         fractions.roundedUp(14, 23)
+                                         .orElseThrow());
+        } finally {
+            // Ensure no fractions with denominator of 23 or more are left around
+            assertEquals(1L,
+                         fractions.destroy(14, "Twenty-Thirds"));
+        }
+    }
+
+    /**
      * Use a NativeQuery method that returns subsets of entity attributes
      * as an array of Java records
      */
@@ -1799,6 +1844,72 @@ public class Data_1_1_Servlet extends FATServlet {
 
         assertEquals(false,
                      fractions.greatestLessThan1(0).isPresent());
+    }
+
+    /**
+     * Use the QueryOptions annotation to establish a query timeout on a
+     * repository method annotated NativeQuery.
+     */
+    @AllowedFFDC("javax.transaction.xa.XAException") // due to query timeout
+    @Test
+    public void testQueryTimeoutAsQueryOptionOnNativeQuery() throws Exception {
+        // Derby ignores query timeout and the lock timeout ends up applying instead
+        if (isDerby())
+            return;
+
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch blocked = new CountDownLatch(1);
+
+        CompletableFuture<Boolean> lockDB = CompletableFuture.supplyAsync(() -> {
+            try {
+                tx.setTransactionTimeout((int) TIMEOUT_S * 3);
+                tx.begin();
+                boolean found = fractions.change(BigDecimal.valueOf(1880, 4),
+                                 BigDecimal.valueOf(1870, 4),
+                                 3,
+                                 16);
+                System.out.println("Obtained lock on 3/16");
+                locked.countDown();
+                blocked.await(TIMEOUT_S * 2, TimeUnit.SECONDS);
+                System.out.println("Release lock on 3/16");
+                tx.rollback();
+                return found;
+            } catch (RuntimeException x) {
+                throw x;
+            } catch (Exception x) {
+                throw new CompletionException(x);
+            }
+        });
+
+        try {
+            assertEquals(true, locked.await(TIMEOUT_S, TimeUnit.SECONDS));
+            try {
+                boolean found = fractions.change(BigDecimal.valueOf(1900, 4),
+                                                 BigDecimal.valueOf(1800, 4),
+                                                 3,
+                                                 16);
+                fail("Query timeout on QueryOptions should have caused the" +
+                     " query to time out. Instead found entity? " + found);
+            } catch (DataException x) {
+                // expected for query timeout
+            }
+
+            blocked.countDown();
+
+            // changes must be rolled back and the lock released
+            Fraction f3_16 = fractions.of(3, 16)
+                            .orElseThrow();
+            assertEquals(BigDecimal.valueOf(1875, 4),
+                         f3_16.decimal.ceiling());
+            assertEquals(BigDecimal.valueOf(1875, 4),
+                         f3_16.decimal.truncated());
+
+            // allow error to be raised if any
+            lockDB.get(TIMEOUT_S, TimeUnit.SECONDS);
+        } finally {
+            locked.countDown();
+            blocked.countDown();
+        }
     }
 
     /**
