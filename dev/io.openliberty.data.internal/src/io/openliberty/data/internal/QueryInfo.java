@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -115,6 +116,13 @@ public abstract class QueryInfo {
                     Collections.emptyMap();
 
     /**
+     * Constant for qlParamNames that indicates we have determined that the
+     * a native query has no named parameters.
+     */
+    private static final Set<String> NO_NAMED_PARAMS = //
+                    Collections.unmodifiableSet(new HashSet<>(0));
+
+    /**
      * Indicates the repository method has no Sort, Sort[], or Order parameters
      * for dynamic sort criteria and also does not define any static sort criteria.
      */
@@ -151,6 +159,12 @@ public abstract class QueryInfo {
      * The implicit entity identifier variable defined by Jakarta Persistence.
      */
     private static final String THIS = "this";
+
+    /**
+     * Constant for qlParamNames that indicates it has not yet been determined
+     * whether a query has named parameters.
+     */
+    private static final Set<String> UNKNOWN = Collections.emptySet();
 
     /**
      * Information about the type of entity to which the query pertains.
@@ -221,9 +235,10 @@ public abstract class QueryInfo {
      * generated restrictions, such as those added for cursor pagination.
      * The empty set value is used when the field has not been initialized yet
      * or the query has no parameters or has positional parameters (?1, ?2, ...)
-     * rather than named parameters.
+     * rather than named parameters. The constant UNKNOWN represents the former
+     * and NO_NAMED_PARAMS represents the latter two cases.
      */
-    Set<String> jpqlParamNames = Collections.emptySet();
+    volatile Set<String> jpqlParamNames = Collections.emptySet();
 
     /**
      * Value from the First annotation, or findFirst#By, or 1 for findFirstBy,
@@ -486,6 +501,37 @@ public abstract class QueryInfo {
                                                       int prevNumJPQLParams,
                                                       boolean isCollection,
                                                       Annotation[] annos);
+
+    /**
+     * Asks the Jakarta Persistence provider whether the given query uses named
+     * parameters. The API for this is optional, but supported by Hibernate.
+     * If the API is not supported, assume named parameters are not permitted.
+     *
+     * @param query the query
+     * @return named parameter names if any; otherwise null
+     */
+    @FFDCIgnore(IllegalStateException.class) // not supported by provider
+    private Set<String> checkForNamedParameters(jakarta.persistence.Query query) {
+        Set<String> paramNames = null;
+        try {
+            Set<jakarta.persistence.Parameter<?>> p = query.getParameters();
+            if (!p.isEmpty() && p.iterator().next().getPosition() == null) {
+                Parameter[] params = method.getParameters();
+                if (params[0].isNamePresent()) {
+                    paramNames = new LinkedHashSet<>();
+                    for (int i = 0; i < specialParamsStartAt; i++)
+                        paramNames.add(params[i].getName());
+                }
+            }
+        } catch (IllegalStateException x) {
+            // not supported by Persistence provider for native queries
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled())
+                Tr.debug(this, tc, "not supported by provider", x.getMessage());
+        }
+
+        jpqlParamNames = paramNames == null ? NO_NAMED_PARAMS : paramNames;
+        return paramNames;
+    }
 
     /**
      * Compute the zero-based offset to use as a starting point for a Limit range.
@@ -3644,8 +3690,29 @@ public abstract class QueryInfo {
                           repositoryInterface.getName(),
                           params[specialParamsStartAt].getName(),
                           Util.names(specialParamTypes));
+            } else { // positional or named parameter
+                Param param = params[i].getAnnotation(Param.class);
+                String paramName = null;
+                if (param == null) {
+                    if (!jpqlParamNames.isEmpty() && params[i].isNamePresent())
+                        // name of parameter (if using -parameters)
+                        paramName = params[i].getName();
+                    // else positional parameter
+                } else {
+                    // @Param annotation
+                    paramName = param.value();
+                }
+                if (paramName != null) {
+                    if (jpqlParamNames.isEmpty())
+                        jpqlParamNames = new LinkedHashSet<>();
+                    if (!jpqlParamNames.add(paramName))
+                        Fail.namedParamConflict(this, paramName, params[i]);
+                }
             }
         }
+        int namedParamCount = jpqlParamNames.size();
+        if (namedParamCount > 0 && namedParamCount < specialParamsStartAt)
+            throw Fail.mixedQLParamTypes(this, namedParamCount);
 
         qlParamCount = specialParamsStartAt;
 
@@ -5705,6 +5772,10 @@ public abstract class QueryInfo {
                        Map<Object, Object> addedJPQLParams) {
         final boolean trace = TraceComponent.isAnyTracingEnabled();
         final int numArgs = args == null ? 0 : args.length;
+
+        // delayed discovery of named parameters for native query
+        if (type == NATIVE && specialParamsStartAt > 0 && jpqlParamNames == UNKNOWN)
+            checkForNamedParameters(query);
 
         if (trace && tc.isDebugEnabled()) {
             Object addedLoggable = loggable(addedJPQLParams);
