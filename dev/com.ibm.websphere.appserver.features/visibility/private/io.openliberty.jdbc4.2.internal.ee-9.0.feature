@@ -2,11 +2,9 @@
 symbolicName=io.openliberty.jdbc4.2.internal.ee-9.0
 singleton=true
 -features=\
- com.ibm.websphere.appserver.transaction-2.0
+ com.ibm.websphere.appserver.transaction-2.0; ibm.tolerates:="2.1"
 -bundles=\
- com.ibm.ws.jdbc.jakarta,\
- com.ibm.ws.jdbc.4.1.jakarta,\
- com.ibm.ws.jdbc.4.2.jakarta
+ com.ibm.ws.jdbc.jakarta
 kind=ga
 edition=core
 WLP-Activation-Type: parallel

@@ -15,13 +15,11 @@ Bundle-Description: Jakarta Authorization Provider, version=${bVersion}
 Web-ContextPath: authz
 
 Private-Package: \
-  com.ibm.ws.security.authorization.jacc.provider, \
-  com.ibm.ws.security.authorization.jacc.role, \
-  io.openliberty.security.authorization.spec
+  com.ibm.ws.security.authorization.jacc.provider
+
+Import-Package: \
+  !com.ibm.ws.security.authorization.jacc.role, \
+  *
 
 Include-Resource: \
-  @\${repo;com.ibm.ws.security.authorization.jacc.testprovider.jakarta}!/(OSGI-INF/l10n/*|OSGI-INF/metatype/*), \
   WEB-INF=resources/WEB-INF
-
--dsannotations: \
-  io.openliberty.security.authorization.spec.UserFeatureService

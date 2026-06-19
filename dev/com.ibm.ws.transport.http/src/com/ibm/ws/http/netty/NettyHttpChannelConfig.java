@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023, 2025 IBM Corporation and others.
+ * Copyright (c) 2023, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -22,7 +22,6 @@ import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.ws.http.channel.internal.HttpChannelConfig;
 import com.ibm.ws.http.channel.internal.HttpConfigConstants;
 import com.ibm.ws.http.channel.internal.HttpMessages;
-import com.ibm.ws.http.netty.pipeline.HttpPipelineInitializer.ConfigElement;
 
 import io.openliberty.http.options.TcpOption;
 import io.openliberty.transport.config.options.EndpointOption;
@@ -34,6 +33,17 @@ public class NettyHttpChannelConfig extends HttpChannelConfig {
 
     /** RAS tracing variable */
     private static final TraceComponent tc = Tr.register(NettyHttpChannelConfig.class, HttpMessages.HTTP_TRACE_NAME, HttpMessages.HTTP_BUNDLE);
+
+    public enum ConfigElement {
+        HTTP_OPTIONS,
+        SSL_OPTIONS,
+        REMOTE_IP,
+        COMPRESSION,
+        SAMESITE,
+        HEADERS,
+        ACCESS_LOG,
+        TCP_OPTIONS
+    }
 
     private boolean suppressHandshakeError;
     private int suppressHandshakeErrorCount;
@@ -201,6 +211,9 @@ public class NettyHttpChannelConfig extends HttpChannelConfig {
         parseProtocolVersion(options.get(HttpConfigConstants.PROPNAME_PROTOCOL_VERSION));
         parseH2SettingsInitialWindowSize(options.get(HttpConfigConstants.PROPNAME_H2_SETTINGS_INITIAL_WINDOW_SIZE));
         parseH2MaxHeaderBlockSize(options.get(HttpConfigConstants.PROPNAME_H2_MAX_HEADER_BLOCK_SIZE));
+        parseH2MaxResetFrames(options.get(HttpConfigConstants.PROPNAME_H2_MAX_RESET_FRAMES));
+        parseH2ResetFramesWindow(options.get(HttpConfigConstants.PROPNAME_H2_RESET_FRAMES_WINDOW));
+        parseH2MaxStreamsRefused(options.get(HttpConfigConstants.PROPNAME_H2_MAX_STREAMS_REFUSED));
     }
 
     private void parseRemoteIpOptions(Map<String, Object> options) {

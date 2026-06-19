@@ -1,14 +1,11 @@
 #*******************************************************************************
-# Copyright (c) 2019, 2023 IBM Corporation and others.
+# Copyright 2019,2026 IBM Corporation and others.
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License 2.0
 # which accompanies this distribution, and is available at
 # http://www.eclipse.org/legal/epl-2.0/
 #
 # SPDX-License-Identifier: EPL-2.0
-#
-# Contributors:
-#     IBM Corporation - initial API and implementation
 #*******************************************************************************
 -include= ~../cnf/resources/bnd/bundle.props
 bVersion=1.0
@@ -39,7 +36,8 @@ tested.features: \
 	servlet-3.1,\
 	servlet-4.0,\
 	servlet-5.0,\
-	servlet-6.0
+	servlet-6.0,\
+	servlet-6.1
 
 -buildpath: \
 	com.ibm.websphere.javaee.activity.1.0;version=latest,\
@@ -49,6 +47,6 @@ tested.features: \
 	com.ibm.websphere.javaee.transaction.1.2;version=latest, \
 	com.ibm.ws.ejbcontainer.core; version=latest, \
 	com.ibm.ws.ejbcontainer.fat_tools; version=latest,\
-	com.ibm.ws.org.apache.yoko.corba.spec.1.5;version=latest,\
-	com.ibm.ws.org.apache.yoko.rmi.spec.1.5;version=latest,\
+	io.openliberty.yoko.spec.corba;version=latest,\
+	io.openliberty.yoko.rmi.spec;version=latest,\
 	io.openliberty.ejbcontainer.jakarta.fat_tools; version=latest

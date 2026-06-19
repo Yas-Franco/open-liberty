@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024,2025 IBM Corporation and others.
+ * Copyright (c) 2024,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -43,7 +43,7 @@ import jakarta.data.repository.Update;
  * Some methods are valid.
  * Others have errors, as indicated.
  */
-@Repository(dataStore = "java:app/jdbc/DerbyDataSource")
+@Repository(dataStore = "java:app/jdbc/H2DataSource")
 public interface Voters extends BasicRepository<Voter, Integer> {
     static record NameAndZipCode(String name, int zipCode) {
     }
@@ -202,10 +202,15 @@ public interface Voters extends BasicRepository<Voter, Integer> {
     int existsByAddress(String homeAddress);
 
     /**
+     * This invalid method attempts to supply a PageRequest to an existsBy method.
+     */
+    boolean existsAnyByBirthday(LocalDate birthday, PageRequest pageReq);
+
+    /**
      * This invalid method attempts to return a true/false exists result as Page
      * of Boolean.
      */
-    Page<Boolean> existsByBirthday(LocalDate birthday, PageRequest pageReq);
+    Page<Boolean> existsByBirthday(LocalDate birthday);
 
     /**
      * This invalid method attempts to return a true/false exist result as a

@@ -69,6 +69,8 @@ public class FATTest {
     private static boolean CWWKS1864wAlreadyLoggedForHash = false;
     /** CWWKS1864w is only logged one time for AES-128 {aes} passwords per server start */
     private static boolean CWWKS1864wAlreadyLoggedForAES = false;
+    /** CWWKS1865w is only logged one time for {aes} passwords without a custom encryption key per server start */
+    private static boolean CWWKS1865wAlreadyLoggedForAES = false;
 
     
     @ClassRule
@@ -189,8 +191,13 @@ public class FATTest {
                 CWWKS1864wAlreadyLoggedForAES = true;
             }
 
-            // Add CWWKS1865W for AES passwords without custom encryption key
-            expectedErrors.add(CWWKS1865W_AES_NO_CUSTOM_KEY_WARNING);
+            //Note: CWWKS1865W will be output after CWWKS1864W
+            if (!!!CWWKS1865wAlreadyLoggedForAES) {
+                assertNotNull("AES password without custom encryption key should cause CWWKS1865W",
+                              server.waitForStringInLog(CWWKS1865W_AES_NO_CUSTOM_KEY_WARNING));
+                expectedErrors.add(CWWKS1865W_AES_NO_CUSTOM_KEY_WARNING);
+                CWWKS1865wAlreadyLoggedForAES = true;
+            }
 
             assertEquals("Authentication should succeed.",
                          "defaultUser", servlet.checkPassword("defaultUser", password));
@@ -231,6 +238,14 @@ public class FATTest {
                 expectedErrors.add(CWWKS1864W_WEAK_ALGORITHM_WARNING);
                 CWWKS1864wAlreadyLoggedForAES = true;
             }
+        }
+
+        //Note: CWWKS1865W will be output after CWWKS1864W
+        if (!!!CWWKS1865wAlreadyLoggedForAES) {
+            assertNotNull("AES password without custom encryption key should cause CWWKS1865W",
+                    server.waitForStringInLog(CWWKS1865W_AES_NO_CUSTOM_KEY_WARNING));
+            expectedErrors.add(CWWKS1865W_AES_NO_CUSTOM_KEY_WARNING);
+            CWWKS1865wAlreadyLoggedForAES = true;
         }
 
         String password = "superAES256password";
@@ -373,6 +388,7 @@ public class FATTest {
 
             CWWKS1864wAlreadyLoggedForHash = false;
             CWWKS1864wAlreadyLoggedForAES = false;
+            CWWKS1865wAlreadyLoggedForAES = false; 
 
             server.setServerConfigurationFile(serverXML);
             if (CheckpointRule.isActive()) {

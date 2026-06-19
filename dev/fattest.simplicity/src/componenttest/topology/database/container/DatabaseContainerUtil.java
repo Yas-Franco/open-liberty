@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019, 2025 IBM Corporation and others.
+ * Copyright (c) 2019, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -75,6 +75,7 @@ public final class DatabaseContainerUtil {
     private static String DRIVER_KEY = "DB_DRIVER";
     private static String USER_KEY = "DB_USER";
     private static String PASS_KEY = "DB_PASS";
+    private static String URL_KEY = "DB_URL";
 
     private static final String toReplacementString(String key) {
         return "${env." + key + "}";
@@ -119,7 +120,8 @@ public final class DatabaseContainerUtil {
         this.driverDir = findJdbcDriverLocation(databaseType)
                         .orElseThrow(() -> new IllegalStateException("Could not find where the JDBC Driver was located"));
         this.relativeDriverDir = driverDir.getAbsolutePath()
-                        .replace(sharedResourcesDir.getAbsolutePath(), "${shared.resource.dir}");
+                        .replace(sharedResourcesDir.getAbsolutePath(), "${shared.resource.dir}")
+                        .replace("\\", "/");
 
         this.hasDriverPermissionVariable = serverClone.getJavaPermissions()
                         .stream()
@@ -134,10 +136,30 @@ public final class DatabaseContainerUtil {
         boolean isDerbyJava17Plus = DatabaseContainerType.valueOf(databaseCont) == DatabaseContainerType.DerbyJava17Plus ||
                                     DatabaseContainerType.valueOf(databaseCont) == DatabaseContainerType.DerbyClientJava17Plus;
 
+        boolean isH2 = DatabaseContainerType.valueOf(databaseCont) == DatabaseContainerType.H2 ||
+                       DatabaseContainerType.valueOf(databaseCont) == DatabaseContainerType.H2Java11Plus;
+
         if (isDerby || isDerbyJava17Plus) {
             this.datasources = Collections.emptySet();
             this.authDatas = Collections.emptySet();
             this.isModifiable = false;
+            return;
+        }
+
+        //TODO Allow H2 to both be default and a rotation
+        // might be helpful to have a build that attempts to use
+        // H2 in rotation so teams know going into the transition
+        // what failures they will need to deal with.
+
+        if (isH2) {
+            this.datasources = Collections.emptySet();
+            this.authDatas = Collections.emptySet();
+            this.isModifiable = false;
+
+            // H2 uses a URL for connection properties that may change depending
+            // on how the container was initialized.
+            server.addEnvVar(URL_KEY, databaseCont.getJdbcUrl());
+
             return;
         }
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024, 2025 IBM Corporation and others.
+ * Copyright (c) 2024, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -8,6 +8,8 @@
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package com.ibm.ws.http.netty.pipeline;
+
+import java.text.ParseException;
 
 import com.ibm.ws.http.netty.NettyHttpConstants;
 
@@ -21,6 +23,8 @@ import io.netty.channel.ChannelHandler.Sharable;
  */
 @Sharable
 public class CRLFValidationHandler extends ChannelInboundHandlerAdapter {
+
+    public static String NAME = "CRLFValidationHandler";
 
     private static final int MAX_CRLF_ALLOWED = 2;
     public static final CRLFValidationHandler INSTANCE = new CRLFValidationHandler();
@@ -47,7 +51,7 @@ public class CRLFValidationHandler extends ChannelInboundHandlerAdapter {
 
             if (++leadingCRLFCount > MAX_CRLF_ALLOWED) {
                 ctx.channel().attr(NettyHttpConstants.THROW_FFDC).set(true);
-                throw new IllegalArgumentException("Too many leading CRLF characters");
+                throw new ParseException("Too many leading CRLF characters", MAX_CRLF_ALLOWED);
             }
         }
 

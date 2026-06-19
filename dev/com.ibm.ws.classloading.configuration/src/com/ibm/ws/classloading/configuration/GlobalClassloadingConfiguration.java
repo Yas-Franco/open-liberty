@@ -14,6 +14,7 @@ package com.ibm.ws.classloading.configuration;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.Collections;
@@ -24,8 +25,14 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.osgi.util.ManifestElement;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
+import org.osgi.framework.Constants;
+import org.osgi.framework.namespace.AbstractWiringNamespace;
+import org.osgi.framework.namespace.PackageNamespace;
+import org.osgi.framework.wiring.BundleCapability;
+import org.osgi.framework.wiring.BundleWiring;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
@@ -85,10 +92,13 @@ public class GlobalClassloadingConfiguration {
     private final AtomicBoolean issuedClassLoaderParentPackagesBetaMessage = new AtomicBoolean(false);
     private volatile boolean useJarUrls = false;
     private volatile LibraryPrecedence libraryPrecedence = LibraryPrecedence.afterApp;
-    private volatile JVMPackages jvmPackages = new JVMPackages(null, null, null);
+    private volatile JVMPackages jvmPackages = new JVMPackages(null, null, null, null);
 
     @Activate
     protected void activate(BundleContext context, Map<String, Object> properties) {
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "activate: java9Plus=" + java9Plus + " platformClassLoader=" + platformClassLoader);
+        }
         // Note these bootstrap props could become proper metatype config attributes at some point.
         String parentProp = getPropAndIssueBetaMessages(context, CLASSLOADING_APP_PARENT_PROP, issuedClassLoaderParentBetaMessage);
         String parentPackagesProp = getPropAndIssueBetaMessages(context, CLASSLOADING_APP_PARENT_PACKAGES_PROP, issuedClassLoaderParentPackagesBetaMessage);
@@ -96,14 +106,45 @@ public class GlobalClassloadingConfiguration {
             // for Java 8 we will not support parent packages
             if (parentPackagesProp != null) {
                 if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-                    Tr.debug(tc, "Ignoring the " + CLASSLOADING_APP_PARENT_PACKAGES_PROP + " value on Java 8: " + parentPackagesProp);
+                    Tr.debug(tc, "activate: Ignoring the " + CLASSLOADING_APP_PARENT_PACKAGES_PROP + " value on Java 8: " + parentPackagesProp);
                 }
                 parentPackagesProp = null;
             }
         }
-        jvmPackages = new JVMPackages(parentProp, parentPackagesProp, context.getProperty(BootstrapConstants.INITPROP_BOOT_PACKAGES));
-
+        Set<String> mandatoryPackages = findSystemMandatoryPackages(context.getBundle(Constants.SYSTEM_BUNDLE_LOCATION));
+        jvmPackages = new JVMPackages(parentProp, parentPackagesProp, context.getProperty(BootstrapConstants.INITPROP_BOOT_PACKAGES), mandatoryPackages);
         modified(properties);
+    }
+
+    /**
+     * @param parentPackagesProp
+     * @return
+     */
+    private Set<String> findSystemMandatoryPackages(Bundle systemBundle) {
+        if (!java9Plus) {
+            // On Java 8 we always delegate to the parent loader;
+            // We can avoid doing the system bundle wiring check for mandatory packages here.
+            return Collections.emptySet();
+        }
+        BundleWiring systemWiring = systemBundle == null ? null : systemBundle.adapt(BundleWiring.class);
+        if (systemWiring == null) {
+            return Collections.emptySet();
+        }
+        // we only expect one package: javax.transaction.xa
+        Set<String> result = new HashSet<>(1);
+        for (BundleCapability export : systemWiring.getCapabilities(PackageNamespace.PACKAGE_NAMESPACE)) {
+            if (export.getDirectives().get(AbstractWiringNamespace.CAPABILITY_MANDATORY_DIRECTIVE) != null) {
+                // We don't care what the mandatory directive value is.  If it is anything but null
+                // we add the package name to the mandatory packages to avoid filtering it.
+                result.add((String) export.getAttributes().get(PackageNamespace.PACKAGE_NAMESPACE));
+            }
+        }
+        if (result.size() == 1) {
+            // optimize the expected case with only javax.transaction.xa
+            result = Collections.singleton(result.iterator().next());
+        }
+        return result;
+
     }
 
     private static String getPropAndIssueBetaMessages(BundleContext context, String propKey, AtomicBoolean issueBetaMessage) {
@@ -170,8 +211,9 @@ public class GlobalClassloadingConfiguration {
         private final ParentConfig parentConfig;
         private final ClassLoader parentCL;
         private final Set<String> parentPackages;
+        private final Set<String> mandatoryPackages;
 
-        public JVMPackages(String parentProp, String parentPackagesProp, String bootPackages) {
+        public JVMPackages(String parentProp, String parentPackagesProp, String bootPackages, Set<String> mandatoryPackages) {
             Set<String> extraPackages = null;
             if (parentPackagesProp != null) {
                 extraPackages = new HashSet<String>();
@@ -180,6 +222,13 @@ public class GlobalClassloadingConfiguration {
                     String[] extraPackagesArray = parentPackagesProp.split(",");
                     for (String pkg : extraPackagesArray) {
                         extraPackages.add(pkg.trim());
+                    }
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "JVMPackages: configured parent packages value: " + extraPackages);
+                    }
+                } else {
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "JVMPackages: configured with empty parent packages value.");
                     }
                 }
             }
@@ -193,6 +242,12 @@ public class GlobalClassloadingConfiguration {
             parentConfig = result;
             parentCL = parentConfig == ParentConfig.PLATFORM ? GlobalClassloadingConfiguration.platformClassLoader : ClassLoader.getSystemClassLoader();
             parentPackages = discoverParentPackages(parentConfig, bootPackages, extraPackages);
+            this.mandatoryPackages = mandatoryPackages == null ? Collections.emptySet() : mandatoryPackages;
+
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc,
+                         "JVMPackages: parentConfig=" + parentConfig + " parentCL=" + parentCL + " parentPackages=" + parentPackages + " mandatoryPackages=" + mandatoryPackages);
+            }
         }
 
         /**
@@ -204,6 +259,14 @@ public class GlobalClassloadingConfiguration {
             // NOTE: returning a null set will cause nothing to be filtered;
             //       returning an empty set will cause everything to be filtered;
             //       returning a non-empty set will cause everything not in the set to be filtered.
+            if (usingBootclasspathJVMOption()) {
+                // if using -Xbootclasspath we cannot filter anything
+
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "discoverParentPackages: returning null because -Xbootclasspath JVM option is being used.");
+                }
+                return null;
+            }
             if (parentConfig == ParentConfig.PLATFORM) {
                 // A strange case where the user configured extra packages with PLATFORM;
                 // It is arguable that this should not be allowed since we do not believe
@@ -216,17 +279,27 @@ public class GlobalClassloadingConfiguration {
                 // WILL be delegated to platform.  This provides a sort of out if things are
                 // not working as expected from the gateway bundle loader delegation.
                 if (java9Plus) {
-                    return extraPackages == null ? Collections.emptySet() : extraPackages;
+                    Set<String> result = extraPackages == null ? Collections.emptySet() : extraPackages;
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "discoverParentPackages: Java 9+ using PLATFORM with extraPackages=" + result);
+                    }
+                    return result;
                 }
                 // On Java8 we do not have Java APIs to get the exact set of packages available
                 // in the platform so by default we filter nothing (null).  The extraPackages option
                 // allows an out if the user wants to control what packages we delegate to platform for on Java 8.
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "discoverParentPackages: Java 8 using PLATFORM with extraPackages=" + extraPackages);
+                }
                 return extraPackages;
             }
 
             if (bootPackages == null) {
                 // If we don't know what the boot packages are then we cannot filter anything.
                 // This probably would be a bug.
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "discoverParentPackages: returning null because bootPackages==null");
+                }
                 return null;
             }
 
@@ -234,6 +307,9 @@ public class GlobalClassloadingConfiguration {
                 // On Java 8 we know the system bundle does not get configured for ALL available
                 // packages available in the platform.  If the user did not configure extra packages
                 // then we cannot filter anything (null)
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "discoverParentPackages: returning null because Java 8 is being used.");
+                }
                 return null;
             }
 
@@ -245,6 +321,18 @@ public class GlobalClassloadingConfiguration {
             }
 
             return result;
+        }
+
+        /**
+         * @return
+         */
+        private static boolean usingBootclasspathJVMOption() {
+            for (String jvmArg : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
+                if (jvmArg.startsWith("-Xbootclasspath")) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /**
@@ -260,19 +348,29 @@ public class GlobalClassloadingConfiguration {
             // then we indicate this is not the default;
             String javaClassPathProp = System.getProperty("java.class.path");
             if (javaClassPathProp == null) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "isDefaultClassPath returning false with no java.class.path value.");
+                }
                 // weird case; maybe using module path? regardless we report this is not the default
                 return false;
             }
             // do a simple file check on the path assuming it is a single path value
             File wsServerJarFile = new File(javaClassPathProp);
             if (!wsServerJarFile.exists() || !"ws-server.jar".equals(wsServerJarFile.getName())) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "isDefaultClassPath returning false with unrecognized path: " + javaClassPathProp);
+                }
                 return false;
             }
 
             try {
                 // Unfortunately the java.class.path prop does not contain any JARs from java agents
                 Set<URL> systemManifests = new HashSet<>(Collections.list(ClassLoader.getSystemClassLoader().getResources("META-INF/MANIFEST.MF")));
+                // Remove any manifests from the platform (this may no longer be needed on Java 9+ because platform has only modules (with no manifests)
                 systemManifests.removeAll(Collections.list(platformClassLoader.getResources("META-INF/MANIFEST.MF")));
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "isDefaultClassPath found the following manifests on the JVM classpath: " + systemManifests);
+                }
                 for (URL url : systemManifests) {
                     // This is using fuzzy in matching.  We simply check for the expected names in the path.
                     // This isn't perfect matching since someone could use the following strings
@@ -288,14 +386,22 @@ public class GlobalClassloadingConfiguration {
                     if (path.contains("com.ibm.ws.kernel.boot_")) {
                         continue;
                     }
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(tc, "isDefaultClassPath returning false with unrecognized path: " + path);
+                    }
                     // detected non-default path
                     return false;
                 }
             } catch (IOException e) {
                 // this shouldn't happen for getResources calls; treat as non-default and auto-ffdc
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "isDefaultClassPath returning false with IOException: " + e.getMessage());
+                }
                 return false;
             }
-
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(tc, "isDefaultClassPath returning true");
+            }
             return true;
         }
 
@@ -354,17 +460,41 @@ public class GlobalClassloadingConfiguration {
                 // filter nothing
                 return false;
             }
-            if (parentPackages.isEmpty()) {
-                // filter everything
-                return true;
-            }
-            // filter any package not in the parentPackages set
             int lastDot = className.lastIndexOf('.');
             if (lastDot > 0) {
                 String packageName = className.substring(0, lastDot);
-                return !parentPackages.contains(packageName);
+                return filterPackage(packageName);
             }
+            // must be the default package; don't filter
             return false;
+        }
+
+        private boolean filterPackageResource(String resName) {
+            if (parentPackages == null) {
+                // filter nothing
+                return false;
+            }
+            int begin = ((resName.length() > 1) && (resName.charAt(0) == '/')) ? 1 : 0;
+            int end = resName.lastIndexOf('/'); /* index of last slash */
+            if (end > begin) {
+                String packageName = resName.substring(begin, end).replace('/', '.');
+                return filterPackage(packageName);
+            }
+            // must be the default package; don't filter
+            return false;
+        }
+
+        private boolean filterPackage(String packageName) {
+            if (mandatoryPackages.contains(packageName)) {
+                // never filter mandatory packages
+                return false;
+            }
+            if (parentPackages.isEmpty()) {
+                // filter everything else
+                return true;
+            }
+            // or filter anything else not in the parentPackages set
+            return !parentPackages.contains(packageName);
         }
 
         public URL getResource(String resName) {
@@ -391,25 +521,6 @@ public class GlobalClassloadingConfiguration {
                 Tr.debug(tc, "getResources: getting resources from gateway parent: " + resName);
             }
             return parentCL.getResources(resName);
-        }
-
-        private boolean filterPackageResource(String resName) {
-            if (parentPackages == null) {
-                // filter nothing
-                return false;
-            }
-            if (parentPackages.isEmpty()) {
-                // filter everything
-                return true;
-            }
-            // filter any package not in the parentPackages set
-            int begin = ((resName.length() > 1) && (resName.charAt(0) == '/')) ? 1 : 0;
-            int end = resName.lastIndexOf('/'); /* index of last slash */
-            if (end > begin) {
-                String packageName = resName.substring(begin, end).replace('/', '.');
-                return !parentPackages.contains(packageName);
-            }
-            return false;
         }
     }
 

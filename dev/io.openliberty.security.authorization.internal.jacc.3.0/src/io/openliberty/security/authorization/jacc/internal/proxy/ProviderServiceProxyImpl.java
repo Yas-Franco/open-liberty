@@ -9,9 +9,12 @@
  *******************************************************************************/
 package io.openliberty.security.authorization.jacc.internal.proxy;
 
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Reference;
 
+import com.ibm.ws.security.SecurityService;
 import com.ibm.ws.security.authorization.jacc.PolicyConfigurationManager;
 import com.ibm.ws.security.authorization.jacc.common.PolicyProxy;
 import com.ibm.ws.security.authorization.jacc.common.ProviderServiceProxy;
@@ -22,9 +25,16 @@ import jakarta.security.jacc.PolicyConfigurationFactory;
            configurationPolicy = ConfigurationPolicy.IGNORE, property = { "service.vendor=IBM" })
 public class ProviderServiceProxyImpl implements ProviderServiceProxy {
 
+    private final PolicyProxy policyProxy;
+
+    @Activate
+    public ProviderServiceProxyImpl(@Reference SecurityService securityService) {
+        policyProxy = new JakartaPolicyFactoryProxyImpl(securityService);
+    }
+
     @Override
     public PolicyProxy getPolicyProxy(PolicyConfigurationManager pcm) {
-        return new JakartaPolicyFactoryProxyImpl();
+        return policyProxy;
     }
 
     @Override

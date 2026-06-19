@@ -81,6 +81,9 @@ import io.openliberty.netty.internal.tcp.TCPConfigurationImpl;
 import io.openliberty.netty.internal.tcp.TCPUtils;
 import io.openliberty.netty.internal.udp.UDPUtils;
 
+import io.openliberty.netty.internal.tcp.LibertyNioServerSocketChannel;
+import io.openliberty.netty.internal.tcp.LibertyNioSocketChannel;
+
 /**
  * Liberty NettyFramework implementation bundle
  */
@@ -144,29 +147,25 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
             Tr.debug(tc, "useNativeIO set to: " + useNativeIO);
         }
 
-        IoHandlerFactory parentFactory;
-        IoHandlerFactory childFactory;
+        IoHandlerFactory factory;
         if (useNativeIO && Epoll.isAvailable()) {
-            parentFactory = EpollIoHandler.newFactory();
-            childFactory = EpollIoHandler.newFactory();
+            factory = EpollIoHandler.newFactory();
         } else if (useNativeIO && KQueue.isAvailable()) {
-            parentFactory = KQueueIoHandler.newFactory();
-            childFactory = KQueueIoHandler.newFactory();
+            factory = KQueueIoHandler.newFactory();
         } else {
-            parentFactory = NioIoHandler.newFactory();
-            childFactory = NioIoHandler.newFactory();
+            factory = NioIoHandler.newFactory();
         }
 
         if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-            Tr.debug(tc, "Created IoHandlerFactories -> parent: " + parentFactory + ", child: " + childFactory);
+            Tr.debug(tc, "Created IoHandlerFactory -> " + factory);
         }
 
         // Compared to channelfw, quiesce is hit every time because
         // connections are lazy cleaned on deactivate
-        parentGroup = new MultiThreadIoEventLoopGroup(1, parentFactory);
+        parentGroup = new MultiThreadIoEventLoopGroup(1, factory);
 
         AutoScalingEventExecutorChooserFactory scaler = createThreadScaler(config);
-        childGroup = new MultiThreadIoEventLoopGroup(maxThreads, null, scaler, childFactory);
+        childGroup = new MultiThreadIoEventLoopGroup(maxThreads, null, scaler, factory);
         outboundConnections = new DefaultChannelGroup(childGroup.next());
         
         if (metricsWindow > 0) {
@@ -244,7 +243,7 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
         } else if (useNativeIO && KQueue.isAvailable()){
             return KQueueServerSocketChannel.class;
         } else {
-            return NioServerSocketChannel.class;
+            return LibertyNioServerSocketChannel.class;
         }
     }
 
@@ -257,7 +256,7 @@ public class NettyFrameworkImpl implements ServerQuiesceListener, NettyFramework
         } else if (useNativeIO && KQueue.isAvailable()){
             return KQueueSocketChannel.class;
         } else {
-            return NioSocketChannel.class;
+            return LibertyNioSocketChannel.class;
         }
     }
 

@@ -12,7 +12,6 @@
  *******************************************************************************/
 package test.jakarta.data.jpa.web;
 
-import static componenttest.annotation.SkipIfSysProp.DB_Not_Default;
 import static componenttest.annotation.SkipIfSysProp.DB_Postgres;
 import static jakarta.data.repository.By.ID;
 import static org.junit.Assert.assertEquals;
@@ -84,7 +83,6 @@ import jakarta.transaction.UserTransaction;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import componenttest.annotation.OnlyIfSysProp;
 import componenttest.annotation.SkipIfSysProp;
 import componenttest.app.FATServlet;
 import test.jakarta.data.jpa.web.CreditCard.CardId;
@@ -98,7 +96,7 @@ import test.jakarta.data.jpa.web.Residence.Occupant;
 @SuppressWarnings("serial")
 @WebServlet("/*")
 public class DataJPATestServlet extends FATServlet {
-    static final long TIMEOUT_MS = TimeUnit.SECONDS.toMillis(2);
+    static final long TIMEOUT_MS = TimeUnit.SECONDS.toMillis(5);
 
     @Inject
     Accounts accounts;
@@ -168,6 +166,26 @@ public class DataJPATestServlet extends FATServlet {
 
     @Inject
     Triangles triangles;
+
+    /**
+     * Indicates if testing with the Derby database.
+     *
+     * @return true if testing with the Derby database.
+     */
+    public static final boolean isDerby() {
+        String jdbcJarName = System.getenv().getOrDefault("DB_DRIVER", "UNKNOWN");
+        return jdbcJarName.startsWith("derby");
+    }
+
+    /**
+     * Indicates if testing with the H2 database.
+     *
+     * @return true if testing with the H2 database.
+     */
+    public static final boolean isH2() {
+        String jdbcJarName = System.getenv().getOrDefault("DB_DRIVER", "UNKNOWN");
+        return jdbcJarName.startsWith("h2");
+    }
 
     /**
      * Indicates if testing with the Hibernate Persistence provider
@@ -1000,13 +1018,20 @@ public class DataJPATestServlet extends FATServlet {
     }
 
     /**
-     * Verify that an EntityManager can be obtained for a repository and used to perform database operations.
+     * Verify that an EntityManager can be obtained for a repository and
+     * used to perform database operations.
      */
     @Test
     public void testEntityManager() throws Exception {
         counties.deleteByNameIn(List.of("Houston"));
 
-        int[] houstonZipCodes = new int[] { 55919, 55921, 55931, 55941, 55943, 55947, 55971, 55974 };
+        // TODO enable after EclipseLink 34901 is fixed to allow @Version of
+        // type LocalDateTime on H2
+        if (isH2() && !isHibernate())
+            return;
+
+        int[] houstonZipCodes = new int[] { 55919, 55921, 55931, 55941,
+                                            55943, 55947, 55971, 55974 };
 
         County houston = new County("Houston", "Minnesota", 18843, houstonZipCodes, "Caledonia", "Brownsville", "Eitzen", "Hokah", "Houston", "La Crescent", "Spring Grove");
 
@@ -1111,14 +1136,18 @@ public class DataJPATestServlet extends FATServlet {
         // Without ESCAPE '\':
         found = orders.purchaseTotalsFor("Escape\\\\Characters");
         assertEquals(found.toString(), 1, found.size());
-        assertEquals(27.97f, found.get(0).floatValue(), 0.001f);
+        if (isH2() && !isHibernate()) {
+            ; // TODO enable once EclipseLink 30400 fixed for H2
+        } else {
+            assertEquals(27.97f, found.get(0).floatValue(), 0.001f);
 
-        // Without ESCAPE '\':
-        found = orders.purchaseTotalsFor("Escape\\_Characters");
-        assertEquals(found.toString(), 3, found.size());
-        assertEquals(25.95f, found.get(0).floatValue(), 0.001f);
-        assertEquals(26.96f, found.get(1).floatValue(), 0.001f);
-        assertEquals(27.97f, found.get(2).floatValue(), 0.001f);
+            // Without ESCAPE '\':
+            found = orders.purchaseTotalsFor("Escape\\_Characters");
+            assertEquals(found.toString(), 3, found.size());
+            assertEquals(25.95f, found.get(0).floatValue(), 0.001f);
+            assertEquals(26.96f, found.get(1).floatValue(), 0.001f);
+            assertEquals(27.97f, found.get(2).floatValue(), 0.001f);
+        }
 
         // With ESCAPE '\':
         try (EntityManager em = orders.entityMgr()) {
@@ -1163,8 +1192,10 @@ public class DataJPATestServlet extends FATServlet {
      */
     @Test
     public void testFindAndDeleteEntityThatHasAnIdClass() {
-        String jdbcJarName = System.getenv().getOrDefault("DB_DRIVER", "UNKNOWN");
-        boolean supportsOrderByForUpdate = !jdbcJarName.startsWith("derby");
+        boolean supportsDeleteWithLimit = //
+                        isHibernate() || !isH2();
+        boolean supportsOrderByForUpdate = //
+                        (isHibernate() || !isH2()) && !isDerby();
 
         cities.save(new City("Milwaukee", "Wisconsin", 577222, Set.of(414)));
         cities.save(new City("Green Bay", "Wisconsin", 107395, Set.of(920)));
@@ -1214,6 +1245,23 @@ public class DataJPATestServlet extends FATServlet {
         cityNames.add("Aberdeen");
         cityNames.add("Mitchell");
         cityNames.add("Pierre");
+
+        if (!supportsDeleteWithLimit) {
+            assertEquals(List.of("Aberdeen",
+                                 "Brookings",
+                                 "Mitchell",
+                                 "Pierre",
+                                 "Rapid City",
+                                 "Sioux Falls",
+                                 "Spearfish",
+                                 "Watertown"),
+                         cities.deleteByStateName("South Dakota")
+                                         .stream()
+                                         .map(id -> id.name)
+                                         .sorted()
+                                         .toList());
+            return;
+        }
 
         Order<City> orderByCityName = supportsOrderByForUpdate ? Order.by(Sort.asc("name")) : Order.by();
         Iterator<CityId> ids = cities.deleteByStateName("South Dakota", Limit.of(3), orderByCityName).iterator();
@@ -1649,10 +1697,10 @@ public class DataJPATestServlet extends FATServlet {
                                      .map(s -> s.getPointA().x())
                                      .collect(Collectors.toList()));
 
-        s3.setPointB(new Point( //
+        s3.pointB = new Point( //
                         s3.getPointB().x() - s3.getPointA().x(), //
-                        s3.getPointB().y() - s3.getPointA().y()));
-        s3.setPointA(new Point(0, 0));
+                        s3.getPointB().y() - s3.getPointA().y());
+        s3.pointA = new Point(0, 0);
         s3 = segments.addOrModify(s3);
 
         // removes s1 and s3
@@ -1830,15 +1878,15 @@ public class DataJPATestServlet extends FATServlet {
         assertEquals(list.toString(), 1, list.size());
         Mobile m = list.get(0);
         assertEquals(OS.ANDROID,
-                     m.getOperatingSystem());
-        assertEquals(m1.getDeviceId(),
-                     m.getDeviceId());
+                     m.operatingSystem);
+        assertEquals(m1.deviceId,
+                     m.deviceId);
         assertEquals(List.of("Camera",
                              "Photos",
                              "Email"),
-                     m.getApps());
+                     m.apps);
         assertEquals(List.of(),
-                     m.getEmails());
+                     m.emails);
 
         list = mobilePhones.findByEmailsNotEmpty();
         assertEquals(list.toString(), 1, list.size());
@@ -1878,7 +1926,7 @@ public class DataJPATestServlet extends FATServlet {
         PurchaseOrder[] created = orders.create(o1, o2);
         o1 = created[0];
         o2 = created[1];
-        int o1_v1 = o1.getVersionNum();
+        int o1_v1 = o1.versionNum;
 
         PurchaseOrder o3 = new PurchaseOrder();
         o3.setPurchasedBy("testEntitiesAsParameters-Customer3");
@@ -1889,10 +1937,10 @@ public class DataJPATestServlet extends FATServlet {
         assertNotNull(o3.getId());
         assertEquals("testEntitiesAsParameters-Customer3", o3.getPurchasedBy());
         assertEquals(30.99f, o3.getTotal(), 0.001f);
-        int o3_v1 = o3.getVersionNum();
+        int o3_v1 = o3.versionNum;
 
         o3 = orders.findFirstByPurchasedBy("testEntitiesAsParameters-Customer3").orElseThrow();
-        assertEquals(o3_v1, o3.getVersionNum());
+        assertEquals(o3_v1, o3.versionNum);
 
         PurchaseOrder o4 = new PurchaseOrder();
         o4.setPurchasedBy("testEntitiesAsParameters-Customer4");
@@ -1918,8 +1966,8 @@ public class DataJPATestServlet extends FATServlet {
         // Update on another thread:
         CompletableFuture.supplyAsync(() -> {
             PurchaseOrder o1updated = orders.findById(o1id).orElseThrow();
-            o1updated.setTotal(11.99f);
-            return orders.save(o1updated); // Hibernate does SELECT, but no UPDATE, so the version remains the same
+            o1updated.total = 11.99f;
+            return orders.save(o1updated);
         }).get(2, TimeUnit.MINUTES);
 
         tran.begin();
@@ -1944,11 +1992,11 @@ public class DataJPATestServlet extends FATServlet {
         o2old.setVersionNum(o2.getVersionNum());
 
         // increment version of second entity
-        o2.setTotal(22.99f);
+        o2.total = 22.99f;
         o2 = orders.save(o2);
 
         // attempt to save second entity at an old version
-        o2old.setTotal(99.22f);
+        o2old.total = 99.22f;
         try {
             PurchaseOrder unexpected = orders.save(o2old);
             fail("Should not be able to update old version of entity: " + unexpected);
@@ -2052,10 +2100,10 @@ public class DataJPATestServlet extends FATServlet {
         assertEquals(o7_v1, o7.getVersionNum());
         assertEquals(o8_v1, o8.getVersionNum());
 
-        o7.setTotal(77.99f);
-        o8.setTotal(88.99f);
-        o1.setTotal(1.99f);
-        o1.setVersionNum(o1_v1);
+        o7.total = 77.99f;
+        o8.total = 88.99f;
+        o1.total = 1.99f;
+        o1.versionNum = o1_v1;
 
         try {
             orders.updateAll(List.of(o8, o1, o7));
@@ -2099,7 +2147,7 @@ public class DataJPATestServlet extends FATServlet {
 
         // use correct version for update:
         o1 = orders.findFirstByPurchasedBy("testEntitiesAsParameters-Customer1").orElseThrow();
-        o1.setTotal(0.99f);
+        o1.total = 0.99f;
 
         updated = orders.update(o1);
 
@@ -2260,6 +2308,54 @@ public class DataJPATestServlet extends FATServlet {
     }
 
     /**
+     * Verify that JPQL can be used to EXTRACT the DATE from a LocalDateTime.
+     */
+    @Test
+    public void testExtractDate() throws Exception {
+
+        // TODO enable once EclipseLink 34899 is fixed to run EXTRACT(DATE FROM...) on H2
+        if (!isHibernate())
+            return;
+
+        PurchaseTime may14_2_07_PM = new PurchaseTime( //
+                        LocalTime.of(14, 7, 0), LocalDate.of(2026, 5, 14));
+
+        PurchaseTime may15_1_30_PM = new PurchaseTime( //
+                        LocalTime.of(13, 30, 0), LocalDate.of(2026, 5, 15));
+
+        PurchaseTime may14_10_45_AM = new PurchaseTime( //
+                        LocalTime.of(10, 45, 10), LocalDate.of(2026, 5, 14));
+
+        purchases.removeByTimeOfPurchaseBetween(may14_10_45_AM,
+                                                may15_1_30_PM);
+
+        purchases.make(Purchase.of((short) 501,
+                                   "TestExtractDate-1",
+                                   may14_2_07_PM,
+                                   22.94f));
+
+        purchases.make(Purchase.of((short) 502,
+                                   "TestExtractDate-2",
+                                   may15_1_30_PM,
+                                   115.05f));
+
+        purchases.make(Purchase.of((short) 503,
+                                   "TestExtractDate-3",
+                                   may14_10_45_AM,
+                                   36.99f));
+
+        assertEquals(List.of("TestExtractDate-3",
+                             "TestExtractDate-1"),
+                     purchases.madeOn(LocalDate.of(2026, 5, 14))
+                                     .stream()
+                                     .map(p -> p.itemName)
+                                     .toList());
+
+        purchases.removeByTimeOfPurchaseBetween(may14_10_45_AM,
+                                                may15_1_30_PM);
+    }
+
+    /**
      * Verify EXTRACT YEAR/QUARTER/MONTH/DAY functions to compare different parts
      * of a date.
      */
@@ -2342,9 +2438,54 @@ public class DataJPATestServlet extends FATServlet {
     }
 
     /**
+     * Verify that JPQL can be used to EXTRACT the TIME from a LocalDateTime.
+     */
+    @Test
+    public void testExtractTime() throws Exception {
+
+        // TODO enable once EclipseLink 34899 is fixed to run EXTRACT(TIME FROM...) on H2
+        if (!isHibernate())
+            return;
+
+        PurchaseTime may12_10_31_AM = new PurchaseTime( //
+                        LocalTime.of(10, 31, 30), LocalDate.of(2026, 5, 12));
+
+        PurchaseTime may13_12_42_PM = new PurchaseTime( //
+                        LocalTime.of(12, 42, 00), LocalDate.of(2026, 5, 13));
+
+        PurchaseTime June4_08_55_AM = new PurchaseTime( //
+                        LocalTime.of(8, 55, 20), LocalDate.of(2026, 6, 4));
+
+        purchases.removeByTimeOfPurchaseBetween(may12_10_31_AM,
+                                                June4_08_55_AM);
+
+        purchases.make(Purchase.of((short) 601,
+                                   "TestExtractTime-1",
+                                   may12_10_31_AM,
+                                   100.97f));
+
+        purchases.make(Purchase.of((short) 602,
+                                   "TestExtractTime-2",
+                                   may13_12_42_PM,
+                                   39.33f));
+
+        purchases.make(Purchase.of((short) 603,
+                                   "TestExtractTime-3",
+                                   June4_08_55_AM,
+                                   83.19f));
+
+        assertEquals(List.of(LocalTime.of(12, 42, 00),
+                             LocalTime.of(8, 55, 20),
+                             LocalTime.of(10, 31, 30)),
+                     purchases.timesOfPurchase());
+
+        purchases.removeByTimeOfPurchaseBetween(may12_10_31_AM,
+                                                June4_08_55_AM);
+    }
+
+    /**
      * Verify the EXTRACT WEEK function to compare the week-of-year part of a date.
      */
-    @OnlyIfSysProp(DB_Not_Default) // Derby doesn't support a WEEK function in SQL
     @Test
     public void testExtractWeekFromDateFunction() {
         // EXTRACT WEEK
@@ -2425,14 +2566,14 @@ public class DataJPATestServlet extends FATServlet {
                             .findFirst()
                             .orElseThrow();
             // The entity must be detached so this update must not commit
-            bismarck.setPopulation(77777);
+            bismarck.population = 77777;
 
             grandForks = removed.stream()
                             .filter(c -> "Grand Forks".equals(c.getName()))
                             .findFirst()
                             .orElseThrow();
             // The entity must be detached so this update must not commit
-            grandForks.setPopulation(59800);
+            grandForks.population = 59800;
         } finally {
             tran.commit();
         }
@@ -2441,7 +2582,7 @@ public class DataJPATestServlet extends FATServlet {
 
         assertEquals(found.toString(), 0, found.size());
 
-        bismarck.setChangeCount(0);
+        bismarck.changeCount = 0;
         bismarck = cities.save(bismarck);
 
         assertEquals(77777, bismarck.getPopulation());
@@ -2529,6 +2670,10 @@ public class DataJPATestServlet extends FATServlet {
      */
     @Test
     public void testForeignKey() {
+        // TODO enable after EclipseLink 34901 is fixed to allow @Version of
+        // type Instant on H2
+        if (isH2() && !isHibernate())
+            return;
 
         Manufacturer toyota = new Manufacturer();
         toyota.setName("Toyota");
@@ -3313,7 +3458,7 @@ public class DataJPATestServlet extends FATServlet {
             id1 = m1.getDeviceId();
 
             // The entity must be detached so this update must not commit
-            m1.setOperatingSystem(OS.IOS);
+            m1.operatingSystem = OS.IOS;
         } finally {
             tran.commit();
         }
@@ -3417,6 +3562,11 @@ public class DataJPATestServlet extends FATServlet {
     @Test
     public void testLowerId() {
         assertEquals(0, counties.deleteByNameIn(List.of("Freeborn", "Steele")));
+
+        // TODO enable after EclipseLink 34901 is fixed to allow @Version of
+        // type LocalDateTime on H2
+        if (isH2() && !isHibernate())
+            return;
 
         int[] freebornZipCodes = new int[] { 55912, 56007, 56009, 56016, 56020, //
                                              56026, 56029, 56032, 56035, 56036 };
@@ -4230,7 +4380,7 @@ public class DataJPATestServlet extends FATServlet {
                             Set.of(406)));
 
             // The entity must be detached so this update must not commit
-            billings.setPopulation(117117);
+            billings.population = 117117;
         } finally {
             tran.commit();
         }
@@ -4276,7 +4426,6 @@ public class DataJPATestServlet extends FATServlet {
      */
     @Test
     public void testSortByVersionFunction() {
-
         orders.deleteAll();
 
         PurchaseOrder o1 = new PurchaseOrder();
@@ -4305,9 +4454,9 @@ public class DataJPATestServlet extends FATServlet {
 
         PurchaseOrder[] updated;
 
-        o3.setTotal(33.39f);
-        o1.setTotal(31.19f);
-        o2.setTotal(32.29f);
+        o3.total = 33.39f;
+        o1.total = 31.19f;
+        o2.total = 32.29f;
         updated = orders.modifyAll(o3, o1, o2);
         o3 = updated[0];
         o1 = updated[1];
@@ -4319,7 +4468,7 @@ public class DataJPATestServlet extends FATServlet {
         o3 = updated[0];
         o1 = updated[1];
 
-        o3.setTotal(33.99f);
+        o3.total = 33.99f;
         updated = orders.modifyAll(o3);
         o3 = updated[0];
 
@@ -4501,6 +4650,10 @@ public class DataJPATestServlet extends FATServlet {
      */
     @Test
     public void testTimeAsVersion() throws Exception {
+        // TODO enable after EclipseLink 34901 is fixed to allow @Version of
+        // type LocalDateTime on H2
+        if (isH2() && !isHibernate())
+            return;
 
         /*
          * Reference Issue: https://github.com/eclipse-ee4j/eclipselink/issues/205
@@ -4593,17 +4746,34 @@ public class DataJPATestServlet extends FATServlet {
     }
 
     /**
-     * Use an Entity which has an attribute which is a collection that is not annotated with the JPA ElementCollection annotation.
+     * Use an Entity which has an attribute which is a collection that is not
+     * annotated with the JPA ElementCollection annotation.
      */
     @Test
     public void testUnannotatedCollection() {
 
-        assertEquals(0, counties.deleteByNameIn(List.of("Olmsted", "Fillmore", "Winona", "Wabasha")));
+        assertEquals(0, counties.deleteByNameIn(List.of("Olmsted",
+                                                        "Fillmore",
+                                                        "Winona",
+                                                        "Wabasha")));
 
-        int[] olmstedZipCodes = new int[] { 55901, 55902, 55903, 55904, 55905, 55906, 55920, 55923, 55929, 55932, 55934, 55940, 55960, 55963, 55964, 55972, 55976 };
-        int[] winonaZipCodes = new int[] { 55910, 55925, 55942, 55943, 55947, 55952, 55959, 55964, 55969, 55971, 55972, 55979, 55987, 55988 };
-        int[] wabashaZipCodes = new int[] { 55041, 55910, 55932, 55945, 55956, 55957, 55964, 55968, 55981, 55991 };
-        int[] fillmoreZipCodes = new int[] { 55922, 55923, 55935, 55939, 55949, 55951, 55954, 55961, 55962, 55965, 55971, 55975, 55976, 55990 };
+        // TODO enable after EclipseLink 34901 is fixed to allow @Version of
+        // type LocalDateTime on H2
+        if (isH2() && !isHibernate())
+            return;
+
+        int[] olmstedZipCodes = new int[] { 55901, 55902, 55903, 55904, 55905,
+                                            55906, 55920, 55923, 55929, 55932,
+                                            55934, 55940, 55960, 55963, 55964,
+                                            55972, 55976 };
+        int[] winonaZipCodes = new int[] { 55910, 55925, 55942, 55943, 55947,
+                                           55952, 55959, 55964, 55969, 55971,
+                                           55972, 55979, 55987, 55988 };
+        int[] wabashaZipCodes = new int[] { 55041, 55910, 55932, 55945, 55956,
+                                            55957, 55964, 55968, 55981, 55991 };
+        int[] fillmoreZipCodes = new int[] { 55922, 55923, 55935, 55939, 55949,
+                                             55951, 55954, 55961, 55962, 55965,
+                                             55971, 55975, 55976, 55990 };
 
         County olmsted = new County("Olmsted", "Minnesota", 162847, olmstedZipCodes, "Rochester", "Byron", "Chatfield", "Dover", "Eyota", "Oronoco", "Pine Island", "Stewartville");
         County winona = new County("Winona", "Minnesota", 49671, winonaZipCodes, "Winona", "Altura", "Dakota", "Elba", "Goodview", "La Crescent", "Lewiston", "Minneiska", "Minnesota City", "Rollingstone", "St. Charles", "Stockton", "Utica");
@@ -4627,7 +4797,7 @@ public class DataJPATestServlet extends FATServlet {
                                      .sorted()
                                      .collect(Collectors.toList()));
 
-        // Derby, Oracle, SQLServer  does not support comparisons of BLOB (IMAGE sqlserver) values
+        // Derby, Oracle, and SQLServer do not support comparisons of BLOB (IMAGE sqlserver) values
         // Derby JDBC Jar Name : derby.jar
         // Oracle JDBC Jar Name : ojdbc8.jar
         // SQLServer JDBC Jar Name : mssql-jdbc.jar
@@ -4763,7 +4933,7 @@ public class DataJPATestServlet extends FATServlet {
      * eclipselink.ps.query 3 Execute query ReadObjectQuery(name="debtor" referenceClass=Customer )
      *
      * then just returns the original entity (custom trace added during debug):
-     * io.openliberty.data.internal.persistence.QueryInfo 3 after merge: Discrooger card #5000921051110001 (501) for Maximilian@tests.openliberty.io valid from 2021-05-10
+     * io.openliberty.data.internal.QueryInfo 3 after merge: Discrooger card #5000921051110001 (501) for Maximilian@tests.openliberty.io valid from 2021-05-10
      * to 2025-05-10
      *
      * TODO need to investigate this more and possibly replicate the issue and open a bug with EclipseLink
@@ -4861,7 +5031,6 @@ public class DataJPATestServlet extends FATServlet {
      */
     @Test
     public void testUpdateInTransaction() throws Exception {
-
         Mobile m1 = mobilePhones.insert(Mobile.of(OS.ANDROID,
                                                   List.of("settings",
                                                           "messages",
@@ -4874,11 +5043,11 @@ public class DataJPATestServlet extends FATServlet {
 
         tran.begin();
         try {
-            m1.setOperatingSystem(OS.IOS);
+            m1.operatingSystem = OS.IOS;
             m1 = mobilePhones.update(m1);
 
             // The entity must be detached so this update must not commit
-            m1.setOperatingSystem(OS.WINDOWS);
+            m1.operatingSystem = OS.WINDOWS;
         } finally {
             tran.commit();
         }
@@ -4965,7 +5134,6 @@ public class DataJPATestServlet extends FATServlet {
      */
     @Test
     public void testUpdateWithEntityResults() {
-
         orders.deleteAll();
 
         PurchaseOrder o1 = new PurchaseOrder();
@@ -5052,10 +5220,10 @@ public class DataJPATestServlet extends FATServlet {
         assertEquals(o1_initialVersion + 2, o1.getVersionNum());
 
         // update multiple in a variable arguments array where the second entry is not found in the database
-        o2.setTotal(2.03f);
-        o4.setTotal(4.03f);
-        o5.setTotal(5.03f);
-        o6.setTotal(6.03f);
+        o2.total = 2.03f;
+        o4.total = 4.03f;
+        o5.total = 5.03f;
+        o6.total = 6.03f;
         try {
             modified = orders.modifyAll(o5, o6, o4, o2);
             fail("An attempt to update multiple where the second entity is not found in the database " +
@@ -5083,7 +5251,7 @@ public class DataJPATestServlet extends FATServlet {
         assertEquals(o1_initialVersion + 1, o2.getVersionNum());
 
         // update returning one entity
-        o4.setTotal(4.04f);
+        o4.total = 4.04f;
         o4 = orders.modifyOne(o4);
         assertEquals("testUpdateWithEntityResults-Customer4", o4.getPurchasedBy());
         assertEquals(4.04f, o4.getTotal(), 0.001f);
@@ -5148,7 +5316,7 @@ public class DataJPATestServlet extends FATServlet {
 
         int oldVersion = o1.getVersionNum();
 
-        o1.setTotal(1.19f);
+        o1.total = 1.19f;
         orders.modify(o1);
 
         o1 = orders.findById(o1.getId()).orElseThrow();
@@ -5184,7 +5352,7 @@ public class DataJPATestServlet extends FATServlet {
         o3 = created.get(1);
 
         // Attempt deletion at correct version
-        o1.setVersionNum(newVersion);
+        o1.versionNum = newVersion;
         orders.cancel(o1, o2);
 
         // Entities o1 and o2 should no longer be in the database:
@@ -5220,12 +5388,12 @@ public class DataJPATestServlet extends FATServlet {
         City duluth = cities.save(new City("Duluth", "Minnesota", 86697, Set.of(218)));
         long oldVersion = duluth.getChangeCount();
 
-        duluth.setPopulation(86372);
+        duluth.population = 86372;
         duluth = cities.save(duluth);
         long newVersion = duluth.getChangeCount();
 
         duluth = new City("Duluth", "Minnesota", 86697, Set.of(218));
-        duluth.setChangeCount(oldVersion);
+        duluth.changeCount = oldVersion;
         try {
             cities.remove(duluth);
             fail("Attempt to delete with an outdated version must raise OptimisticLockingFailureException.");
@@ -5233,7 +5401,7 @@ public class DataJPATestServlet extends FATServlet {
             // pass
         }
 
-        duluth.setChangeCount(newVersion);
+        duluth.changeCount = newVersion;
         cities.remove(duluth);
     }
 
@@ -5260,7 +5428,7 @@ public class DataJPATestServlet extends FATServlet {
 
         int oldVersion = o1.getVersionNum();
 
-        o1.setTotal(10.19f);
+        o1.total = 10.19f;
         orders.modify(o1);
 
         o1 = orders.findById(o1.getId()).orElseThrow();
@@ -5282,7 +5450,7 @@ public class DataJPATestServlet extends FATServlet {
             // pass
         }
 
-        o1.setVersionNum(newVersion);
+        o1.versionNum = newVersion;
         PurchaseOrder updated = orders.update(o1);
 
         assertEquals("testVersionedUpdate-Customer1", updated.getPurchasedBy());
@@ -5295,7 +5463,7 @@ public class DataJPATestServlet extends FATServlet {
 
         orders.delete(o1);
 
-        o1.setTotal(10.39f);
+        o1.total = 10.39f;
         try {
             orders.modify(o1); // doesn't exist anymore
             fail("Attempt to update an entity that no longer exists in the database must raise OptimisticLockingFailureException.");

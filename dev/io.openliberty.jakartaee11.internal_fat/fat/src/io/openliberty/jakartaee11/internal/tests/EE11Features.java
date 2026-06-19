@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2021, 2025 IBM Corporation and others.
+ * Copyright (c) 2021, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -67,6 +67,7 @@ public class EE11Features {
 
     public static Map<String, String> getServletConflicts() {
         Map<String, String> conflicts = new HashMap<>(6);
+        conflicts.put("servlet-6.2", "com.ibm.websphere.appserver.servlet");
         conflicts.put("servlet-6.1", "com.ibm.websphere.appserver.servlet");
         conflicts.put("servlet-6.0", "com.ibm.websphere.appserver.servlet");
         conflicts.put("servlet-5.0", "com.ibm.websphere.appserver.servlet");
@@ -81,6 +82,7 @@ public class EE11Features {
         conflicts.put("cdi-3.0", "io.openliberty.cdi");
         conflicts.put("cdi-4.0", "io.openliberty.cdi");
         conflicts.put("cdi-4.1", "io.openliberty.cdi");
+        conflicts.put("cdi-5.0", "io.openliberty.cdi");
         return conflicts;
     }
 
@@ -232,6 +234,7 @@ public class EE11Features {
         features.remove("sipServlet-1.1"); // purposely not supporting EE 11
         features.remove("springBoot-1.5");
         features.remove("springBoot-2.0");
+        features.remove("springBoot-3.0");
 
         // Stabilized features were changed to not support EE 11 even though
         // they do not depend on Java / Jakarta EE features.
@@ -323,10 +326,6 @@ public class EE11Features {
         // remove logAnalysis-1.0.  It depends on hpel being configured
         features.remove("logAnalysis-1.0");
         features.remove("audit-2.0");
-
-        //Removing springBoot-3.0 here because springBoot-4.0 and 3.0 cannot be loaded at the same time.
-        //Also removing the feature would mean springBoot-3.0 is not being tested for EE11 compatibility giving priority to test the springBoot-4.0 feature for EE11 compatibility.
-        features.remove("springBoot-3.0");
 
         return features;
     }

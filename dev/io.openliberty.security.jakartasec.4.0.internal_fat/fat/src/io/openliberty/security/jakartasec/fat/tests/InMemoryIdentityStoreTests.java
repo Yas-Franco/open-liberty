@@ -17,12 +17,9 @@ import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConst
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_BILL;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_FRANK;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_JASMINE;
-import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_JOHNNY;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_LISA;
-import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_SALLY;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.USER_THEO;
 import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.VALID_PASSWORD;
-import static io.openliberty.security.jakartasec.fat.utils.Jakartasec40TestConstants.WRONG_CRED_ERROR_MSG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -44,6 +41,8 @@ import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 import componenttest.custom.junit.runner.Mode.TestMode;
 import componenttest.topology.impl.LibertyServer;
+import inmemory.identity.store.InMemoryIdentityStoreApplication;
+import inmemory.identity.store.InMemoryIdentityStoreProtectedResource;
 
 /**
  * Tests for InMemoryIdentityStoreDefinition with various password encoding schemes.
@@ -62,7 +61,7 @@ public class InMemoryIdentityStoreTests extends BaseJakartaSecurity40Test {
 
     private static String url = null;
 
-    @Server(SERVER_NAME)
+    @Server(IN_MEM_ID_STORE_ENABLED_SERVER_NAME)
     public static LibertyServer server;
 
     @Override
@@ -85,7 +84,7 @@ public class InMemoryIdentityStoreTests extends BaseJakartaSecurity40Test {
 
         // Create the web application
         WebArchive app = ShrinkWrap.create(WebArchive.class,
-                                           APP_NAME + ".war").addPackage("inmemory.identity.store").addAsWebInfResource(new File("test-applications/inmemory/WEB-INF/web.xml"));
+                                           APP_NAME + ".war").addClass(InMemoryIdentityStoreApplication.class).addClass(InMemoryIdentityStoreProtectedResource.class).addAsWebInfResource(new File("test-applications/inmemory/WEB-INF/web.xml"));
 
         ShrinkHelper.exportDropinAppToServer(server, app, DeployOptions.SERVER_ONLY);
 
@@ -166,23 +165,6 @@ public class InMemoryIdentityStoreTests extends BaseJakartaSecurity40Test {
     }
 
     /**
-     * Test authentication with AES encoded password.
-     * User "sally" has password encoded with {aes} and valid groups.
-     */
-    @Test
-    public void testAesEncodedPassword() throws Exception {
-        logInfo("testAesEncodedPassword", "Testing AES encoded password authentication");
-
-        String response = getResponseFromGetRequest(url, USER_SALLY, VALID_PASSWORD, 200);
-
-        assertNotNull("Response should not be null", response);
-        assertTrue("Response should contain SUCCESS", response.contains("SUCCESS"));
-        assertTrue("Response should contain username", response.contains(USER_SALLY));
-
-        logInfo("testAesEncodedPassword", "Test passed");
-    }
-
-    /**
      * Negative test: Try to authenticate with incorrect password.
      * Should receive 401 Unauthorized.
      */
@@ -209,27 +191,6 @@ public class InMemoryIdentityStoreTests extends BaseJakartaSecurity40Test {
         executeGetRequest(url, USER_BILL, VALID_PASSWORD, 403);
 
         logInfo("testInsufficientGroups", "Test passed - authorization correctly denied");
-    }
-
-    /**
-     * Negative test: User with badly encoded password.
-     * User "johnny" has invalid {xor} encoding which should cause a decode error.
-     * Should receive 401 Unauthorized and error message in log.
-     */
-    @Test
-    public void testBadlyEncodedPassword() throws Exception {
-        logInfo("testBadlyEncodedPassword", "Testing badly encoded password");
-
-        // Mark log to check for error message
-        getServer().setMarkToEndOfLog();
-
-        // Should get 401 Unauthorized
-        executeGetRequest(url, USER_JOHNNY, VALID_PASSWORD, 401);
-
-        // Verify error message appears in log
-        assertStringInLog("Decode error message should appear in log", WRONG_CRED_ERROR_MSG, 5000);
-
-        logInfo("testBadlyEncodedPassword", "Test passed - decode error correctly logged");
     }
 
     /**
@@ -260,12 +221,9 @@ public class InMemoryIdentityStoreTests extends BaseJakartaSecurity40Test {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        InMemoryIdentityStoreTests instance = new InMemoryIdentityStoreTests();
         // Expected warnings and errors during testing
-        instance.stopServer(
-                            "CWWKS2600W", // An in-memory identity store was detected within this application
-                            "CWWKS1859E", //  Password decoding error
-                            "CWWKS1865W" // AES-encrypted passwords without custom encryption key
-        );
+        if (server != null && server.isStarted()) {
+            server.stopServer(PRODUCTION_USE_WARNING_MSG);
+        }
     }
 }

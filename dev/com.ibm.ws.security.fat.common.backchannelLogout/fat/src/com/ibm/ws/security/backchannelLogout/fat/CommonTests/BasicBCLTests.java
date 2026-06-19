@@ -51,6 +51,7 @@ import componenttest.custom.junit.runner.TestModeFilter;
 import componenttest.rules.repeater.RepeatTests;
 import componenttest.topology.impl.LibertyServerWrapper;
 
+
 /**
  * This test class contains tests that validate the proper behavior in end-to-end end_session requests.
  * These tests will focus on the proper logout/end_session behavior based on the OP and OAuth registered client

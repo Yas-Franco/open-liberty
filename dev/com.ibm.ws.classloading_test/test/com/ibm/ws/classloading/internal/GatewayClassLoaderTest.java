@@ -28,7 +28,7 @@ import test.common.SharedOutputManager;
 public class GatewayClassLoaderTest {
     @Rule
     public final SharedOutputManager outputManager = SharedOutputManager.getInstance();
-    public final JVMPackages jvmPackages = new JVMPackages(null, null, null);
+    public final JVMPackages jvmPackages = new JVMPackages(null, null, null, null);
 
     private static final String OUR_CHOSEN_SYSTEM_CLASS = "javax.rmi.CORBA.Util";
 

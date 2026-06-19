@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013, 2023 IBM Corporation and others.
+ * Copyright (c) 2013, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -19,6 +19,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.List;
@@ -56,6 +57,7 @@ import com.ibm.websphere.ras.annotation.Trivial;
 import com.ibm.websphere.ssl.Constants;
 import com.ibm.websphere.ssl.SSLException;
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 import com.ibm.ws.security.common.config.CommonConfigUtils;
 import com.ibm.ws.security.common.config.DiscoveryConfigUtils;
 import com.ibm.ws.security.common.crypto.HashUtils;
@@ -122,6 +124,7 @@ public class OidcClientConfigImpl implements OidcClientConfig {
     public static final String CFG_KEY_NONCE_ENABLED = "nonceEnabled";
     public static final String CFG_KEY_SSL_REF = "sslRef";
     public static final String CFG_KEY_SIGNATURE_ALGORITHM = "signatureAlgorithm";
+    public static final String CFG_KEY_ALLOWED_SIGNATURE_ALGORITHMS = "allowedSignatureAlgorithms";
     public static final String CFG_KEY_CLOCK_SKEW = "clockSkew";
     public static final String CFG_KEY_AUTHENTICATION_TIME_LIMIT = "authenticationTimeLimit";
     public static final String CFG_KEY_DISCOVERY_ENDPOINT_URL = "discoveryEndpointUrl";
@@ -179,6 +182,7 @@ public class OidcClientConfigImpl implements OidcClientConfig {
     public static final String CFG_KEY_PKCE_CODE_CHALLENGE_METHOD = "pkceCodeChallengeMethod";
     public static final String CFG_KEY_TOKEN_REQUEST_ORIGIN_HEADER = "tokenRequestOriginHeader";
     public static final String CFG_KEY_TOKEN_ORDER_TOFETCH_CALLER_CLAIMS = "tokenOrderToFetchCallerClaims";
+    public static final String CFG_KEY_SERVE_PROTECTED_RESOURCE_METADATA = "serveProtectedResourceMetadata";
 
     public static final String OPDISCOVERY_AUTHZ_EP_URL = "authorization_endpoint";
     public static final String OPDISCOVERY_TOKEN_EP_URL = "token_endpoint";
@@ -233,6 +237,7 @@ public class OidcClientConfigImpl implements OidcClientConfig {
     private String sslRef;
     private String sslConfigurationName;
     private String signatureAlgorithm;
+    private String[] allowedSignatureAlgorithms;
     private long clockSkew;
     private long clockSkewInSeconds;
     private long authenticationTimeLimitInSeconds;
@@ -312,6 +317,7 @@ public class OidcClientConfigImpl implements OidcClientConfig {
     private boolean tokenReuse = false;
 
     private List<String> tokenOrderToFetchCallerClaims;
+    private boolean serveProtectedResourceMetadata = false;
 
     private final OidcSessionCache oidcSessionCache = new InMemoryOidcSessionCache();
 
@@ -465,6 +471,7 @@ public class OidcClientConfigImpl implements OidcClientConfig {
             // 220146
             Tr.warning(tc, "OIDC_CLIENT_NONE_ALG", new Object[] { id, signatureAlgorithm });
         }
+        allowedSignatureAlgorithms = trimIt((String[]) props.get(CFG_KEY_ALLOWED_SIGNATURE_ALGORITHMS));
         clockSkew = (Long) props.get(CFG_KEY_CLOCK_SKEW);
         clockSkewInSeconds = clockSkew / 1000; // Duration types are always in milliseconds, convert to seconds.
         authenticationTimeLimitInSeconds = (Long) props.get(CFG_KEY_AUTHENTICATION_TIME_LIMIT) / 1000;
@@ -562,12 +569,15 @@ public class OidcClientConfigImpl implements OidcClientConfig {
         accessTokenCacheTimeout = configUtils.getLongConfigAttribute(props, CFG_KEY_ACCESS_TOKEN_CACHE_TIMEOUT, accessTokenCacheTimeout);
         pkceCodeChallengeMethod = configUtils.getConfigAttribute(props, CFG_KEY_PKCE_CODE_CHALLENGE_METHOD);
         tokenRequestOriginHeader = configUtils.getConfigAttribute(props, CFG_KEY_TOKEN_REQUEST_ORIGIN_HEADER);
+
+        serveProtectedResourceMetadata = !ProductInfo.getBetaEdition() ? false : configUtils.getBooleanConfigAttribute(props, CFG_KEY_SERVE_PROTECTED_RESOURCE_METADATA, serveProtectedResourceMetadata);
+
         // TODO - 3Q16: Check the validationEndpointUrl to make sure it is valid
         // before continuing to process this config
         // checkValidationEndpointUrl();
 
         // validateAuthzTokenEndpoints(); //TODO: update tests to expect the error if the validation here fails
-        String tokens = configUtils.getConfigAttributeWithDefaultValue(props, CFG_KEY_TOKEN_ORDER_TOFETCH_CALLER_CLAIMS, "IDToken");     
+        String tokens = configUtils.getConfigAttributeWithDefaultValue(props, CFG_KEY_TOKEN_ORDER_TOFETCH_CALLER_CLAIMS, "IDToken");
         tokenOrderToFetchCallerClaims = split(tokens);
         if (discovery) {
             logDiscoveryMessage("OIDC_CLIENT_DISCOVERY_COMPLETE");
@@ -605,6 +615,7 @@ public class OidcClientConfigImpl implements OidcClientConfig {
             Tr.debug(tc, "nonceEnabled: " + nonceEnabled);
             Tr.debug(tc, "sslRef: " + sslRef);
             Tr.debug(tc, "signatureAlgorithm: " + signatureAlgorithm);
+            Tr.debug(tc, "allowedSignatureAlgorithms: " + Arrays.toString(allowedSignatureAlgorithms));
             Tr.debug(tc, "clockSkew: " + clockSkewInSeconds);
             Tr.debug(tc, "discoveryEndpointUrl: " + discoveryEndpointUrl);
             Tr.debug(tc, "discoveryPollingRate: " + discoveryPollingRate);
@@ -644,8 +655,8 @@ public class OidcClientConfigImpl implements OidcClientConfig {
             Tr.debug(tc, "pkceCodeChallengeMethod:" + pkceCodeChallengeMethod);
             Tr.debug(tc, "tokenRequestOriginHeader:" + tokenRequestOriginHeader);
             Tr.debug(tc, "tokenOrderToFetchCallerClaims:" + tokenOrderToFetchCallerClaims);
+            Tr.debug(tc, "serveProtectedResourceMetadata:" + serveProtectedResourceMetadata);
         }
-
     }
 
     private void initializeAccessTokenCache() {
@@ -818,8 +829,8 @@ public class OidcClientConfigImpl implements OidcClientConfig {
      */
     private String rpSupportsOPConfig(String key, ArrayList<String> values) {
 
-        String rpSupportedSignatureAlgorithms = "HS256 RS256";
-        String rpSupportedTokenEndpointAuthMethods = "post basic";
+        String rpSupportedSignatureAlgorithms = "HS256 HS384 HS512 RS256 RS384 RS512 ES256 ES384 ES512";
+        String rpSupportedTokenEndpointAuthMethods = "post basic private_key_jwt";
         String rpSupportedScopes = "openid profile";
 
         if ("alg".equals(key) && values != null) {
@@ -1339,6 +1350,11 @@ public class OidcClientConfigImpl implements OidcClientConfig {
         return signatureAlgorithm;
     }
 
+    @Override
+    public String[] getAllowedSignatureAlgorithms() {
+        return allowedSignatureAlgorithms;
+    }
+
     /** {@inheritDoc} */
     @Override
     public long getClockSkewInSeconds() {
@@ -1397,6 +1413,29 @@ public class OidcClientConfigImpl implements OidcClientConfig {
     public PublicKey getPublicKey() throws KeyStoreException, CertificateException {
         KeyStoreService keyStoreService = keyStoreServiceRef.getService();
         return keyStoreService.getCertificateFromKeyStore(trustStoreRef, trustAliasName).getPublicKey();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @throws CertificateException
+     * @throws KeyStoreException
+     */
+    @Override
+    public PublicKey getPublicKey(String alias) throws KeyStoreException, CertificateException {
+        KeyStoreService keyStoreService = keyStoreServiceRef.getService();
+        return keyStoreService.getCertificateFromKeyStore(trustStoreRef, alias).getPublicKey();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @throws Exception
+     */
+    @Override
+    public Collection<String> getTrustedCertAliases(String trustStoreRef) throws KeyStoreException {
+        KeyStoreService keyStoreService = keyStoreServiceRef.getService();
+        return keyStoreService.getTrustedCertEntriesInKeyStore(trustStoreRef);
     }
 
     /** {@inheritDoc} */
@@ -1899,8 +1938,7 @@ public class OidcClientConfigImpl implements OidcClientConfig {
 
     @Override
     public String getTrustedAlias() {
-        // TODO Auto-generated method stub
-        return null;
+        return trustAliasName;
     }
 
     @Override
@@ -1951,20 +1989,25 @@ public class OidcClientConfigImpl implements OidcClientConfig {
     }
 
     @Override
+    public boolean getServeProtectedResourceMetadata() {
+        return serveProtectedResourceMetadata;
+    }
+
+    @Override
     public List<String> getTokenOrderToFetchCallerClaims() {
         return tokenOrderToFetchCallerClaims;
     }
 
-    List<String> split(String str) {    
+    List<String> split(String str) {
         List<String> rvalue = new ArrayList<String>();
-            if (str.contains(" ")) {
-                StringTokenizer st = new StringTokenizer(str, " ");
-                while (st.hasMoreElements()) {
-                    rvalue.add(st.nextToken());
-                }
-            } else {
-                rvalue.add(str);
+        if (str.contains(" ")) {
+            StringTokenizer st = new StringTokenizer(str, " ");
+            while (st.hasMoreElements()) {
+                rvalue.add(st.nextToken());
             }
+        } else {
+            rvalue.add(str);
+        }
         return rvalue;
     }
 }

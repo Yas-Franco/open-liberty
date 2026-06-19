@@ -682,10 +682,20 @@ public class MemoryInformation {
                 "$mem = Get-CimInstance Win32_PerfFormattedData_PerfOS_Memory; " +
                 "Write-Output ($mem.AvailableBytes + $mem.CacheBytes)");
         
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(tc, "PowerShell returned " + lines.size() + " line(s): " + lines);
+        }
+
         for (String line : lines) {
             line = line.trim();
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                 Tr.debug(tc, "Processing line: '" + line + "'");
+            }
             if (!line.isEmpty() && line.matches("\\d+")) {
                 long available = Long.parseLong(line);
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                     Tr.debug(tc, "Parsed available memory: " + available + " bytes");
+                }
                 if (available > 0) {
                     return available;
                 }

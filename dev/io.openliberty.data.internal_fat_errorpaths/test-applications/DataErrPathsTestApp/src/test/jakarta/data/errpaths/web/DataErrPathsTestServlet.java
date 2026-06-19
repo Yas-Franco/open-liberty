@@ -63,21 +63,19 @@ import org.junit.Test;
 import componenttest.app.FATServlet;
 import test.jakarta.data.errpaths.web.Voters.NameAndZipCode;
 
-@DataSourceDefinition(name = "java:app/jdbc/DerbyDataSource",
-                      className = "org.apache.derby.jdbc.EmbeddedXADataSource",
-                      databaseName = "memory:testdb",
+@DataSourceDefinition(name = "java:app/jdbc/H2DataSource",
+                      className = "org.h2.jdbcx.JdbcDataSource",
+                      url = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
                       user = "dbuser1",
-                      password = "dbpwd1",
-                      properties = "createDatabase=create")
+                      password = "dbpwd1")
 @DataSourceDefinition(name = "java:module/jdbc/DataSourceForInvalidEntity",
-                      className = "org.apache.derby.jdbc.EmbeddedXADataSource",
-                      databaseName = "memory:testdb",
+                      className = "org.h2.jdbcx.JdbcDataSource",
+                      url = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
                       user = "dbuser1",
-                      password = "dbpwd1",
-                      properties = "createDatabase=create")
+                      password = "dbpwd1")
 @DataSourceDefinition(name = "java:comp/jdbc/InvalidDatabase",
-                      className = "org.apache.derby.jdbc.EmbeddedXADataSource",
-                      databaseName = "notfounddb",
+                      className = "org.h2.jdbcx.JdbcDataSource",
+                      url = "jdbc:h2:mem:notfounddb;IFEXISTS=TRUE;DB_CLOSE_DELAY=-1",
                       user = "dbuser1",
                       password = "dbpwd1")
 @PersistenceUnit(name = "java:app/env/VoterPersistenceUnitRef",
@@ -87,6 +85,8 @@ import test.jakarta.data.errpaths.web.Voters.NameAndZipCode;
 @PersistenceUnit(name = "java:app/env/WrongPersistenceUnitRef",
                  unitName = "VoterPersistenceUnit")
 @Resource(name = "java:app/jdbc/env/DSForInvalidEntityRecordWithJPAAnnoRef",
+          lookup = "java:module/jdbc/DataSourceForInvalidEntity")
+@Resource(name = "java:app/jdbc/env/DSForInvalidEntityRecordWithValAnnoRef",
           lookup = "java:module/jdbc/DataSourceForInvalidEntity")
 @Resource(name = "java:comp/jdbc/env/DSForInvalidEntityClassWithoutAnnoRef",
           lookup = "java:module/jdbc/DataSourceForInvalidEntity")
@@ -105,6 +105,9 @@ public class DataErrPathsTestServlet extends FATServlet {
 
     @Inject
     Inventions errEntityMissingIdRepo;
+
+    @Inject
+    Islands errValidationAnnoRepo;
 
     @Inject
     InvalidNonJNDIRepo errIncorrectDataStoreName;
@@ -964,14 +967,33 @@ public class DataErrPathsTestServlet extends FATServlet {
     public void testExistsAsPage() {
         try {
             LocalDate today = LocalDate.of(2025, Month.FEBRUARY, 18);
-            Page<Boolean> page = voters.existsByBirthday(today,
-                                                         PageRequest.ofSize(5));
+            Page<Boolean> page = voters.existsByBirthday(today);
             fail("Should not be able to use an exists query that returns a" +
                  " Page rather than boolean. Page is: " + page);
         } catch (UnsupportedOperationException x) {
             if (x.getMessage() == null ||
                 !x.getMessage().startsWith("CWWKD1003E:") ||
                 !x.getMessage().contains("Page<java.lang.Boolean>"))
+                throw x;
+        }
+    }
+
+    /**
+     * Verify an error is raised when an exists Query by Method Name method
+     * tries to supply a PageRequest parameter.
+     */
+    @Test
+    public void testExistsRequestsPage() {
+        try {
+            LocalDate today = LocalDate.of(2025, Month.FEBRUARY, 18);
+            boolean exists = voters.existsAnyByBirthday(today,
+                                                        PageRequest.ofSize(5));
+            fail("Should not be able to use an exists query that receives a " +
+                 " PageRequest. Reuslt is: " + exists);
+        } catch (UnsupportedOperationException x) {
+            if (x.getMessage() == null ||
+                !x.getMessage().startsWith("CWWKD1020E:") ||
+                !x.getMessage().contains("PageRequest"))
                 throw x;
         }
     }
@@ -1560,8 +1582,8 @@ public class DataErrPathsTestServlet extends FATServlet {
         } catch (UnsupportedOperationException x) {
             if (x.getMessage() == null ||
                 !x.getMessage().startsWith("CWWKD1002E:") ||
-                !x.getMessage().contains(Find.class.getName()) ||
-                !x.getMessage().contains(Insert.class.getName()))
+                !x.getMessage().contains(Find.class.getSimpleName()) ||
+                !x.getMessage().contains(Insert.class.getSimpleName()))
                 throw x;
         }
     }
@@ -1582,8 +1604,8 @@ public class DataErrPathsTestServlet extends FATServlet {
         } catch (UnsupportedOperationException x) {
             if (x.getMessage() == null ||
                 !x.getMessage().startsWith("CWWKD1002E:") ||
-                !x.getMessage().contains(Save.class.getName()) ||
-                !x.getMessage().contains(Delete.class.getName()))
+                !x.getMessage().contains(Save.class.getSimpleName()) ||
+                !x.getMessage().contains(Delete.class.getSimpleName()))
                 throw x;
         }
     }
@@ -1604,8 +1626,8 @@ public class DataErrPathsTestServlet extends FATServlet {
         } catch (UnsupportedOperationException x) {
             if (x.getMessage() == null ||
                 !x.getMessage().startsWith("CWWKD1002E:") ||
-                !x.getMessage().contains(Query.class.getName()) ||
-                !x.getMessage().contains(Update.class.getName()))
+                !x.getMessage().contains(Query.class.getSimpleName()) ||
+                !x.getMessage().contains(Update.class.getSimpleName()))
                 throw x;
         }
     }
@@ -2183,6 +2205,34 @@ public class DataErrPathsTestServlet extends FATServlet {
             if (x.getMessage() == null ||
                 !x.getMessage().startsWith("CWWKD1109E:") ||
                 !x.getMessage().contains("jakarta.persistence.Column"))
+                throw x;
+        }
+
+    }
+
+    /**
+     * Verify an error is raised when an entity class has Jakarta Validation
+     * annotations on its members.
+     */
+    @Test
+    public void testRecordEntityWithJakartaValidationAnno() {
+        Island maui = new Island(1, "maui");
+
+        Arrays.asList(maui.getClass().getMethods()).forEach(m -> {
+            System.out.println("Method: " + m);
+            Arrays.asList(m.getAnnotations()).forEach(a -> {
+                System.out.println("  Anno: " + a);
+            });
+        });
+        try {
+            errValidationAnnoRepo.add(maui);
+
+            fail("Used a record entity that has a Jakarta Validation annotation" +
+                 " on a record component.");
+        } catch (MappingException x) {
+            if (x.getMessage() == null ||
+                !x.getMessage().startsWith("CWWKD1109E:") ||
+                !x.getMessage().contains("jakarta.validation.constraints.NotBlank"))
                 throw x;
         }
     }

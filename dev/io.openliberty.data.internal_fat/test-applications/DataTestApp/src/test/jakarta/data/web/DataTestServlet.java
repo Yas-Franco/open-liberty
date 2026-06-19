@@ -4422,7 +4422,7 @@ public class DataTestServlet extends FATServlet {
                                                  firstLetterOfNameThenNumber);
 
         // If parentheses are not inserted around the WHERE clause by the
-        // Jakarta Data provider, then the following will haev some extra
+        // Jakarta Data provider, then the following will have some extra
         // results:
         assertEquals(List.of("two",
                              "three",

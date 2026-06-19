@@ -128,12 +128,11 @@ public class HttpAuthenticationMechanismHandlerImplTest {
     }
 
     /**
-     * Ensure that the SEND_FAILURE status is returned after an exception is generated
+     * Ensure that AuthenticationException is propagated when thrown by the mechanism
      */
-    @Test
-    public void testValidateRequest_send_failure() {
+    @Test(expected = AuthenticationException.class)
+    public void testValidateRequest_authentication_exception() throws AuthenticationException {
         // given ...
-        AuthenticationStatus authenticationStatus = AuthenticationStatus.NOT_DONE;
 
         // although a subclass, it only overrides methods for mocking
         HttpAuthenticationMechanismHandlerWrapper mechanism = new HttpAuthenticationMechanismHandlerWrapper(cdi) {
@@ -144,24 +143,18 @@ public class HttpAuthenticationMechanismHandlerImplTest {
         };
 
         // all expectations of actions on mocked objects
-        try {
-            mockery.checking(new Expectations() {
-                {
-                    oneOf(multiHttpAuthenticationMechanism).validateRequest(with(any(HttpServletRequest.class)),
-                                                                            with(any(HttpServletResponse.class)),
-                                                                            with(any(HttpMessageContext.class)));
-                    will(throwException(new AuthenticationException()));
-                }
-            });
+        mockery.checking(new Expectations() {
+            {
+                oneOf(multiHttpAuthenticationMechanism).validateRequest(with(any(HttpServletRequest.class)),
+                                                                        with(any(HttpServletResponse.class)),
+                                                                        with(any(HttpMessageContext.class)));
+                will(throwException(new AuthenticationException()));
+            }
+        });
 
-            // when ...
-            authenticationStatus = mechanism.validateRequest(request, response, httpMessageContext);
-        } catch (Exception e) {
-            fail("Unexpected Exception " + e.getMessage() + " thrown.");
-        }
-
-        // then ...
-        assertEquals("The AuthenticationStatus must be SEND_FAILURE.", AuthenticationStatus.SEND_FAILURE, authenticationStatus);
+        // when ...
+        mechanism.validateRequest(request, response, httpMessageContext);
+        // then ... should throw AuthenticationException
     }
 
     /**

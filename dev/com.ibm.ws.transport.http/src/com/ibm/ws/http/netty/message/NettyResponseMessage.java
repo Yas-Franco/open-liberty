@@ -9,13 +9,8 @@
  *******************************************************************************/
 package com.ibm.ws.http.netty.message;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -25,12 +20,10 @@ import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 import com.ibm.ws.http.channel.internal.HttpChannelConfig;
 import com.ibm.ws.http.channel.internal.HttpMessages;
-import com.ibm.ws.http.channel.internal.HttpTrailersImpl;
 import com.ibm.ws.http.channel.internal.inbound.HttpInboundServiceContextImpl;
 import com.ibm.ws.http.dispatcher.internal.HttpDispatcher;
 import com.ibm.wsspi.genericbnf.HeaderField;
 import com.ibm.wsspi.genericbnf.HeaderKeys;
-import com.ibm.wsspi.genericbnf.exception.UnsupportedProtocolVersionException;
 import com.ibm.wsspi.http.HttpCookie;
 import com.ibm.wsspi.http.channel.HttpResponseMessage;
 import com.ibm.wsspi.http.channel.HttpServiceContext;
@@ -38,14 +31,12 @@ import com.ibm.wsspi.http.channel.HttpTrailers;
 import com.ibm.wsspi.http.channel.inbound.HttpInboundServiceContext;
 import com.ibm.wsspi.http.channel.values.ConnectionValues;
 import com.ibm.wsspi.http.channel.values.ContentEncodingValues;
-import com.ibm.wsspi.http.channel.values.ExpectValues;
 import com.ibm.wsspi.http.channel.values.HttpHeaderKeys;
 import com.ibm.wsspi.http.channel.values.StatusCodes;
 import com.ibm.wsspi.http.channel.values.TransferEncodingValues;
 import com.ibm.wsspi.http.channel.values.VersionValues;
 
 import io.netty.handler.codec.http.DefaultHttpHeaders;
-import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -151,14 +142,14 @@ public class NettyResponseMessage extends NettyBaseMessage implements HttpRespon
     @Override
     public void setConnection(ConnectionValues value) {
         if (value.getName().equalsIgnoreCase(HttpHeaderValues.CLOSE.toString()))
-            nettyResponse.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+            headers.set(HttpHeaderKeys.HDR_CONNECTION.getName(), HttpHeaderValues.CLOSE);
         else if (value.getName().equalsIgnoreCase(HttpHeaderValues.KEEP_ALIVE.toString()))
-            nettyResponse.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+            headers.set(HttpHeaderKeys.HDR_CONNECTION.getName(), HttpHeaderValues.KEEP_ALIVE);
     }
 
     @Override
     public void setConnection(ConnectionValues[] values) {
-        nettyResponse.headers().set(HttpHeaderNames.CONNECTION, values);
+        headers.set(HttpHeaderKeys.HDR_CONNECTION.getName(), values);
     }
 
     @Override
@@ -183,14 +174,16 @@ public class NettyResponseMessage extends NettyBaseMessage implements HttpRespon
 
     @Override
     public void setContentEncoding(ContentEncodingValues value) {
-        headers.set(HttpHeaderNames.CONTENT_ENCODING, value.getName());
+        headers.set(HttpHeaderKeys.HDR_CONTENT_ENCODING.getName(), value.getName());
     }
 
     @Override
     public void setContentEncoding(ContentEncodingValues[] values) {
-        headers.remove(HttpHeaderNames.CONTENT_ENCODING);
+        String temp = HttpHeaderKeys.HDR_CONTENT_ENCODING.getName();
+        
+        headers.remove(temp);
         for(ContentEncodingValues value : values){
-            headers.add(HttpHeaderNames.CONTENT_ENCODING, value.getName());
+            headers.add(temp, value.getName());
         }
     }
 
@@ -477,43 +470,6 @@ public class NettyResponseMessage extends NettyBaseMessage implements HttpRespon
     @Override
     public HttpResponseMessage duplicate() {
         throw new UnsupportedOperationException("duplicate() not supported in Netty context");
-    }
-
-    /**
-     * Read an instance of this object from the input stream.
-     *
-     * @param input
-     * @throws IOException
-     * @throws ClassNotFoundException
-     */
-    @Override
-    public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
-        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
-            Tr.debug(tc, "De-serializing into: " + this);
-        }
-        super.readExternal(input);
-        if (SERIALIZATION_V2 == deserializationVersion) {
-            setStatusCode(input.readShort());
-        } else {
-            setStatusCode(input.readInt());
-        }
-        setReasonPhrase(readByteArray(input));
-    }
-
-    /**
-     * Write this object instance to the output stream.
-     *
-     * @param output
-     * @throws IOException
-     */
-    @Override
-    public void writeExternal(ObjectOutput output) throws IOException {
-        if (TraceComponent.isAnyTracingEnabled() && tc.isEventEnabled()) {
-            Tr.event(tc, "Serializing: " + this);
-        }
-        super.writeExternal(output);
-        output.writeShort(getStatusCodeAsInt());
-        writeByteArray(output, this.getReasonPhraseBytes());
     }
 
     public HttpResponse getResponse() {

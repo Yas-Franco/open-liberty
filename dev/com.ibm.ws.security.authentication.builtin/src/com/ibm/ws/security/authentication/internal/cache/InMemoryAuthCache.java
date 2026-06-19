@@ -160,11 +160,7 @@ public class InMemoryAuthCache implements AuthCache, FFDCSelfIntrospectable {
                     curEntry = prevEntry; // We lost the race, so use the entry from the other thread
             }
         }
-        CacheObject value = curEntry.value;
-
-        // If the CacheObject is not null call the copy method on it to get a new instance
-        // of the Subject so that threads don't synchronize on the same Subject object.
-        return value == null ? null : value.copy();
+        return curEntry.value;
     }
 
     /**

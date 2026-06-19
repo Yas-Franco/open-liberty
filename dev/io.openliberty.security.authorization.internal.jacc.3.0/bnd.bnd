@@ -1,5 +1,5 @@
 #*******************************************************************************
-# Copyright (c) 2024, 2025 IBM Corporation and others.
+# Copyright (c) 2024, 2026 IBM Corporation and others.
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License 2.0
 # which accompanies this distribution, and is available at
@@ -18,9 +18,6 @@ Require-Capability: osgi.ee; filter:="(&(osgi.ee=JavaSE)(version=17))"
 Bundle-Name: Security Jakarta Authorization 3.0 Service implementation
 Bundle-SymbolicName: io.openliberty.security.authorization.internal.jacc.3.0; singleton:=true
 Bundle-Description: Security Jakarta Authorization 3.0 Service implementation
-
-Export-Package: \
-  com.ibm.wsspi.security.authorization.jacc
 
 Private-Package: \
   com.ibm.ws.security.authorization.jacc.internal.resources, \
@@ -43,4 +40,9 @@ Private-Package: \
   io.openliberty.jakarta.authorization.3.0;version=latest, \
   com.ibm.ws.org.osgi.annotation.versioning;version=latest, \
   com.ibm.ws.security;version=latest, \
-  io.openliberty.jakarta.servlet.6.1;version=latest
+  io.openliberty.jakarta.servlet.6.1;version=latest,\
+  com.ibm.ws.security.authorization;version=latest
+
+-testpath: \
+    ../build.sharedResources/lib/junit/old/junit.jar;version=file,\
+    com.ibm.ws.junit.extensions;version=latest

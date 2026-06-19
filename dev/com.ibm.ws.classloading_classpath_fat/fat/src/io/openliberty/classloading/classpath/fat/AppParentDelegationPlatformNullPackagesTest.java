@@ -15,13 +15,14 @@ import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstr
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testGetPlatformResourceDoesNotExist_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testGetPlatformResourcesDoesExist_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testGetPlatformResourcesDoesNotExist_NoFilter8_Filter9;
-import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadKernelClass_NotFound_Filter8_Filter9;
+import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadKernelClass_NotFound_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadLibrary6Class_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadLibrary7Class_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadLibrary8Class_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadLibrary9Class_NoFilter8_Filter9;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadPlatformClassDoesExist;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadPlatformClassDoesNotExist_NoFilter8_Filter9;
+import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testLoadPlatformXAException;
 import static io.openliberty.classloading.classpath.fat.AppParentDelegationAbstractTest.CheckTrace.testPlatformService;
 import static io.openliberty.classloading.classpath.fat.FATSuite.APP_PARENT_TEST_SERVER;
 import static io.openliberty.classloading.classpath.fat.FATSuite.TEST_PLATFORM_DELEGATION_APP;
@@ -33,15 +34,15 @@ import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 
 import componenttest.annotation.Server;
+import componenttest.annotation.SkipIfSysProp;
 import componenttest.annotation.TestServlet;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.topology.impl.LibertyServer;
 import io.openliberty.classloading.platform.delegation.test.app.PlatformDelegationTestServlet;
 import junit.framework.AssertionFailedError;
 
-/**
- *
- */
+//Skip on IBM i because extra JARs are on the JVM classpath (db2 JARs)
+@SkipIfSysProp(SkipIfSysProp.OS_IBMI)
 @RunWith(FATRunner.class)
 public class AppParentDelegationPlatformNullPackagesTest extends AppParentDelegationAbstractTest {
 
@@ -90,9 +91,11 @@ public class AppParentDelegationPlatformNullPackagesTest extends AppParentDelega
             case "testLoadPlatformClassDoesNotExist":
                 return testLoadPlatformClassDoesNotExist_NoFilter8_Filter9;
             case "testLoadKernelClass":
-                return testLoadKernelClass_NotFound_Filter8_Filter9;
+                return testLoadKernelClass_NotFound_NoFilter8_Filter9;
             case "testPlatformService":
                 return testPlatformService;
+            case "testLoadPlatformXAException":
+                return testLoadPlatformXAException;
             default:
                fail("Unknown test method: " + testMethod);
         }

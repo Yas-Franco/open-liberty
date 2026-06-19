@@ -743,8 +743,6 @@ public class WIMUserRegistryTest {
 
     @Test
     public void testGetUsersByAttribute() throws Exception {
-        System.setProperty("com.ibm.ws.beta.edition", "true");
-
         Map<String, Object> urProps = new HashMap<String, Object>();
         UR = newWIMUR(urProps);
         WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
@@ -756,14 +754,10 @@ public class WIMUserRegistryTest {
 
         assertEquals("Number of members mismatched", 1, i);
         assertEquals("CN Mismatched", "uid=user1,o=defaultWIMFileBasedRealm", resultList.get(0));
-
-        System.clearProperty("com.ibm.ws.beta.edition");
     }
 
     @Test
     public void testGetUsersByAttributeNameNull() {
-        System.setProperty("com.ibm.ws.beta.edition", "true");
-
         try {
             Map<String, Object> urProps = new HashMap<String, Object>();
             UR = newWIMUR(urProps);
@@ -776,12 +770,10 @@ public class WIMUserRegistryTest {
             assertEquals("Incorrect exception thrown", RegistryException.class, e.getClass());
             assertEquals("The error code for RegistryException", null, errorMessage);
         }
-        System.clearProperty("com.ibm.ws.beta.edition");
     }
 
     @Test
     public void testGetUsersByAttributeValueNull() {
-        System.setProperty("com.ibm.ws.beta.edition", "true");
         try {
             Map<String, Object> urProps = new HashMap<String, Object>();
             UR = newWIMUR(urProps);
@@ -794,12 +786,10 @@ public class WIMUserRegistryTest {
             assertEquals("Incorrect exception thrown", RegistryException.class, e.getClass());
             assertEquals("The error code for RegistryException", null, errorMessage);
         }
-        System.clearProperty("com.ibm.ws.beta.edition");
     }
 
     @Test
     public void testGetAllAttributesForUser() throws Exception {
-        System.setProperty("com.ibm.ws.beta.edition", "true");
         Map<String, Object> urProps = new HashMap<String, Object>();
         UR = newWIMUR(urProps);
         WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
@@ -813,12 +803,10 @@ public class WIMUserRegistryTest {
         assertEquals("Number of attributes mismatched", 5, i);
         assertEquals("SN Mismatched", "user1", result.get("sn"));
         assertEquals("CN Mismatched", "user1", result.get("cn"));
-        System.clearProperty("com.ibm.ws.beta.edition");
     }
 
     @Test
     public void testGetAttributesForUser() throws Exception {
-        System.setProperty("com.ibm.ws.beta.edition", "true");
         Map<String, Object> urProps = new HashMap<String, Object>();
         UR = newWIMUR(urProps);
         WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
@@ -834,12 +822,10 @@ public class WIMUserRegistryTest {
         assertEquals("Number of attributes mismatched", 2, i);
         assertEquals("SN Mismatched", "user1", result.get("sn"));
         assertEquals("CN Mismatched", "user1", result.get("cn"));
-        System.clearProperty("com.ibm.ws.beta.edition");
     }
 
     @Test
     public void testNotSetAttributeForUser() throws Exception {
-        System.setProperty("com.ibm.ws.beta.edition", "true");
         Map<String, Object> urProps = new HashMap<String, Object>();
         UR = newWIMUR(urProps);
         WIMUserRegistry WIMUR = (WIMUserRegistry) UR;
@@ -852,12 +838,10 @@ public class WIMUserRegistryTest {
         int i = result.size();
 
         assertEquals("Number of attributes mismatched", 0, i);
-        System.clearProperty("com.ibm.ws.beta.edition");
     }
 
     @Test
     public void testGetAttributesForUserNull() throws Exception {
-        System.setProperty("com.ibm.ws.beta.edition", "true");
         try {
 	        Map<String, Object> urProps = new HashMap<String, Object>();
 	        UR = newWIMUR(urProps);
@@ -873,12 +857,10 @@ public class WIMUserRegistryTest {
 	        assertEquals("Incorrect exception thrown", RegistryException.class, e.getClass());
 	        assertEquals("The error code for RegistryException", null, errorMessage);
 	    }
-        System.clearProperty("com.ibm.ws.beta.edition");
     }
 
     @Test
     public void testGetAttributesForUserListNull() throws Exception {
-        System.setProperty("com.ibm.ws.beta.edition", "true");
         try {
 	        Map<String, Object> urProps = new HashMap<String, Object>();
 	        UR = newWIMUR(urProps);
@@ -894,6 +876,5 @@ public class WIMUserRegistryTest {
 	        assertEquals("Incorrect exception thrown", RegistryException.class, e.getClass());
 	        assertEquals("The error code for RegistryException", null, errorMessage);
 	    }
-        System.clearProperty("com.ibm.ws.beta.edition");
     }
 }

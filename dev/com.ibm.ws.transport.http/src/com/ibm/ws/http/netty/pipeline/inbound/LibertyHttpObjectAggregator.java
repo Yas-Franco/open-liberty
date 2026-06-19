@@ -9,22 +9,37 @@
  *******************************************************************************/
 package com.ibm.ws.http.netty.pipeline.inbound;
 
+import java.nio.charset.StandardCharsets;
+
+import com.ibm.websphere.ras.Tr;
+import com.ibm.websphere.ras.TraceComponent;
+import com.ibm.ws.http.channel.internal.HttpMessages;
+import com.ibm.ws.http.dispatcher.internal.HttpDispatcher;
+import com.ibm.wsspi.http.channel.values.HttpHeaderKeys;
+
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.TooLongFrameException;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpUtil;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 
 public class LibertyHttpObjectAggregator extends SimpleChannelInboundHandler<HttpObject> {
 
+    private static final TraceComponent tc = Tr.register(LibertyHttpObjectAggregator.class, HttpMessages.HTTP_TRACE_NAME, HttpMessages.HTTP_BUNDLE);
+
     private long maxContentLength = Long.MAX_VALUE;
+    private com.ibm.ws.http.netty.NettyHttpChannelConfig config;
 
     // AttributeKey to store the current HttpRequest in progress
     private static final AttributeKey<HttpRequest> CURRENT_REQUEST = AttributeKey.valueOf("currentRequest");
@@ -32,18 +47,16 @@ public class LibertyHttpObjectAggregator extends SimpleChannelInboundHandler<Htt
     // AttributeKey to store the current composite content
     private static final AttributeKey<CompositeByteBuf> COMPOSITE_CONTENT = AttributeKey.valueOf("compositeContent");
 
-    public LibertyHttpObjectAggregator(long maxContentLength) {
+    public LibertyHttpObjectAggregator(long maxContentLength, com.ibm.ws.http.netty.NettyHttpChannelConfig config) {
         if (maxContentLength <= 0) {
             throw new IllegalArgumentException("maxContentLength must be a positive integer.");
         }
         this.maxContentLength = maxContentLength;
+        this.config = config;
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, HttpObject msg) throws Exception {
-        if (msg.decoderResult().isFinished() && msg.decoderResult().isFailure()) {
-            exceptionCaught(ctx, msg.decoderResult().cause());
-        }
         if (msg instanceof FullHttpRequest) {
             // Already have a Full HTTP Request so just need to forward here
             ctx.fireChannelRead(ReferenceCountUtil.retain(msg, 1));
@@ -54,6 +67,38 @@ public class LibertyHttpObjectAggregator extends SimpleChannelInboundHandler<Htt
         }
         if (msg instanceof HttpRequest) {
             HttpRequest request = (HttpRequest) msg;
+            if(msg.decoderResult().isFinished() && msg.decoderResult().isFailure()) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "Found http request with decoding failure!");
+                }
+                FullHttpRequest fullRequest = new DefaultFullHttpRequest(request.protocolVersion(), request.method(), request.uri());
+                fullRequest.setDecoderResult(request.decoderResult());
+                ctx.fireChannelRead(fullRequest);
+                return;
+            }
+
+            // Handle Expect: 100-continue BEFORE aggregation
+            // This must be done before we start waiting for body content, otherwise we create a deadlock
+            // where the aggregator waits for body and the client waits for 100-Continue
+            if (HttpUtil.is100ContinueExpected(request)) {
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(tc, "Request contains [Expect: 100-continue], sending response before aggregation");
+                }
+                DefaultFullHttpResponse continueResponse = new DefaultFullHttpResponse(
+                    HttpVersion.HTTP_1_1,
+                    HttpResponseStatus.CONTINUE);
+                HttpUtil.setContentLength(continueResponse, 0);
+
+                // Add Date header to match the original implementation in HttpDispatcherHandler
+                if (config != null) {
+                    byte[] date = HttpDispatcher.getDateFormatter().getRFC1123TimeAsBytes(config.getDateHeaderRange());
+                    continueResponse.headers().set(HttpHeaderKeys.HDR_DATE.getName(),
+                                    new String(date, StandardCharsets.UTF_8));
+                }
+
+                ctx.writeAndFlush(continueResponse);
+            }
+
             ctx.channel().attr(CURRENT_REQUEST).set(request);
 
             CompositeByteBuf content = ctx.alloc().compositeBuffer();
@@ -85,6 +130,7 @@ public class LibertyHttpObjectAggregator extends SimpleChannelInboundHandler<Htt
                 if (msg instanceof LastHttpContent) {
                     HttpRequest request = ctx.channel().attr(CURRENT_REQUEST).get();
                     FullHttpRequest fullRequest = new DefaultFullHttpRequest(request.protocolVersion(), request.method(), request.uri(), content, request.headers(), ((LastHttpContent) msg).trailingHeaders());
+                    fullRequest.setDecoderResult(httpContent.decoderResult());
 
                     ctx.fireChannelRead(fullRequest);
 

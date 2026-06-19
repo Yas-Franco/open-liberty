@@ -606,7 +606,7 @@
    <Option value="4" label="%driverType.4.desc"/>
   </AD>
   <AD id="databaseName"                       required="false" type="String"  name="%databaseName" description="%databaseNameOverrides.desc"/>
-  <AD id="serverName"                         required="false" type="String"  name="%serverName" description="%serverNameOverrides.desc"/>
+  <AD id="serverName"                         required="false" type="String"  name="%serverName" description="%serverNameOverridesDB2JCC.desc"/>
   <AD id="portNumber"                         required="false" type="Integer" default="50000" name="%portNumber" description="%portNumberOverrides.desc"/>
   <!-- Advanced properties for properties.db2.jcc -->
   <!-- TODO: consider having another group for heterogeneous pooling properties -->

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 IBM Corporation and others.
+ * Copyright (c) 2025,2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -11,6 +11,8 @@
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 package test.jakarta.data.v1_1;
+
+import java.util.Optional;
 
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.AfterClass;
@@ -26,6 +28,7 @@ import componenttest.annotation.Server;
 import componenttest.annotation.TestServlet;
 import componenttest.annotation.TestServlets;
 import componenttest.custom.junit.runner.FATRunner;
+import componenttest.topology.database.H2Database;
 import componenttest.topology.database.container.DatabaseContainerFactory;
 import componenttest.topology.database.container.DatabaseContainerUtil;
 import componenttest.topology.impl.LibertyServer;
@@ -44,11 +47,17 @@ public class Data_1_1_Test extends FATServletClient {
                     new String[] {
                                    "CWWKD1054E.*findByIsControlTrueAndNumericValueBetween",
                                    "CWWKD1091E.*countBySurgePriceGreaterThanEqual",
+                                   "DSRA0302E.*XA_RBTIMEOUT", // query timeout
+                                   "DSRA0304E.*", // query timeout
+                                   "J2CA0027E.*" // query timeout
                     };
+
+    private static final H2Database h2Database = //
+                    H2Database.create("dbuser1", "dbpwd1").withDatabaseName("testdb");
 
     @ClassRule
     public static final JdbcDatabaseContainer<?> testContainer = //
-                    DatabaseContainerFactory.create();
+                    DatabaseContainerFactory.createH2(Optional.of(h2Database));
 
     @Server("io.openliberty.data.internal.fat.1.1")
     @TestServlets({ @TestServlet(servlet = Data_1_1_Servlet.class,
@@ -58,6 +67,8 @@ public class Data_1_1_Test extends FATServletClient {
 
     @BeforeClass
     public static void setUp() throws Exception {
+        FATSuite.standardizeCollation(testContainer);
+
         DatabaseContainerUtil.build(server, testContainer)
                         .withDriverVariable()
                         .withDatabaseProperties()

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2024 IBM Corporation and others.
+ * Copyright (c) 2024, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
@@ -18,9 +18,11 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
+import com.ibm.ws.kernel.productinfo.ProductInfo;
 
 import com.ibm.ejs.ras.Tr;
 import com.ibm.ejs.ras.TraceComponent;
+import com.ibm.websphere.ssl.Constants;
 import com.ibm.websphere.ssl.Constants;
 import com.ibm.ws.ssl.config.ProtocolHelper;
 
@@ -113,13 +115,10 @@ public class LibertySSLEngineWrapper extends SSLEngine {
 
     @Override
     public String[] getSupportedCipherSuites() {
-        String securityLevel = props.getProperty(Constants.SSLPROP_SECURITY_LEVEL);
-        if (tc.isDebugEnabled())
-            Tr.debug(tc, "securityLevel from properties is " + securityLevel);
-        if (securityLevel == null)
-            securityLevel = "HIGH";
-
-        return Constants.adjustSupportedCiphersToSecurityLevel(delegate.getSupportedCipherSuites(), securityLevel);
+    
+        return Constants.adjustSupportedCiphers(delegate.getSupportedCipherSuites(), null);
+     
+    
     }
 
     @Override
@@ -133,19 +132,13 @@ public class LibertySSLEngineWrapper extends SSLEngine {
     }
 
     /*
-     * This is how we parse the cipher suites in {@link SSLConfigManager.getCipherList()}
+     * Get enabled cipher suites from config
      */
     private String[] getEnabledCipherSuitesFromConfig(Properties props) {
-        String cipherString = props.getProperty(Constants.SSLPROP_ENABLED_CIPHERS);
-
-        if (cipherString != null) {
-            return cipherString.split("\\s+");
-        } else {
-            if (tc.isDebugEnabled())
-                Tr.debug(tc, "com.ibm.ssl.enabledCipherSuites has not been configured.");
-
-            return null;
-        }
+        String enabledCiphers = props.getProperty(Constants.SSLPROP_ENABLED_CIPHERS);
+        // Use Constants.adjustSupportedCiphers to process cipher modifiers (+/-) and wildcards (*)
+        return Constants.adjustSupportedCiphers(getSupportedCipherSuites(), enabledCiphers);
+        
     }
 
     @Override

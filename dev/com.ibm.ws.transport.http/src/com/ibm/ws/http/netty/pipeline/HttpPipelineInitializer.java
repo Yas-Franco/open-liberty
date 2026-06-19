@@ -12,12 +12,9 @@ package com.ibm.ws.http.netty.pipeline;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLSessionContext;
 
 import com.ibm.websphere.channelfw.EndPointInfo;
 import com.ibm.websphere.ras.Tr;
@@ -26,9 +23,9 @@ import com.ibm.ws.http.channel.internal.HttpConfigConstants;
 import com.ibm.ws.http.channel.internal.HttpMessages;
 import com.ibm.ws.http.netty.NettyChain;
 import com.ibm.ws.http.netty.NettyHttpChannelConfig;
-import com.ibm.ws.http.netty.NettyHttpChannelConfig.NettyConfigBuilder;
-import com.ibm.ws.http.netty.NettyHttpConstants.ProtocolName;
+import com.ibm.ws.http.netty.NettyHttpChannelConfig.ConfigElement;
 import com.ibm.ws.http.netty.NettyHttpConstants;
+import com.ibm.ws.http.netty.NettyHttpConstants.ProtocolName;
 import com.ibm.ws.http.netty.pipeline.http2.LibertyNettyALPNHandler;
 import com.ibm.ws.http.netty.pipeline.http2.LibertyUpgradeCodec;
 import com.ibm.ws.http.netty.pipeline.inbound.HttpDispatcherHandler;
@@ -37,21 +34,16 @@ import com.ibm.ws.http.netty.pipeline.inbound.LibertyHttpRequestHandler;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.FixedRecvByteBufAllocator;
-import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpMessage;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.HttpServerKeepAliveHandler;
 import io.netty.handler.codec.http2.CleartextHttp2ServerUpgradeHandler;
 import io.netty.handler.codec.http2.CleartextHttp2ServerUpgradeHandler.PriorKnowledgeUpgradeEvent;
-import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
-import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
-import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import io.netty.util.ReferenceCountUtil;
 import io.openliberty.http.netty.channel.LoggingRecvByteBufAllocator;
@@ -70,31 +62,18 @@ public class HttpPipelineInitializer extends ChannelInitializerWrapper {
 
     private static final TraceComponent tc = Tr.register(HttpPipelineInitializer.class, HttpMessages.HTTP_TRACE_NAME, HttpMessages.HTTP_BUNDLE);
 
-    public enum ConfigElement {
-        HTTP_OPTIONS,
-        SSL_OPTIONS,
-        REMOTE_IP,
-        COMPRESSION,
-        SAMESITE,
-        HEADERS,
-        ACCESS_LOG, 
-        TCP_OPTIONS
-    }
-
     private final NettyChain chain;
     private final NettyHttpChannelConfig httpConfig;
     private final Map<ConfigElement, Map<String, Object>> configOptions;
 
-    public static final String NO_UPGRADE_OCURRED_HANDLER_NAME = "UPGRADE_HANDLER_CHECK";
-    public static final String NETTY_HTTP_SERVER_CODEC = "HTTP_SERVER_HANDLER";
-    public static final String HTTP_DISPATCHER_HANDLER_NAME = "HTTP_DISPATCHER";
-    public static final String HTTP_SSL_HANDLER_NAME = "SSL_HANDLER";
-    public static final String HTTP_ALPN_HANDLER_NAME = "ALPN_HANDLER";
+    public static final String NO_UPGRADE_OCURRED_HANDLER_NAME = "upgradeCheckHandler";
+    public static final String NETTY_HTTP_SERVER_CODEC = "httpServerCodec";
+    public static final String HTTP_SSL_HANDLER_NAME = "sslHandler";
     public static final String HTTP_KEEP_ALIVE_HANDLER_NAME = "httpKeepAlive";
-    public static final String HTTP_AGGREGATOR_HANDLER_NAME = "LIBERTY_OBJECT_AGGREGATOR";
-    public static final String HTTP_REQUEST_HANDLER_NAME = "LIBERTY_REQUEST_HANDLER";
-    public static final String HTTP2_CLEARTEXT_UPGRADE_HANDLER_NAME = "H2C_UPGRADE_HANDLER";
-    public static final String CRLF_VALIDATION_HANDLER = "CRLFValidationHandler";
+    public static final String HTTP_AGGREGATOR_HANDLER_NAME = "objectAggregator";
+    public static final String HTTP_REQUEST_HANDLER_NAME = "requestHandler";
+    public static final String HTTP2_CLEARTEXT_UPGRADE_HANDLER_NAME = "h2cUpgradeHandler";
+    public static final String WRITE_TIMEOUT_HANDER_NAME = "writeTimeoutHandler";
 
     public static final long maxContentLength = Long.MAX_VALUE;
 
@@ -122,7 +101,7 @@ public class HttpPipelineInitializer extends ChannelInitializerWrapper {
         LoggingRecvByteBufAllocator loggingAllocator = new LoggingRecvByteBufAllocator(channelAllocator, channel);
         channel.config().setRecvByteBufAllocator(loggingAllocator);
 
-        pipeline.addLast("writeTimeoutHandler", new WriteTimeoutHandler(httpConfig.getWriteTimeout(), TimeUnit.MILLISECONDS));
+        pipeline.addLast(WRITE_TIMEOUT_HANDER_NAME, new WriteTimeoutHandler(httpConfig.getWriteTimeout(), TimeUnit.MILLISECONDS));
 
         if(chain.isHttps()){
             setupSecurePipeline(pipeline);
@@ -159,8 +138,8 @@ public class HttpPipelineInitializer extends ChannelInitializerWrapper {
 
         pipeline.addFirst(HTTP_SSL_HANDLER_NAME, handler);
         addPreHttpCodecHandlers(pipeline);
-        pipeline.addLast(HTTP_ALPN_HANDLER_NAME, new LibertyNettyALPNHandler(httpConfig));
-        pipeline.addLast(HTTP_DISPATCHER_HANDLER_NAME, new HttpDispatcherHandler(httpConfig));
+        pipeline.addLast(LibertyNettyALPNHandler.NAME, new LibertyNettyALPNHandler(httpConfig));
+        pipeline.addLast(HttpDispatcherHandler.NAME, new HttpDispatcherHandler(httpConfig));
         addPreDispatcherHandlers(pipeline, true);
         pipeline.channel().attr(NettyHttpConstants.IS_SECURE).set(Boolean.TRUE);
         // Turn off half closure with H2
@@ -209,7 +188,7 @@ public class HttpPipelineInitializer extends ChannelInitializerWrapper {
      */
 
     private void setupH2cPipeline(ChannelPipeline pipeline) {
-        pipeline.addLast(HTTP_DISPATCHER_HANDLER_NAME, new HttpDispatcherHandler(httpConfig));
+        pipeline.addLast(HttpDispatcherHandler.NAME, new HttpDispatcherHandler(httpConfig));
         addPreHttpCodecHandlers(pipeline);
         addH2CCodecHandlers(pipeline);
         addPreDispatcherHandlers(pipeline, true);
@@ -227,9 +206,9 @@ public class HttpPipelineInitializer extends ChannelInitializerWrapper {
         // 8192 is used instead 4096 of for the maxInitialLineLength to avoid io.netty.handler.codec.http.TooLongHttpLineException 
         // Needed to pass JWT tests with long tokens
         HttpServerCodec sourceCodec = new HttpServerCodec(8192, httpConfig.getIncomingBodyBufferSize(), httpConfig.getLimitOfFieldSize(), httpConfig.getLimitOnNumberOfHeaders());
-        pipeline.addLast(CRLF_VALIDATION_HANDLER, CRLFValidationHandler.INSTANCE);
+        pipeline.addLast(CRLFValidationHandler.NAME, CRLFValidationHandler.INSTANCE);
         pipeline.addLast(NETTY_HTTP_SERVER_CODEC, sourceCodec);
-        pipeline.addLast(HTTP_DISPATCHER_HANDLER_NAME, new HttpDispatcherHandler(httpConfig));
+        pipeline.addLast(HttpDispatcherHandler.NAME, new HttpDispatcherHandler(httpConfig));
         addPreHttpCodecHandlers(pipeline);
         addPreDispatcherHandlers(pipeline, false);
     }
@@ -242,10 +221,10 @@ public class HttpPipelineInitializer extends ChannelInitializerWrapper {
     private void addH2CCodecHandlers(ChannelPipeline pipeline) {
         final CleartextHttp2ServerUpgradeHandler cleartextHttp2ServerUpgradeHandler = LibertyUpgradeCodec.createCleartextUpgradeHandler(httpConfig, pipeline.channel());
 
-        pipeline.addBefore(HTTP_DISPATCHER_HANDLER_NAME, HTTP2_CLEARTEXT_UPGRADE_HANDLER_NAME, cleartextHttp2ServerUpgradeHandler);
+        pipeline.addBefore(HttpDispatcherHandler.NAME, HTTP2_CLEARTEXT_UPGRADE_HANDLER_NAME, cleartextHttp2ServerUpgradeHandler);
 
         // Handler to decide if an upgrade occurred or not and to add HTTP1 handlers on top
-        pipeline.addBefore(HTTP_DISPATCHER_HANDLER_NAME, NO_UPGRADE_OCURRED_HANDLER_NAME, new SimpleChannelInboundHandler<HttpMessage>() {
+        pipeline.addBefore(HttpDispatcherHandler.NAME, NO_UPGRADE_OCURRED_HANDLER_NAME, new SimpleChannelInboundHandler<HttpMessage>() {
             @Override
             protected void channelRead0(ChannelHandlerContext ctx, HttpMessage msg) throws Exception {
                 if ("HTTP2".equals(ctx.pipeline().channel().attr(NettyHttpConstants.PROTOCOL).get())) {
@@ -258,9 +237,15 @@ public class HttpPipelineInitializer extends ChannelInitializerWrapper {
 
                 pipeline.addBefore("transportHandler", HTTP_KEEP_ALIVE_HANDLER_NAME, new HttpServerKeepAliveHandler());
                 ctx.channel().attr(NettyHttpConstants.PROTOCOL).set(ProtocolName.HTTP1.name());
+                
+                // Add TimeoutHandler before the aggregator
+                if (pipeline.get(TimeoutHandler.class) == null) {
+                    pipeline.addAfter(HTTP_KEEP_ALIVE_HANDLER_NAME, TimeoutHandler.NAME, new TimeoutHandler(httpConfig));
+                }
+                
                 //TODO: this is a very large number (under https://github.com/OpenLiberty/open-liberty/issues/33114)
                 pipeline.addAfter(HTTP_KEEP_ALIVE_HANDLER_NAME, HTTP_AGGREGATOR_HANDLER_NAME,
-                                  new LibertyHttpObjectAggregator(httpConfig.getMessageSizeLimit() == -1 ? maxContentLength : httpConfig.getMessageSizeLimit()));
+                                  new LibertyHttpObjectAggregator(httpConfig.getMessageSizeLimit() == -1 ? maxContentLength : httpConfig.getMessageSizeLimit(), httpConfig));
                 pipeline.addAfter(HTTP_AGGREGATOR_HANDLER_NAME, HTTP_REQUEST_HANDLER_NAME, new LibertyHttpRequestHandler(httpConfig));
                 ctx.pipeline().remove(this);
 
@@ -300,19 +285,27 @@ public class HttpPipelineInitializer extends ChannelInitializerWrapper {
 
         if (!isHttp2) {
             pipeline.addAfter(NETTY_HTTP_SERVER_CODEC, HTTP_KEEP_ALIVE_HANDLER_NAME, new HttpServerKeepAliveHandler());
+            
+            // Add TimeoutHandler before the aggregator
+            if (pipeline.get(TimeoutHandler.class) == null) {
+                pipeline.addAfter(HTTP_KEEP_ALIVE_HANDLER_NAME, TimeoutHandler.NAME, new TimeoutHandler(httpConfig));
+            }
+            
             //TODO: this is a very large number (under https://github.com/OpenLiberty/open-liberty/issues/33114)
             pipeline.addAfter(HTTP_KEEP_ALIVE_HANDLER_NAME, HTTP_AGGREGATOR_HANDLER_NAME,
-                              new LibertyHttpObjectAggregator(httpConfig.getMessageSizeLimit() == -1 ? maxContentLength : httpConfig.getMessageSizeLimit()));
+                              new LibertyHttpObjectAggregator(httpConfig.getMessageSizeLimit() == -1 ? maxContentLength : httpConfig.getMessageSizeLimit(), httpConfig));
             pipeline.addAfter(HTTP_AGGREGATOR_HANDLER_NAME, HTTP_REQUEST_HANDLER_NAME, new LibertyHttpRequestHandler(httpConfig));
             
+        } else {
+            // For HTTP/2, add TimeoutHandler before dispatcher
+            if (pipeline.get(TimeoutHandler.class) == null) {
+                pipeline.addBefore(HttpDispatcherHandler.NAME, TimeoutHandler.NAME, new TimeoutHandler(httpConfig));
+            }
         }
-        pipeline.addBefore(HTTP_DISPATCHER_HANDLER_NAME,"transportHandler", TransportHandler.INSTANCE);
+        pipeline.addBefore(HttpDispatcherHandler.NAME,"transportHandler", TransportHandler.INSTANCE);
 
-        if (pipeline.get(TimeoutHandler.class) == null) {
-            pipeline.addBefore(HTTP_DISPATCHER_HANDLER_NAME, TimeoutHandler.NAME, new TimeoutHandler(httpConfig));
-        }
         if (httpConfig.useForwardingHeaders()) {
-            pipeline.addBefore(HTTP_DISPATCHER_HANDLER_NAME, null, new RemoteIpHandler(httpConfig));
+            pipeline.addBefore(HttpDispatcherHandler.NAME, RemoteIpHandler.NAME, new RemoteIpHandler(httpConfig));
         }
         
     }

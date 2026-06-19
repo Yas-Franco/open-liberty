@@ -22,7 +22,7 @@ import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
 
-import com.ibm.ws.security.authorization.jacc.provider.PolicyFactoryImpl;
+import com.ibm.ws.security.authorization.jacc.provider.JaccPolicyProxyFactory;
 import com.ibm.ws.security.authorization.jacc.provider.WSPolicyConfigurationFactoryImpl;
 import com.ibm.ws.security.authorization.jacc.role.FileRoleMapping;
 
@@ -55,7 +55,7 @@ public class ProviderServiceImpl {
             // expected if there isn't one configured
         }
 
-        PolicyFactory.setPolicyFactory(new PolicyFactoryImpl());
+        PolicyFactory.setPolicyFactory(new JaccPolicyProxyFactory());
         PolicyConfigurationFactory.setPolicyConfigurationFactory(new WSPolicyConfigurationFactoryImpl());
     }
 
@@ -72,7 +72,7 @@ public class ProviderServiceImpl {
         } catch (SecurityException se) {
         }
 
-        if (currentFactory != null && currentFactory.getClass() == PolicyFactoryImpl.class) {
+        if (currentFactory != null && currentFactory.getClass() == JaccPolicyProxyFactory.class) {
             PolicyFactory.setPolicyFactory(prevPolicyFactory);
         }
 

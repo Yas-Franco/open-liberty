@@ -16,11 +16,19 @@ import java.util.function.Function;
 
 import com.ibm.ws.ffdc.annotation.FFDCIgnore;
 
-import jakarta.security.jacc.PolicyConfiguration;
 import jakarta.security.jacc.PolicyConfigurationFactory;
 import jakarta.security.jacc.PolicyContext;
 import jakarta.security.jacc.PolicyContextException;
 
+/**
+ * Stores the PolicyConfigurationFactory state so that as new PolicyConfigurationFactory instances
+ * are configured dynamically, they can be populated and committed based off of the state of each application
+ * that has started already.
+ *
+ * Only this class accesses the actual PolicyConfigurationFactory instances. All other Liberty runtime function interacts
+ * with this class when using Jakarta Authorization 3.0. The actual PolicyConfigurationFactory is accessed
+ * by the user's PolicyFactory instance to be able to get the state that this class propagates.
+ */
 public class JakartaPolicyConfigFactoryProxy extends PolicyConfigurationFactory {
 
     private final Map<String, JakartaPolicyConfigProxy> configMap = new ConcurrentHashMap<>();
@@ -35,21 +43,35 @@ public class JakartaPolicyConfigFactoryProxy extends PolicyConfigurationFactory 
     }
 
     @Override
-    public PolicyConfiguration getPolicyConfiguration() {
+    public JakartaPolicyConfigProxy getPolicyConfiguration() {
         String currentContextID = PolicyContext.getContextID();
         if (currentContextID == null) {
             return null;
         }
-        return configMap.get(currentContextID);
+        JakartaPolicyConfigProxy config = configMap.get(currentContextID);
+        if (config != null) {
+            config.ensureInitialized();
+        }
+        return config;
     }
 
     @Override
-    public PolicyConfiguration getPolicyConfiguration(String contextId) {
-        return configMap.get(contextId);
+    public JakartaPolicyConfigProxy getPolicyConfiguration(String contextId) {
+        if (contextId == null) {
+            throw new IllegalArgumentException("contextId is required to be non-null");
+        }
+        JakartaPolicyConfigProxy config = configMap.get(contextId);
+        if (config != null) {
+            config.ensureInitialized();
+        }
+        return config;
     }
 
     @Override
-    public PolicyConfiguration getPolicyConfiguration(String contextId, boolean remove) throws PolicyContextException {
+    public JakartaPolicyConfigProxy getPolicyConfiguration(String contextId, boolean remove) throws PolicyContextException {
+        if (contextId == null) {
+            throw new IllegalArgumentException("contextId is required to be non-null");
+        }
 
         // Do the fast check first for if it doesn't exist
         JakartaPolicyConfigProxy existingConfig = configMap.get(contextId);
@@ -71,10 +93,14 @@ public class JakartaPolicyConfigFactoryProxy extends PolicyConfigurationFactory 
             });
         }
 
+        // If we added a new PolicyConfiguration, there is no need to call reset to remove any config because it will
+        // already be an empty PolicyConfiguration in open state
         if (newProxyAdded.get()) {
             return existingConfig;
         }
 
+        // Call the actual PolicyConfigurationFactory.getPolicyConfiguration() method to drive any logic that it needs to run.
+        // Namely this will make sure that the remove flag is handled and the state is back to open state
         existingConfig.resetDelegatePolicyConfig(remove);
         return existingConfig;
     }
@@ -86,8 +112,15 @@ public class JakartaPolicyConfigFactoryProxy extends PolicyConfigurationFactory 
 
     @Override
     public boolean inService(String contextId) {
+        if (contextId == null) {
+            throw new IllegalArgumentException("contextId is required to be non-null");
+        }
         JakartaPolicyConfigProxy policyConfig = configMap.get(contextId);
-        return policyConfig == null ? false : policyConfig.inService();
+        if (policyConfig != null) {
+            policyConfig.ensureInitialized();
+            return policyConfig.inService();
+        }
+        return false;
     }
 
     @FFDCIgnore(IllegalStateException.class)
@@ -101,6 +134,10 @@ public class JakartaPolicyConfigFactoryProxy extends PolicyConfigurationFactory 
         return factory;
     }
 
+    /**
+     * When adding a new PolicyConfigurationFactory from a web.xml config, this method populates the new factory with the
+     * existing state and gets the PolicyConfiguration instances into the correct state.
+     */
     public void ensurePolicyConfigInitialized() {
         for (JakartaPolicyConfigProxy policyConfig : configMap.values()) {
             if (policyConfig != null) {

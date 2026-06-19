@@ -550,6 +550,9 @@ public abstract class HTTPConduit
     @FFDCIgnore(URISyntaxException.class) // Liberty Change
     @Override // Liberty Change
     public void prepare(Message message) throws IOException {
+
+        AsyncClientRunnableWrapperManager.prepare(message); // Liberty Change
+        
         // This call can possibly change the conduit endpoint address and
         // protocol from the default set in EndpointInfo that is associated
         // with the Conduit.
@@ -1308,10 +1311,6 @@ public abstract class HTTPConduit
 
         @FFDCIgnore(RejectedExecutionException.class) // Liberty Change Start
         protected void handleResponseOnWorkqueue(boolean allowCurrentThread, boolean forceWQ) throws IOException {
-            // Liberty change Begin 
-            // Capture thread context before creating the runnable
-            AsyncClientRunnableWrapperManager.prepare(outMessage);
-            // Liberty Change End
             Runnable runnable = AsyncClientRunnableWrapperManager.wrap(outMessage, new Runnable() {
                 @Override
                 @FFDCIgnore(Throwable.class)

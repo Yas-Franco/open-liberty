@@ -1,14 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2025 IBM Corporation and others.
+ * Copyright (c) 2011, 2026 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-2.0/
  *
  * SPDX-License-Identifier: EPL-2.0
- *
- * Contributors:
- *     IBM Corporation - initial API and implementation
  *******************************************************************************/
 package componenttest.topology.impl;
 
@@ -71,6 +68,7 @@ import componenttest.common.apiservices.Bootstrap;
 import componenttest.common.apiservices.LocalMachine;
 import componenttest.custom.junit.runner.LogPolice;
 import componenttest.exception.TopologyException;
+import componenttest.rules.repeater.JakartaEEAction;
 import componenttest.topology.impl.JavaInfo.Vendor;
 import componenttest.topology.impl.LibertyFileManager.LogSearchResult;
 import componenttest.topology.utils.FileUtils;
@@ -91,7 +89,6 @@ public class LibertyClient {
     public static boolean VALIDATE_APPS = DEFAULT_VALIDATE_APPS;
 
     protected static final JavaInfo javaInfo = JavaInfo.forCurrentVM();
-    protected static final boolean J9_JVM_RUN = javaInfo.vendor() == Vendor.IBM;
 
     protected static final boolean FAT_TEST_LOCALRUN = Boolean.getBoolean("fat.test.localrun");
     protected static final String MAC_RUN = PrivHelper.getProperty("fat.on.mac");
@@ -562,7 +559,6 @@ public class LibertyClient {
         if (preClean)
             preStartClientLogsTidy();
 
-
         Properties useEnvVars = new Properties();
         useEnvVars.putAll(envVars);
         if (!useEnvVars.isEmpty())
@@ -616,7 +612,7 @@ public class LibertyClient {
         JVM_ARGS += " -Djava.io.tmpdir=" + TMP_DIR;
 
         //FIPS 140-3
-        JavaInfo javaInfo = JavaInfo.forClient(this);
+        JavaInfo clientJavaInfo = JavaInfo.forClient(this);
 
         // Add JaCoCo java agent to generate code coverage for FAT test run
         if (DO_COVERAGE) {
@@ -629,6 +625,8 @@ public class LibertyClient {
             JVM_ARGS += " " + MAC_RUN;
         }
 
+        boolean startedWithJavaSecurity = false;
+
         // if we have java 2 security enabled, add java.security.manager and java.security.policy
         if (GLOBAL_JAVA2SECURITY) {
             RemoteFile f = getClientBootstrapPropertiesFile();
@@ -637,11 +635,12 @@ public class LibertyClient {
             if (clientNeedsToRunWithJava2Security()) {
                 addJava2SecurityPropertiesToBootstrapFile(f);
                 Log.info(c, "startClientWithArgs", "Java 2 Security enabled for client " + getClientName() + " because GLOBAL_JAVA2SECURITY=true");
+                startedWithJavaSecurity = true;
             } else {
                 LOG.warning("The build is configured to run FAT tests with Java 2 Security enabled, but the FAT client " + getClientName() +
                             " is exempt from Java 2 Security regression testing.");
             }
-        } else if (javaInfo.majorVersion() >= 18) {
+        } else {
             // Check if "websphere.java.security" has been added to bootstrapping.properties
             // as some tests will add it for their own security enable tests
             boolean bootstrapHasJava2SecProps = false;
@@ -664,22 +663,24 @@ public class LibertyClient {
                     reader.close();
             }
 
+            startedWithJavaSecurity = bootstrapHasJava2SecProps;
+
             if (bootstrapHasJava2SecProps) {
-                if (javaInfo.majorVersion() >= 24) {
+                if (clientJavaInfo.majorVersion() >= 24) {
                     // Security manager is permanently disabled starting in Java 24
                     LOG.severe("The build is configured to run FAT tests with Java 2 security enabled, but the security manager is permanently disabled in Java versions 24 and later.  The security manager cannot be set!");
                     throw new RuntimeException("The security manager is permanently disabled in Java versions 24 and later.  When running FATs, use @MaximumJavaLevel(javaLevel = 23) or disable Java 2 security to prevent this test from failing running in Java 24 or later.");
+                } else if (clientJavaInfo.majorVersion() >= 18) {
+                    // If we are running on Java 18 through 23, then we need to explicitly enable the security manager
+                    Log.info(c, method, "Java 18 + Java2Sec requested, setting -Djava.security.manager=allow");
+                    JVM_ARGS += " -Djava.security.manager=allow";
                 }
-
-                // If we are running on Java 18 through 23, then we need to explicitly enable the security manager
-                Log.info(c, method, "Java 18 + Java2Sec requested, setting -Djava.security.manager=allow");
-                JVM_ARGS += " -Djava.security.manager=allow";
             }
         }
 
         //FIPS 140-3
         // if we have FIPS 140-3 enabled, and the matched java/platform, add JVM arg
-        if (isFIPS140_3EnabledAndSupported()) {
+        if (isFIPS140_3EnabledAndSupported(clientJavaInfo)) {
             if (GLOBAL_ENHANCED_ALGO) {
                 JVM_ARGS += " -Duse.enhanced.security.algorithms=true";
                 JVM_ARGS += " -Dcom.ibm.ws.beta.edition=true";
@@ -688,23 +689,25 @@ public class LibertyClient {
                 Properties clientEnv = getClientEnv();
                 Properties defaultEnv = getDefaultEnv();
                 Map<String, String> opts = getJvmOptionsAsMap();
-                if (clientEnv.containsKey("ENABLE_FIPS140_3") || defaultEnv.containsKey("ENABLE_FIPS140_3") || opts.containsKey("-Xenablefips140-3") || opts.containsKey("-Dsemeru.fips")) {
+                if (clientEnv.containsKey("ENABLE_FIPS140_3") || defaultEnv.containsKey("ENABLE_FIPS140_3") || opts.containsKey("-Xenablefips140-3")
+                    || opts.containsKey("-Dsemeru.fips")) {
                     Log.info(c, method, "Test has defined its own settings for FIPS140-3");
                 } else {
-                    Log.info(c, "startClientWithArgs", "The JDK version: " + javaInfo.majorVersion() + " and vendor: " + JavaInfo.Vendor.IBM);
+                    Log.info(c, "startClientWithArgs", "The JDK version: " + clientJavaInfo.majorVersion() + " and vendor: " + JavaInfo.Vendor.IBM);
 
-                    if (javaInfo.majorVersion() >= 11) {
+                    if (clientJavaInfo.majorVersion() >= 11) {
                         Log.info(c, "startClientWithArgs", "FIPS 140-3 global build properties is set for Client " + getClientName()
-                                + " with IBM Java " + javaInfo.majorVersion() + ", adding required JVM arguments to run with FIPS 140-3 enabled");
+                                                           + " with IBM Java " + clientJavaInfo.majorVersion() + ", adding required JVM arguments to run with FIPS 140-3 enabled");
 
                         JVM_ARGS += " -Dsemeru.fips=true";
                         JVM_ARGS += " -Dsemeru.customprofile=OpenJCEPlusFIPS.FIPS140-3-Custom";
-                        JVM_ARGS += " -Djava.security.propertiesList=" + getLibertySemeruFips140_3ProfileLocationAndPrintFileContents() + File.pathSeparator + getSemeruFips140_3CustomProfileLocationAndPrintFileContents();
+                        JVM_ARGS += " -Djava.security.propertiesList=" + getLibertySemeruFips140_3ProfileLocationAndPrintFileContents() + File.pathSeparator
+                                    + getSemeruFips140_3CustomProfileLocationAndPrintFileContents();
                         JVM_ARGS += " -Dcom.ibm.fips.mode=140-3";
                         // JVM_ARGS += " -Djavax.net.debug=all";  // Uncomment as needed for additional debugging
-                    } else if (javaInfo.majorVersion() == 8) {
+                    } else if (clientJavaInfo.majorVersion() == 8) {
                         Log.info(c, "startClientWithArgs", "FIPS 140-3 global build properties is set for Client " + getClientName()
-                                + " with IBM Java 8, adding JVM arguments -Xenablefips140-3, ...,  to run with FIPS 140-3 enabled");
+                                                           + " with IBM Java 8, adding JVM arguments -Xenablefips140-3, ...,  to run with FIPS 140-3 enabled");
 
                         JVM_ARGS += " -Xenablefips140-3";
                         JVM_ARGS += " -Dcom.ibm.jsse2.usefipsprovider=true";
@@ -780,11 +783,16 @@ public class LibertyClient {
         useEnvVars.setProperty("LOG_DIR", logsRoot);
         useEnvVars.setProperty("LOG_FILE", consoleFileName);
 
+        // default ltpa keys password for FAT tests
+        if (!useEnvVars.containsKey("ltpa_keys_password")) {
+            useEnvVars.setProperty("ltpa_keys_password", "WebAS");
+        }
+
         Log.info(c, method, "Using additional env props: " + useEnvVars.toString());
 
         Log.info(c, method, "Starting Client with command: " + cmd);
 
-        if (isFIPS140_3EnabledAndSupported()) {
+        if (isFIPS140_3EnabledAndSupported(clientJavaInfo)) {
             String clientSecurityDir = clientRoot + File.separator + "resources" + File.separator + "security";
             File ltpaFIPSKeys = new File(clientSecurityDir, "ltpaFIPS.keys");
             File ltpaKeys = new File(clientSecurityDir, "ltpa.keys");
@@ -870,11 +878,50 @@ public class LibertyClient {
         // Create a marker file to indicate client is started
         createClientMarkerFile();
 
+        if (startedWithJavaSecurity && isEE11Enabled()) {
+            final String JAVA2_SECURITY_DISABLED = "CWWKE0971W";
+            fixedIgnoreErrorsList.add(JAVA2_SECURITY_DISABLED);
+        }
+
         if ("run".equals(clientCmd)) {
             validateClientStopped(output, expectStartFailure);
         }
         postStopClientArchive();
         return output;
+    }
+
+    private boolean isEE11Enabled() throws Exception {
+        if (JakartaEEAction.isEE9Active() || JakartaEEAction.isEE10Active()) {
+            return false;
+        }
+
+        // EE 11 which doesn't support Java security manager can run with Java 17.
+
+        RemoteFile serverXML = machine.getFile(getClientConfigurationPath());
+        InputStreamReader in = new InputStreamReader(serverXML.openForReading());
+        try (Scanner s = new Scanner(in)) {
+            while (s.hasNextLine()) {
+                String line = s.nextLine();
+                if (line.contains("<featureManager>")) {//So has reached featureSets
+                    while (s.hasNextLine()) {
+                        line = s.nextLine();
+                        if (line.contains("</featureManager>"))
+                            break;
+
+                        line = line.replaceAll("<feature>", "");
+                        line = line.replaceAll("</feature>", "");
+                        line = line.trim();
+                        String lowerCaseFeatureName = line.toLowerCase();
+
+                        if ("jakartaeeclient-11.0".equals(lowerCaseFeatureName)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     private String getLibertySemeruFips140_3ProfileLocationAndPrintFileContents() throws Exception {
@@ -2762,6 +2809,12 @@ public class LibertyClient {
         return findStringsInLogs(regexp, remoteLogFile);
     }
 
+    public List<String> findStringsInCopiedTraceLogs(String regexp, String filePath) throws Exception {
+        String logFile = pathToAutoFVTOutputClientsFolder + "/" + clientToUse + "-" + logStamp + "/" + filePath;
+        RemoteFile remoteLogFile = machine.getFile(logFile);
+        return findStringsInLogs(regexp, remoteLogFile);
+    }
+
     /**
      * This method will search the output and trace files for this client
      * for the specified expression. The default trace prefix is assumed.
@@ -4009,6 +4062,10 @@ public class LibertyClient {
 
     //FIPS 140-3
     public boolean isFIPS140_3EnabledAndSupported() throws Exception {
+        return isFIPS140_3EnabledAndSupported(JavaInfo.forClient(this));
+    }
+
+    private boolean isFIPS140_3EnabledAndSupported(JavaInfo clientJavaInfo) throws Exception {
         String methodName = "isFIPS140_3EnabledAndSupported";
 
         // short circuit this function so that it returns true if GLOBAL_ENHANCED_ALGO is true, this way the tests behave as though FIPS is enabled.
@@ -4017,16 +4074,16 @@ public class LibertyClient {
             return true;
         }
 
-        boolean isIBMJVM8 = (javaInfo.majorVersion() == 8) && (javaInfo.VENDOR == Vendor.IBM);
-        boolean isIBMJVMGreaterOrEqualTo11 = (javaInfo.majorVersion() >= 11) && (javaInfo.VENDOR == Vendor.IBM);
+        boolean isIBMJVM8 = (clientJavaInfo.majorVersion() == 8) && (clientJavaInfo.VENDOR == Vendor.IBM);
+        boolean isIBMJVMGreaterOrEqualTo11 = (clientJavaInfo.majorVersion() >= 11) && (clientJavaInfo.VENDOR == Vendor.IBM);
         if (GLOBAL_CLIENT_FIPS_140_3) {
-            Log.info(c, methodName, "Liberty client is running JDK version: " + javaInfo.majorVersion() + " and vendor: " + javaInfo.VENDOR);
+            Log.info(c, methodName, "Liberty client is running JDK version: " + clientJavaInfo.majorVersion() + " and vendor: " + clientJavaInfo.VENDOR);
             if (isIBMJVM8) {
                 Log.info(c, methodName, "global build properties FIPS_140_3 is set for client " + getClientName() +
                                         " and IBM java 8 is available to run with FIPS 140-3 enabled.");
             } else if (isIBMJVMGreaterOrEqualTo11) {
                 Log.info(c, methodName, "global build properties FIPS_140_3 is set for client " + getClientName() +
-                                        " and IBM java " + javaInfo.majorVersion() + " is available to run with FIPS 140-3 enabled.");
+                                        " and IBM java " + clientJavaInfo.majorVersion() + " is available to run with FIPS 140-3 enabled.");
             } else {
                 throw new RuntimeException("The global build properties FIPS_140_3 is set for client " + getClientName() +
                                            ",  but no IBM java on liberty client to run with FIPS 140-3 enabled.");
@@ -4038,8 +4095,8 @@ public class LibertyClient {
     public void addEnvVar(String key, String value) {
         if (!Pattern.matches("[a-zA-Z_]+[a-zA-Z0-9_]*", key)) {
             throw new IllegalArgumentException("Invalid environment variable key '" + key +
-                    "'. Environment variable keys must consist of characers [a-zA-Z0-9_] " +
-                    "in order to work on all OSes.");
+                                               "'. Environment variable keys must consist of characers [a-zA-Z0-9_] " +
+                                               "in order to work on all OSes.");
         }
         if (isStarted())
             throw new RuntimeException("Cannot add env vars to a running server");
