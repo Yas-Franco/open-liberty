@@ -54,11 +54,11 @@ public final class MeterCollection<T> {
 
     public void put(String key, T meter) {
         try {
-            if (tc.isDebugEnabled()) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 if (meter != null) {
-                    Tr.debug(tc, "KEY =" + key + ",. Type of Meter =" + meter.getClass().getSimpleName());
+                    Tr.debug(this, tc, "KEY =" + key + ",. Type of Meter =" + meter.getClass().getSimpleName());
                 } else {
-                    Tr.debug(tc, "KEY =" + key + ",. Type of Meter is NULL");
+                    Tr.debug(this, tc, "KEY =" + key + ",. Type of Meter is NULL");
                 }
             }
             if (meter == null) {
@@ -69,8 +69,8 @@ public final class MeterCollection<T> {
                 //USE type = meter.getClass().getSimpleName() ---> Example :If meter is ServletStats, MXBean type woould be ServletStats
                 //USE name = key ---> Example: Incase of ServletStats Key would be APPANAME.SERVLETNAME (WebSphere:type=ServletStats,name=MyBankApp.MyServlet)
                 //USE mxBeanImple as meter object ---> Example ServletStats which extends ServletStatsMXBean.
-                if (tc.isDebugEnabled()) {
-                    Tr.debug(tc, "Calling MBean REGISTER operation for =" + key + ",. Type of Meter =" + meter.getClass().getSimpleName());
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(this, tc, "Calling MBean REGISTER operation for =" + key + ",. Type of Meter =" + meter.getClass().getSimpleName());
                 }
                 //If monitor className does not exists in the filter list then there should not be any mx bean registration
                 //Default behavior : If no filter is provided then all the available monitor will be registered
@@ -80,8 +80,8 @@ public final class MeterCollection<T> {
                     }
                 }
                 objectName = MXBeanHelper(meter.getClass().getSimpleName(), key, REGISTER_MXBEAN, meter);
-                if (tc.isDebugEnabled()) {
-                    Tr.debug(tc, "MBean REGISTER operation is successful. ObjectName =" + objectName);
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(this, tc, "MBean REGISTER operation is successful. ObjectName =" + objectName);
                 }
                 //STORE MXBean ObjectName in Bundle MAP. If Bundle is removed, we will remove those MXBeans.
                 Set<ObjectName> s = MonitoringFrameworkExtender.mxmap.get(monitor);
@@ -91,8 +91,8 @@ public final class MeterCollection<T> {
                 }
             }
         } catch (Exception t) {
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, t.getMessage());
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(this, tc, t.getMessage());
 
             }
         }
@@ -110,11 +110,11 @@ public final class MeterCollection<T> {
      */
     public void put(String key, Map<String, String> attributes, T meter) {
         try {
-            if (tc.isDebugEnabled()) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 if (meter != null) {
-                    Tr.debug(tc, "KEY =" + key + ", Attributes=" + attributes + ", Type of Meter =" + meter.getClass().getSimpleName());
+                    Tr.debug(this, tc, "KEY =" + key + ", Attributes=" + attributes + ", Type of Meter =" + meter.getClass().getSimpleName());
                 } else {
-                    Tr.debug(tc, "KEY =" + key + ", Attributes=" + attributes + ", Type of Meter is NULL");
+                    Tr.debug(this, tc, "KEY =" + key + ", Attributes=" + attributes + ", Type of Meter is NULL");
                 }
             }
             if (meter == null) {
@@ -122,8 +122,8 @@ public final class MeterCollection<T> {
             }
             ObjectName objectName = null;
             if (!meters.containsValue(meter)) {
-                if (tc.isDebugEnabled()) {
-                    Tr.debug(tc, "Calling MBean REGISTER operation for =" + key + ", Attributes=" + attributes + ", Type of Meter =" + meter.getClass().getSimpleName());
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(this, tc, "Calling MBean REGISTER operation for =" + key + ", Attributes=" + attributes + ", Type of Meter =" + meter.getClass().getSimpleName());
                 }
                 //If monitor className does not exists in the filter list then there should not be any mx bean registration
                 //Default behavior : If no filter is provided then all the available monitor will be registered
@@ -133,8 +133,8 @@ public final class MeterCollection<T> {
                     }
                 }
                 objectName = MXBeanHelperWithAttributes(meter.getClass().getSimpleName(), attributes, REGISTER_MXBEAN, meter);
-                if (tc.isDebugEnabled()) {
-                    Tr.debug(tc, "MBean REGISTER operation is successful. ObjectName =" + objectName);
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(this, tc, "MBean REGISTER operation is successful. ObjectName =" + objectName);
                 }
                 // Store the ObjectName for later unregistration
                 meterObjectNames.put(key, objectName);
@@ -146,8 +146,8 @@ public final class MeterCollection<T> {
                 }
             }
         } catch (Exception t) {
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, t.getMessage());
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(this, tc, t.getMessage());
 
             }
         }
@@ -179,7 +179,7 @@ public final class MeterCollection<T> {
         sb.append(",name=").append(name);
         ObjectName on = new ObjectName(sb.toString());
         if (operation == REGISTER_MXBEAN) {
-            if (tc.isDebugEnabled()) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "Registering MBean to platform MBean Server " + on);
             }
             try {
@@ -200,7 +200,7 @@ public final class MeterCollection<T> {
                 }
             }
         } else if (operation == UNREGISTER_MXBEAN) {
-            if (tc.isDebugEnabled()) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "UN-Registering MBean from platform MBean Server " + on);
             }
             try {
@@ -260,7 +260,7 @@ public final class MeterCollection<T> {
 
         ObjectName on = new ObjectName(sb.toString());
         if (operation == REGISTER_MXBEAN) {
-            if (tc.isDebugEnabled()) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "Registering MBean to platform MBean Server " + on);
             }
             try {
@@ -281,7 +281,7 @@ public final class MeterCollection<T> {
                 }
             }
         } else if (operation == UNREGISTER_MXBEAN) {
-            if (tc.isDebugEnabled()) {
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
                 Tr.debug(tc, "UN-Registering MBean from platform MBean Server " + on);
             }
             try {
@@ -335,8 +335,8 @@ public final class MeterCollection<T> {
 
             if (mBeanImpl != null && objectName != null) {
                 //Un-Register MXBean using the stored ObjectName
-                if (tc.isDebugEnabled()) {
-                    Tr.debug(tc, "UN-Registering MBean from platform MBean Server " + objectName);
+                if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                    Tr.debug(this, tc, "UN-Registering MBean from platform MBean Server " + objectName);
                 }
                 final ObjectName finalObjectName = objectName;
                 try {
@@ -346,8 +346,8 @@ public final class MeterCollection<T> {
                     });
                 } catch (PrivilegedActionException pae) {
                     Throwable t = pae.getCause();
-                    if (tc.isDebugEnabled()) {
-                        Tr.debug(tc, "Error unregistering MBean: " + t.getMessage());
+                    if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                        Tr.debug(this, tc, "Error unregistering MBean: " + t.getMessage());
                     }
                 }
             }
@@ -359,8 +359,8 @@ public final class MeterCollection<T> {
             }
 
         } catch (Throwable t) {
-            if (tc.isDebugEnabled()) {
-                Tr.debug(tc, t.getMessage());
+            if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+                Tr.debug(this, tc, t.getMessage());
             }
         }
     }
