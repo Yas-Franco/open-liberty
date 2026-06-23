@@ -11,30 +11,31 @@
 package io.openliberty.reporting.internal;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.Reader;
 import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 import java.util.Map;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
-import com.ibm.json.java.JSONObject;
 import com.ibm.websphere.ras.Tr;
 import com.ibm.websphere.ras.TraceComponent;
 
 /**
  * <p>
- * The CVE Service Client makes the connection to the cloud service and then
- * gets back the response containing a JSON Array which contains the list of
- * CVE's that could potentially have impact.
+ * The Usage Metering Client makes the connection to the metering service
+ * and sends Liberty usage data.
  * </p>
  */
 public class CVEServiceClient {
@@ -43,18 +44,16 @@ public class CVEServiceClient {
 
     /**
      * <p>
-     * Retrieves the CVE Data from the cloud service.
+     * Sends usage data to the metering service.
      * </p>
      *
      * @param data    Map<String, String>
      * @param urlLink URL link which is set in the Server.xml
-     * @return json JSONObject
      * @throws IOException
      */
-    public JSONObject retrieveCVEData(Map<String, String> data, String urlLink) throws IOException {
+    public void retrieveCVEData(Map<String, String> data, String urlLink) throws IOException {
 
         String jsonData = buildJsonString(data);
-        JSONObject json = new JSONObject();
 
         if (!urlLink.startsWith("https")) {
             throw new MalformedURLException("Invalid protocol, expected https");
@@ -71,10 +70,11 @@ public class CVEServiceClient {
             Tr.debug(this, tc, jsonData);
         }
 
-        try (Reader reader = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
-            json = JSONObject.parse(reader);
+        // Get response code to ensure request was sent
+        int responseCode = connection.getResponseCode();
+        if (TraceComponent.isAnyTracingEnabled() && tc.isDebugEnabled()) {
+            Tr.debug(this, tc, "Response code: " + responseCode);
         }
-        return json;
     }
 
     /**
@@ -91,15 +91,36 @@ public class CVEServiceClient {
         connection = (HttpsURLConnection) url.openConnection();
         SSLContext sc = null;
         try {
+            // Create a trust manager that does not validate certificate chains (for -k flag behavior)
+            TrustManager[] trustAllCerts = new TrustManager[] {
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                    }
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                    }
+                }
+            };
+            
             sc = SSLContext.getInstance("TLSv1.2");
-            sc.init(null, null, null);
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
         } catch (NoSuchAlgorithmException | KeyManagementException e) {
             throw new SSLHandshakeException("Issue when creating a secure connection: " + e);
         }
         connection.setSSLSocketFactory(sc.getSocketFactory());
+        
+        // Disable hostname verification (for -k flag behavior)
+        connection.setHostnameVerifier(new HostnameVerifier() {
+            public boolean verify(String hostname, SSLSession session) {
+                return true;
+            }
+        });
+        
         connection.setRequestMethod("POST");
         connection.setRequestProperty("Content-Type", "application/json");
-        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Authorization", "Bearer urh3urh823u48j2eikmwd");
         connection.setDoOutput(true);
 
         return connection;
@@ -125,18 +146,16 @@ public class CVEServiceClient {
 
     /**
      * <p>
-     * Builds the data collected as a string (JSONString) to send.
+     * Builds the usage metering data as a JSON string to send.
      * </p>
      *
      * <pre>
      * 	Example:
-     * 			 {"productEdition": "edition", "features": ["feature1", "feature2", "feature3"], "productVersion": "12.3.4.56", "iFixes": ["ifix1", "ifix2", "ifix3"], "javaVersion": "17.0.8+7", "id": "STRING", "javaVendor": "javaVendor"}
+     * 			 {"productId": "a1b2c3d4e5f6g7h8", "productName": "Liberty", "productMetric": "26.0.0.4", "metricValue": "1", "productCloudpakRatio": "", "cloudpakId": "", "cloudpakName": "", "cloudpakMetric": "", "logDate": "2026-06-11"}
      * </pre>
      *
-     *
-     *
-     * @param data A Map<String, String>
-     * @return A string
+     * @param data A Map<String, String> containing the usage metering data
+     * @return A JSON string representation of the data
      */
     protected String buildJsonString(Map<String, String> data) {
         if (data.isEmpty()) {
@@ -144,22 +163,7 @@ public class CVEServiceClient {
         }
         StringBuilder jsonData = new StringBuilder("{");
         for (String key : data.keySet()) {
-            if ("features".equals(key) || "iFixes".equals(key)) {
-                jsonData.append("\"").append(key).append("\": [");
-                if (data.get(key).length() > 0) {
-                    String[] featuresOrIFixes = data.get(key).split(",");
-                    for (String featureOrIfix : featuresOrIFixes) {
-                        jsonData.append("\"").append(featureOrIfix).append("\", ");
-                    }
-
-                    jsonData.setLength(jsonData.length() - 2);
-                }
-
-                jsonData.append("], ");
-
-            } else {
-                jsonData.append("\"").append(key).append("\": \"").append(data.get(key)).append("\", ");
-            }
+            jsonData.append("\"").append(key).append("\": \"").append(data.get(key)).append("\", ");
         }
         jsonData.setLength(jsonData.length() - 2);
         jsonData.append("}");

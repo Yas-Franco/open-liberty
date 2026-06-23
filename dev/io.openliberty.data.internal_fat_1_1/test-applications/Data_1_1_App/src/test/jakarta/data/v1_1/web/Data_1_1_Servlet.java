@@ -24,11 +24,14 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import jakarta.annotation.Resource;
 import jakarta.data.Limit;
@@ -41,6 +44,7 @@ import jakarta.data.constraint.In;
 import jakarta.data.constraint.Like;
 import jakarta.data.constraint.NotBetween;
 import jakarta.data.constraint.NotNull;
+import jakarta.data.exceptions.DataException;
 import jakarta.data.expression.TextExpression;
 import jakarta.data.page.CursoredPage;
 import jakarta.data.page.Page;
@@ -58,8 +62,10 @@ import jakarta.transaction.UserTransaction;
 
 import org.junit.Test;
 
+import componenttest.annotation.AllowedFFDC;
 import componenttest.app.FATServlet;
 import test.jakarta.data.v1_1.web.Fraction.Decimal;
+import test.jakarta.data.v1_1.web.Fraction.Decimal.Type;
 
 @SuppressWarnings("serial")
 @WebServlet("/*")
@@ -100,6 +106,16 @@ public class Data_1_1_Servlet extends FATServlet {
                 fractionsToAdd.add(f);
             }
         fractions.supply(fractionsToAdd);
+    }
+
+    /**
+     * Indicates if testing with the Derby database.
+     *
+     * @return true if testing with the Derby database.
+     */
+    static final boolean isDerby() {
+        String jdbcJarName = System.getenv().getOrDefault("DB_DRIVER", "UNKNOWN");
+        return jdbcJarName.startsWith("derby");
     }
 
     /**
@@ -488,6 +504,75 @@ public class Data_1_1_Servlet extends FATServlet {
         }
     }
 
+    /**
+     * Use the QueryOptions annotation on a Find method to supply a load graph
+     * that overrides loading of an ElementCollection to make it eager rather
+     * than lazily loaded.
+     */
+    @Test
+    public void testEntityGraphAsQueryOption() {
+        assertEquals(List.of(BigDecimal.valueOf(300, 3), // nearest tenth
+                             BigDecimal.valueOf(310, 3), // nearest hundreth
+                             BigDecimal.valueOf(313, 3)), // nearest thousandth
+                     fractions.of(5, 16).orElseThrow().rounded);
+
+        assertEquals(List.of(BigDecimal.valueOf(900, 3), // nearest tenth
+                             BigDecimal.valueOf(860, 3), // nearest hundreth
+                             BigDecimal.valueOf(857, 3)), // nearest thousandth
+                     fractions.of(6, 7).orElseThrow().rounded);
+
+        assertEquals(List.of(BigDecimal.valueOf(600, 3), // nearest tenth
+                             BigDecimal.valueOf(620, 3), // nearest hundreth
+                             BigDecimal.valueOf(615, 3)), // nearest thousandth
+                     fractions.of(8, 13).orElseThrow().rounded);
+    }
+
+    /**
+     * Tests a Find method with the First annotation specifying a value
+     * larger than 1.
+     */
+    @Test
+    public void testFindFirst10() {
+
+        Restriction<Fraction> notReduced = _Fraction.reduced.isFalse();
+
+        Order<Fraction> alphabetized = Order.by(_Fraction.name.ascIgnoreCase());
+
+        assertEquals(List.of(8, // Eight
+                             18, // Eighteen
+                             15, // Fifteen
+                             5, // Five
+                             4, // Four
+                             14, // Fourteen
+                             6, // Six
+                             16, // Sixteen
+                             10, // Ten
+                             12), // Twelve
+                     fractions.atMost10Numerators(20,
+                                                  notReduced,
+                                                  alphabetized));
+    }
+
+    /**
+     * Tests a Find method with the First annotation specifying a value
+     * but where there are less results available than requested.
+     */
+    @Test
+    public void testFindFirstReturnsLesserAmount() {
+
+        Restriction<Fraction> firstLetterIsF = _Fraction.name.startsWith("F");
+
+        Order<Fraction> reverseAlphabetized = Order.by(_Fraction.name.desc());
+
+        assertEquals(List.of(14, // Fourteen
+                             4, // Four
+                             5, // Five
+                             15), // Fifteen
+                     fractions.atMost10Numerators(18,
+                                                  firstLetterIsF,
+                                                  reverseAlphabetized));
+    }
+
     @Test
     public void testInheritanceFromAbstractEntity() {
         ads.removeBySponsorIn(List.of("Open Liberty",
@@ -805,6 +890,34 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Use a repository method that is annotated JakartaQuery that has
+     * both Restriction and Order parameters.
+     */
+    @Test
+    public void testJakartaQueryWithRestrictionAndOrder() {
+
+        Restriction<Fraction> ninthsAndTenths = //
+                        Restrict.any(_Fraction.denominator.equalTo(9),
+                                     _Fraction.denominator.equalTo(10));
+
+        assertEquals(List.of("One Ninth",
+                             "Two Ninths",
+                             "Two Tenths",
+                             "Three Ninths",
+                             "Three Tenths",
+                             "Four Ninths",
+                             "Four Tenths"),
+                     fractions.squareRootBetween(0.33,
+                                                 0.67,
+                                                 ninthsAndTenths,
+                                                 Order.by(_Fraction.numerator.asc(),
+                                                          _Fraction.denominator.asc()))
+                                     .stream()
+                                     .map(f -> f.name)
+                                     .toList());
+    }
+
+    /**
      * Supply LEFT and RIGHT expressions to a repository method.
      */
     @Test
@@ -944,6 +1057,85 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Use the QueryOptions annotation to establish pessimistic locking and
+     * a query timeout on a repository method annotated JakartaQuery.
+     */
+    @AllowedFFDC("javax.transaction.xa.XAException") // due to query timeout
+    @Test
+    public void testLockModeAndQueryTimeoutAsQueryOptions() throws Exception {
+        // Populate with 18/23.
+        // Ensure deletion in the finally block.
+        fractions.supply(List.of(Fraction.of(18, 23)));
+
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch blocked = new CountDownLatch(1);
+        CompletableFuture<Fraction> lockDB = CompletableFuture.supplyAsync(() -> {
+            try {
+                tx.setTransactionTimeout((int) TIMEOUT_S * 3);
+                tx.begin();
+                Optional<Fraction> found = //
+                                fractions.withWriteLock("Eighteen Twenty-thirds");
+                System.out.println("Obtained lock on 18/23");
+                locked.countDown();
+                blocked.await(TIMEOUT_S * 2, TimeUnit.SECONDS);
+                System.out.println("Release lock on 18/23");
+                tx.commit();
+                return found.orElseThrow();
+            } catch (RuntimeException x) {
+                throw x;
+            } catch (Exception x) {
+                throw new CompletionException(x);
+            }
+        });
+        try {
+            assertEquals(true, locked.await(TIMEOUT_S, TimeUnit.SECONDS));
+            // Derby ignores query timeout and the lock timeout ends up applying
+            // instead. Work around this by also setting the lock timeout when
+            // running on Derby:
+            if (isDerby())
+                if (isHibernatePersistence())
+                    statefulFractions.setLockTimeout(5);
+                else
+                    fractions.setLockTimeout(5);
+            tx.begin();
+            try {
+                Optional<Fraction> found = //
+                                fractions.withWriteLock("Eighteen Twenty-thirds");
+                fail("Query timeout on QueryOptions should have caused the" +
+                     " query to time out. Instead found " + found);
+            } catch (DataException x) {
+                // expected for query timeout
+            } finally {
+                tx.rollback();
+            }
+
+            blocked.countDown();
+            tx.begin();
+            Fraction f18_23 = fractions.withWriteLock("Eighteen Twenty-thirds")
+                            .orElseThrow();
+            assertEquals(0.7826,
+                         f18_23.decimal.value(),
+                         0.0001);
+            tx.commit();
+
+            // allow error to be raised if any
+            lockDB.get(TIMEOUT_S, TimeUnit.SECONDS);
+        } finally {
+            locked.countDown();
+            blocked.countDown();
+            // Ensure no fractions with denominator of 23 or more are left around
+            fractions.discard(AtLeast.min(23),
+                              AtMost.max(Integer.MAX_VALUE),
+                              Restrict.unrestricted());
+            if (isDerby())
+                if (isHibernatePersistence())
+                    statefulFractions.setLockTimeout(60);
+                else
+                    fractions.setLockTimeout(60);
+        }
+    }
+
+    /**
      * Supply a LOWER expression to a repository method.
      */
     @Test
@@ -964,6 +1156,193 @@ public class Data_1_1_Servlet extends FATServlet {
                                             Order.by(_Fraction.name.asc()))
                                      .map(f -> f.name)
                                      .collect(Collectors.toList()));
+    }
+
+    /**
+     * Use a merge operation on a stateful repository to make an unmanaged
+     * entity into a managed entity.
+     */
+    @Test
+    public void testMerge() throws Exception {
+
+        // Populate with 15/23.
+        // Ensure deletion in the finally block.
+        statefulFractionRepo.write(Fraction.of(15, 23));
+
+        boolean removed = false;
+        try {
+            System.out.println("Update an unmanaged instance and merge");
+            Fraction f = Fraction.of(15, 23);
+            f.denominator = 21;
+            f.reduced = false;
+            f = statefulFractionRepo.manage(f);
+
+            assertEquals(21,
+                         f.denominator);
+            assertEquals(false,
+                         f.reduced);
+            assertEquals("Fifteen Twenty-thirds",
+                         f.name);
+            assertEquals(BigDecimal.valueOf(6521, 4), // first 4 decimals of 15/23
+                         f.decimal.truncated());
+
+            f.decimal = Decimal.of(15, 21);
+
+            if (isHibernatePersistence()) {
+                statefulFractions.manager().flush();
+            } else {
+                tx.begin();
+                statefulFractions.manager().flush();
+                tx.commit();
+            }
+
+            assertEquals(true,
+                         statefulFractions.fetch(15, 23).isEmpty());
+
+            tx.begin();
+            f = statefulFractions.fetch(15, 21).orElseThrow();
+            statefulFractions.detach(f);
+            f.reduced = true;
+            f = statefulFractionRepo.manage(f);
+            f.denominator = 23;
+            tx.commit();
+
+            f = statefulFractions.fetch(15, 23).orElseThrow();
+
+            assertEquals(23,
+                         f.denominator);
+            assertEquals(true,
+                         f.reduced);
+            assertEquals("Fifteen Twenty-thirds",
+                         f.name);
+            assertEquals(BigDecimal.valueOf(7142, 4), // first 4 decimals of 15/21
+                         f.decimal.truncated());
+            assertEquals(true,
+                         statefulFractions.fetch(15, 21).isEmpty());
+
+            statefulFractionRepo.remove(f);
+            removed = true;
+        } finally {
+            if (tx.getStatus() != Status.STATUS_NO_TRANSACTION)
+                tx.rollback();
+
+            // Ensure no fractions with denominator of 21 or more are left around
+            if (!removed)
+                fractions.discard(AtLeast.min(21),
+                                  AtMost.max(Integer.MAX_VALUE),
+                                  Restrict.unrestricted());
+        }
+    }
+
+    /**
+     * Use a multiple merge operation on a stateful repository to make multiple
+     * unmanaged enities into managed entities.
+     */
+    @Test
+    public void testMergeMultiple() throws Exception {
+
+        // Populate with 16/23 and 17/23.
+        // Ensure deletion in the finally block.
+        statefulFractionRepo.persistAll(List.of(Fraction.of(16, 23),
+                                                Fraction.of(17, 23)));
+
+        boolean removed = false;
+        try {
+            // unmanaged due to detach:
+            Fraction f16 = statefulFractions.fetch(16, 23).orElseThrow();
+            statefulFractions.detach(f16);
+            f16.reduced = false;
+
+            // unmanaged due to creating instance:
+            Fraction f17 = Fraction.of(17, 23);
+            f17.reduced = false;
+
+            Fraction[] managed = statefulFractionRepo.multiMerge(f16, f17);
+
+            assertEquals(16,
+                         managed[0].numerator);
+            assertEquals(23,
+                         managed[0].denominator);
+            assertEquals(false,
+                         managed[0].reduced);
+            assertEquals("Sixteen Twenty-thirds",
+                         managed[0].name);
+            assertEquals(BigDecimal.valueOf(6956, 4), // first 4 decimals of 16/23
+                         managed[0].decimal.truncated());
+
+            assertEquals(17,
+                         managed[1].numerator);
+            assertEquals(23,
+                         managed[1].denominator);
+            assertEquals(false,
+                         managed[1].reduced);
+            assertEquals("Seventeen Twenty-thirds",
+                         managed[1].name);
+            assertEquals(BigDecimal.valueOf(7391, 4), // first 4 decimals of 17/23
+                         managed[1].decimal.truncated());
+
+            if (isHibernatePersistence()) {
+                statefulFractions.manager().flush();
+            } else {
+                tx.begin();
+                statefulFractions.manager().flush();
+                tx.commit();
+            }
+
+            f16 = managed[0];
+            f17 = managed[1];
+            statefulFractions.detach(f16);
+
+            tx.begin();
+            statefulFractions.detach(f17);
+
+            f16.decimal = Decimal.of(16, 22);
+            f17.reduced = true;
+
+            managed = statefulFractionRepo.multiMerge(f16, f17);
+
+            f17 = managed[1];
+            f17.decimal = Decimal.of(17, 22);
+            tx.commit();
+
+            f16 = statefulFractions.fetch(16, 23).orElseThrow();
+
+            assertEquals(16,
+                         f16.numerator);
+            assertEquals(23,
+                         f16.denominator);
+            assertEquals(false,
+                         f16.reduced);
+            assertEquals("Sixteen Twenty-thirds",
+                         f16.name);
+            assertEquals(BigDecimal.valueOf(7272, 4), // first 4 decimals of 16/22
+                         f16.decimal.truncated());
+
+            f17 = statefulFractions.fetch(17, 23).orElseThrow();
+
+            assertEquals(17,
+                         f17.numerator);
+            assertEquals(23,
+                         f17.denominator);
+            assertEquals(true,
+                         f17.reduced);
+            assertEquals("Seventeen Twenty-thirds",
+                         f17.name);
+            assertEquals(BigDecimal.valueOf(7727, 4), // first 4 decimals of 17/22
+                         f17.decimal.truncated());
+
+            statefulFractionRepo.remove(f16, f17);
+            removed = true;
+        } finally {
+            if (tx.getStatus() != Status.STATUS_NO_TRANSACTION)
+                tx.rollback();
+
+            // Ensure no fractions with denominator of 23 or more are left around
+            if (!removed)
+                fractions.discard(AtLeast.min(23),
+                                  AtMost.max(Integer.MAX_VALUE),
+                                  Restrict.unrestricted());
+        }
     }
 
     /**
@@ -1136,6 +1515,233 @@ public class Data_1_1_Servlet extends FATServlet {
     }
 
     /**
+     * Use a NativeQuery method that performs SQL INSERT, UPDATE, and DELETE
+     * statements.
+     */
+    @Test
+    public void testNativeQueryExecutesStatements() {
+        // Populate with 14/23.
+        // Ensure deletion in the finally block.
+        fractions.create(14,
+                         23,
+                         "Fourteen Twenty-Thirds",
+                         true,
+                         14.0 / 23.0,
+                         23.0 / 14.0,
+                         BigDecimal.valueOf(6090L, 4),
+                         BigDecimal.valueOf(6080L, 4),
+                         Type.REPEATING.ordinal(),
+                         "",
+                         "60869565");
+        try {
+            assertEquals(BigDecimal.valueOf(6090L, 4),
+                         fractions.roundedUp(14, 23)
+                                         .orElseThrow());
+
+            System.out.println("Update 14/23");
+
+            assertEquals(true, fractions.change(BigDecimal.valueOf(6087L, 4),
+                                                BigDecimal.valueOf(6086L, 4),
+                                                14,
+                                                23));
+
+            assertEquals(BigDecimal.valueOf(6087L, 4),
+                         fractions.roundedUp(14, 23)
+                                         .orElseThrow());
+        } finally {
+            // Ensure no fractions with denominator of 23 or more are left around
+            assertEquals(1L,
+                         fractions.destroy(14, "Twenty-Thirds"));
+        }
+    }
+
+    /**
+     * Use a NativeQuery method that returns subsets of entity attributes
+     * as an array of Java records
+     */
+    // @Test // TODO Java record results?
+    public void testNativeQueryReturnsArrayOfRecord() {
+        assertEquals(List.of("1:8",
+                             "2:7",
+                             "3:6",
+                             "4:5",
+                             "5:4",
+                             "6:3",
+                             "7:2",
+                             "8:1"),
+                     Stream.of(fractions.ratioArrayWithDenominator(9))
+                                     .map(Ratio::toString)
+                                     .toList());
+    }
+
+    /**
+     * Use a NativeQuery method that selects the first matching entity.
+     */
+    @Test
+    public void testNativeQueryReturnsFirstEntity() {
+        assertEquals("Seven Twentieths",
+                     fractions.firstValueWithin(0.334, 0.4)
+                                     .orElseThrow().name);
+    }
+
+    /**
+     * Use a NativeQuery method that selects multiple entities as a list.
+     * Also covers a NativeQuery that has no parameters.
+     */
+    @Test
+    public void testNativeQueryReturnsListOfEntities() {
+        assertEquals(List.of("1/2",
+                             "1/3",
+                             "1/4", "2/4",
+                             "1/5", "2/5",
+                             "1/6", "2/6",
+                             "1/7", "2/7",
+                             "1/8", "2/8",
+                             "1/9", "2/9", "3/9"),
+                     fractions.numeratorLTESquareRootOfDenominator(Limit.of(15))
+                                     .stream()
+                                     .map(f -> f.numerator + "/" + f.denominator)
+                                     .toList());
+    }
+
+    /**
+     * Use a NativeQuery method that returns subsets of entity attributes
+     * as a List of Java records
+     */
+    // @Test // TODO Java record results?
+    public void testNativeQueryReturnsListOfRecord() {
+        assertEquals(List.of("1:11",
+                             "2:12",
+                             "3:13",
+                             "4:14",
+                             "5:15",
+                             "6:16",
+                             "7:17",
+                             "8:18",
+                             "9:19"),
+                     fractions.ratioListWithDifferenceOfTerms(10)
+                                     .stream()
+                                     .map(Ratio::toString)
+                                     .toList());
+    }
+
+    /**
+     * Use a NativeQuery method that returns subsets of entity attributes
+     * as a Stream of Java records
+     */
+    // @Test // TODO Java record results?
+    public void testNativeQueryReturnsStreamOfRecord() {
+        assertEquals(List.of("1:7",
+                             "2:6",
+                             "3:5",
+                             "4:4",
+                             "5:3",
+                             "6:2",
+                             "7:1"),
+                     fractions.ratioStreamWithSumOfTerms(8)
+                                     .map(Ratio::toString)
+                                     .toList());
+    }
+
+    /**
+     * Use a NativeQuery method that selects the result of a count operation
+     * as a single value.
+     */
+    @Test
+    public void testNativeQuerySelectsCount() {
+        assertEquals(6L, // 1/18, 5/18, 7/18, 11/18, 13/18, 17/18
+                     fractions.numReducedWithDenominatorOf(18, true));
+    }
+
+    /**
+     * Use a NativeQuery method that executes a SQL query with named parameters,
+     * where the named parameter names are implied from the method parameter names.
+     */
+    @Test
+    public void testNativeQueryWithImplicitNamedParameters() {
+        // Relies on optional capability where Hibernate provides named parameters
+        // for SQL queries
+        if (isHibernatePersistence()) {
+            Fraction fiveTwelfths = fractions.ifReduced(true, 5, 12)
+                            .orElseThrow();
+            assertEquals(5,
+                         fiveTwelfths.numerator);
+            assertEquals(12,
+                         fiveTwelfths.denominator);
+            assertEquals("Five Twelfths",
+                         fiveTwelfths.name);
+            assertEquals(true,
+                         fiveTwelfths.reduced);
+            // TODO would require Hibernate support for
+            // @QueryOptions(entityGraph = "EagerlyLoadRoundedValues")
+            // on native queries
+            //assertEquals(List.of(BigDecimal.valueOf(400, 3),
+            //                     BigDecimal.valueOf(420, 3),
+            //                     BigDecimal.valueOf(417, 3)),
+            //             fiveTwelfths.rounded);
+            assertEquals(BigDecimal.valueOf(4167, 4),
+                         fiveTwelfths.decimal.ceiling());
+            assertEquals(BigDecimal.valueOf(4166, 4),
+                         fiveTwelfths.decimal.truncated());
+            assertEquals(5.0 / 12.0,
+                         fiveTwelfths.decimal.value(),
+                         0.0001);
+            assertEquals(2.4,
+                         fiveTwelfths.decimal.inverse(),
+                         0.0001);
+            assertEquals("41",
+                         fiveTwelfths.decimal.digits().nonrepeating());
+            assertEquals("6",
+                         fiveTwelfths.decimal.digits().repeating());
+        }
+    }
+
+    /**
+     * Use a NativeQuery method that executes a SQL query with some method
+     * parameters correponding to named parameters and another being a special
+     * parameter of type Limit.
+     */
+    @Test
+    public void testNativeQueryWithNamedAndSpecialParameters() {
+        // Relies on optional capability where Hibernate provides named parameters
+        // for SQL queries
+        if (isHibernatePersistence())
+            assertEquals(List.of("Eight Elevenths",
+                                 "Eight Fifteenths",
+                                 "Eight Nineteenths",
+                                 "Eight Ninths",
+                                 "Eight Seventeenths",
+                                 "Eight Thirteenths",
+                                 "Eighteen Nineteenths",
+                                 "Eleven Eighteenths",
+                                 "Eleven Fifteenths"),
+                         fractions.alphabetized(true, Limit.of(9)));
+    }
+
+    /**
+     * Use a NativeQuery method that executes a SQL query with named parameters,
+     * where the named parameter names are indicted by the Param annotation of each
+     * method parameter.
+     */
+    @Test
+    public void testNativeQueryWithNamedParameters() {
+        // Relies on optional capability where Hibernate provides named parameters
+        // for SQL queries
+        if (isHibernatePersistence())
+            assertEquals(List.of("Nine Eighteenths",
+                                 "Nine Fifteenths",
+                                 "Nine Fourteenths",
+                                 "Nine Nineteenths",
+                                 "Nine Seventeenths",
+                                 "Nine Sixteenths",
+                                 "Nine Thirteenths"),
+                         Stream.of(fractions.withNamePattern("Nine ",
+                                                             "teenths"))
+                                         .map(f -> f.name)
+                                         .toList());
+    }
+
+    /**
      * Supply a Restriction to a repository method where the Restriction
      * requires navigating through 2 levels of embeddables to compute the
      * expressions that are used in its constraint.
@@ -1300,6 +1906,99 @@ public class Data_1_1_Servlet extends FATServlet {
                      fractions.where(restriction)
                                      .map(f -> f.name)
                                      .collect(Collectors.toList()));
+    }
+
+    /**
+     * Tests a Query method with the First annotation defaulting to a value
+     * of 1.
+     */
+    @Test
+    public void testQueryFirst1() {
+
+        assertEquals("Fifteen Sixteenths",
+                     fractions.greatestLessThan1(16).orElseThrow() //
+                                     .name);
+
+        assertEquals("Seven Eighths",
+                     fractions.greatestLessThan1(8).orElseThrow() //
+                                     .name);
+    }
+
+    /**
+     * Tests a Query method with the First annotation defaulting to a value
+     * of 1.
+     */
+    @Test
+    public void testQueryFirstNoneFound() {
+
+        assertEquals(false,
+                     fractions.greatestLessThan1(0).isPresent());
+    }
+
+    /**
+     * Use the QueryOptions annotation to establish a query timeout on a
+     * repository method annotated NativeQuery.
+     */
+    @AllowedFFDC("javax.transaction.xa.XAException") // due to query timeout
+    @Test
+    public void testQueryTimeoutAsQueryOptionOnNativeQuery() throws Exception {
+        // Derby ignores query timeout and the lock timeout ends up applying instead
+        if (isDerby())
+            return;
+
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch blocked = new CountDownLatch(1);
+
+        CompletableFuture<Boolean> lockDB = CompletableFuture.supplyAsync(() -> {
+            try {
+                tx.setTransactionTimeout((int) TIMEOUT_S * 3);
+                tx.begin();
+                boolean found = fractions.change(BigDecimal.valueOf(1880, 4),
+                                                 BigDecimal.valueOf(1870, 4),
+                                                 3,
+                                                 16);
+                System.out.println("Obtained lock on 3/16");
+                locked.countDown();
+                blocked.await(TIMEOUT_S * 2, TimeUnit.SECONDS);
+                System.out.println("Release lock on 3/16");
+                tx.rollback();
+                return found;
+            } catch (RuntimeException x) {
+                throw x;
+            } catch (Exception x) {
+                throw new CompletionException(x);
+            }
+        });
+
+        try {
+            assertEquals(true, locked.await(TIMEOUT_S, TimeUnit.SECONDS));
+            try {
+                boolean found = fractions.change(BigDecimal.valueOf(1900, 4),
+                                                 BigDecimal.valueOf(1800, 4),
+                                                 3,
+                                                 16);
+                fail("Query timeout on QueryOptions should have caused the" +
+                     " query to time out. Instead found entity? " + found);
+            } catch (DataException x) {
+                // expected for query timeout
+            }
+
+            blocked.countDown();
+
+            // changes must be rolled back and the lock released
+            Fraction f3_16 = fractions.of(3, 16)
+                            .orElseThrow();
+            assertEquals(BigDecimal.valueOf(1875, 4),
+                         f3_16.decimal.ceiling());
+            assertEquals(BigDecimal.valueOf(1875, 4),
+                         f3_16.decimal.truncated());
+
+            // allow error to be raised if any
+            lockDB.get(TIMEOUT_S, TimeUnit.SECONDS);
+        } finally {
+            locked.countDown();
+            blocked.countDown();
+        }
     }
 
     /**
@@ -1715,7 +2414,6 @@ public class Data_1_1_Servlet extends FATServlet {
 
         CompletableFuture.supplyAsync(() -> {
             try {
-                boolean removed = false;
                 try {
                     tx.begin();
                     statefulFractionRepo.write(Fraction.of(13, 23));
@@ -1731,26 +2429,14 @@ public class Data_1_1_Servlet extends FATServlet {
                     f.numerator = 1;
                     tx.commit();
 
+                    f.numerator = 13;
+                    f.denominator = 26;
                     tx.begin();
-                    f = statefulFractions.fetch(13, 23).orElseThrow();
-                    // first 4 decimals of 13/23
-                    assertEquals(BigDecimal.valueOf(5652, 4),
-                                 f.decimal.truncated());
-                    assertEquals(false,
-                                 f.reduced);
-                    assertEquals(13,
-                                 f.numerator);
-                    statefulFractionRepo.remove(f);
+                    f = statefulFractionRepo.manage(f); // merge operation
                     tx.commit();
-                    removed = true;
                 } finally {
                     if (tx.getStatus() != Status.STATUS_NO_TRANSACTION)
                         tx.rollback();
-
-                    if (!removed)
-                        fractions.discard(AtLeast.min(23),
-                                          AtMost.max(Integer.MAX_VALUE),
-                                          Restrict.unrestricted());
                 }
             } catch (RuntimeException x) {
                 throw x;
@@ -1760,6 +2446,30 @@ public class Data_1_1_Servlet extends FATServlet {
             return "testStatefulOnUnmanagedThread async operations completed";
         }).get(TIMEOUT_S, TimeUnit.SECONDS);
 
+        boolean removed = false;
+        tx.begin();
+        try {
+            assertEquals(true,
+                         statefulFractions.fetch(13, 23).isEmpty());
+
+            Fraction f = statefulFractions.fetch(13, 26).orElseThrow();
+            assertEquals(false,
+                         f.reduced);
+            assertEquals(13,
+                         f.numerator);
+            assertEquals(26,
+                         f.denominator);
+            assertEquals(BigDecimal.valueOf(5652, 4), // first 4 decimals of 13/23
+                         f.decimal.truncated());
+            statefulFractionRepo.remove(f);
+            tx.commit();
+            removed = true;
+        } finally {
+            if (!removed)
+                fractions.discard(AtLeast.min(23),
+                                  AtMost.max(Integer.MAX_VALUE),
+                                  Restrict.unrestricted());
+        }
     }
 
     /**

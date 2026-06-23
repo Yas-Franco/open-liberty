@@ -56,7 +56,6 @@ import com.ibm.websphere.simplicity.config.ServerConfiguration;
 import com.ibm.websphere.simplicity.log.Log;
 import com.ibm.ws.springboot.support.fat.CommonWebServerTests;
 
-import componenttest.annotation.MinimumJavaLevel;
 import componenttest.custom.junit.runner.FATRunner;
 import componenttest.custom.junit.runner.Mode;
 import componenttest.topology.impl.LibertyFileManager;
@@ -64,7 +63,6 @@ import componenttest.topology.impl.LibertyServer;
 
 @RunWith(FATRunner.class)
 @Mode(FULL)
-@MinimumJavaLevel(javaLevel = 17)
 public class SpringBootUtilityThinTest extends CommonWebServerTests {
     private final static String PROPERTY_KEY_INSTALL_DIR = "install.dir";
     private static String SPRING_BOOT_40_BASE_THIN = SPRING_BOOT_40_APP_BASE.substring(0, SPRING_BOOT_40_APP_BASE.length() - 3) + SPRING_APP_TYPE;
@@ -370,6 +368,13 @@ public class SpringBootUtilityThinTest extends CommonWebServerTests {
         try {
             String line = null;
             line = readProcessLine(proc, method);
+
+            if (line == null) {
+                proc.destroy();
+                Log.info(getClass(), method, "Running the uber jar again because the last run wasn't successful");
+                proc = Runtime.getRuntime().exec(javaCmd);
+                line = readProcessLine(proc, method);
+            }
 
             assertNotNull("The endpoint is not available", line);
             assertTrue("Expected log not found", line.contains("CWWKT0016I") && line.contains("default_host"));

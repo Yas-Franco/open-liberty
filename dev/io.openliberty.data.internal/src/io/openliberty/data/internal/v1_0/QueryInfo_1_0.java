@@ -31,11 +31,15 @@ import io.openliberty.data.internal.QueryInfo;
 import io.openliberty.data.internal.QueryType;
 import io.openliberty.data.internal.Util;
 import io.openliberty.data.internal.cdi.RepositoryProducer;
+import jakarta.data.Sort;
 import jakarta.data.repository.Delete;
 import jakarta.data.repository.Insert;
+import jakarta.data.repository.OrderBy;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.Save;
 import jakarta.data.repository.Update;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 
 /**
  * QueryInfo implementation for Jakarta Data 1.0.
@@ -107,6 +111,77 @@ public class QueryInfo_1_0 extends QueryInfo {
     }
 
     @Override
+    @Trivial
+    protected <T> Sort<T> createSort(String expression, OrderBy orderBy) {
+        return new Sort<T>( //
+                        expression, //
+                        !orderBy.descending(), //
+                        orderBy.ignoreCase());
+    }
+
+    @Override
+    @Trivial
+    protected <T> Sort<T> createSort(String expression, Sort<T> sort) {
+        return new Sort<>( //
+                        expression, //
+                        sort.isAscending(), //
+                        sort.ignoreCase());
+    }
+
+    @Override
+    protected jakarta.persistence.Query //
+                    ehCreateNativeQuery(AutoCloseable entityHandler) {
+        throw new UnsupportedOperationException("jakarta.persistence.query.NativeQuery");
+    }
+
+    @Override
+    protected jakarta.persistence.Query //
+                    ehCreateNativeStatement(AutoCloseable entityHandler) {
+        throw new UnsupportedOperationException("jakarta.persistence.query.NativeQuery");
+    }
+
+    @Override
+    @Trivial
+    protected jakarta.persistence.Query ehCreateStatement(AutoCloseable entityHandler,
+                                                          String jpql) {
+        return ((EntityManager) entityHandler).createQuery(jpql);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    @Trivial
+    protected <T> TypedQuery<T> ehCreateTypedQuery(AutoCloseable entityHandler,
+                                                   String jpql,
+                                                   Class<?> resultType) {
+        return (TypedQuery<T>) ((EntityManager) entityHandler) //
+                        .createQuery(jpql, resultType);
+    }
+
+    @Override
+    @Trivial
+    protected void ehDelete(AutoCloseable entityHandler, Object entity) {
+        ((EntityManager) entityHandler).remove(entity);
+    }
+
+    @Override
+    @Trivial
+    protected void ehInsert(AutoCloseable entityHandler, Object entity) {
+        ((EntityManager) entityHandler).persist(entity);
+    }
+
+    @Override
+    @Trivial
+    protected Object ehUpdate(AutoCloseable entityHandler, Object entity) {
+        return ((EntityManager) entityHandler).merge(entity);
+    }
+
+    @Override
+    @Trivial
+    protected Object ehUpsert(AutoCloseable entityHandler, Object entity) {
+        return ((EntityManager) entityHandler).merge(entity);
+    }
+
+    @Override
     protected int generateConstraint(StringBuilder q,
                                      Object constraint,
                                      int jpqlParamCount,
@@ -129,6 +204,12 @@ public class QueryInfo_1_0 extends QueryInfo {
     protected Map<Integer, Object> getDeferredConstraints(boolean alwaysDefer,
                                                           Object[] methodParams) {
         return Collections.emptyMap();
+    }
+
+    @Override
+    @Trivial
+    protected String getNullOrdering(Sort<?> sort, boolean sameDirection) {
+        return null;
     }
 
     @Override
