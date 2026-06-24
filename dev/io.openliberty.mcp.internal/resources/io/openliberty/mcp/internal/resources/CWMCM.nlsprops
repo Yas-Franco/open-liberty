@@ -283,5 +283,5 @@ CWMCM0034W.converter.missing.type.parameter.useraction=Change the class declarat
 # do not translate MCP, DefaultValueConverter, TypeVariable
 # {0} = The DefaultValueConverter implementation class
 CWMCM0035W.converter.generic.type=CWMCM0035W: The {0} DefaultValueConverter implementation converts to a generic type parameter instead of a concrete type.
-CWMCM0035W.converter.generic.type.explanation=A DefaultValueConverter implementation class was registered with a generic type parameter (such as T) instead of a concrete type.
+CWMCM0035W.converter.generic.type.explanation=A DefaultValueConverter implementation class was registered with a generic type parameter such as T instead of a concrete type.
 CWMCM0035W.converter.generic.type.useraction=Change the class declaration to implement the DefaultValueConverter interface with a concrete type parameter. For example: MyConverterClass implements DefaultValueConverter<MyType>.
