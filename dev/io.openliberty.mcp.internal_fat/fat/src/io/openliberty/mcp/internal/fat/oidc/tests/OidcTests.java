@@ -36,7 +36,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -81,11 +80,13 @@ public class OidcTests extends FATServletClient {
 
     @SuppressWarnings("resource")
     @ClassRule
+
     public static GenericContainer<?> keycloakContainer = new GenericContainer<>(KEYCLOAK_REGISTRY).withExposedPorts(8080)
+                                                                                                   .withStartupAttempts(3)
                                                                                                    .withEnv("KEYCLOAK_ADMIN", "admin")
                                                                                                    .withEnv("KEYCLOAK_ADMIN_PASSWORD", "admin")
                                                                                                    .withCommand("start-dev")
-                                                                                                   .withLogConsumer(new SimpleLogConsumer(OidcTests.class, "keycloak-containe"))
+                                                                                                   .withLogConsumer(new SimpleLogConsumer(OidcTests.class, "keycloak-container"))
                                                                                                    .waitingFor(Wait.forLogMessage(".*Listening on:.*", 1)
                                                                                                                    .withStartupTimeout(Duration.ofMinutes(2)));
 
@@ -95,7 +96,6 @@ public class OidcTests extends FATServletClient {
                                    .addPackage(RolesAllowedTools.class.getPackage())
                                    .addAsWebInfResource(new File("publish/servers/mcp-server-oidc/resources/WEB-INF/web.xml"), "web.xml");
         ShrinkHelper.exportAppToServer(server, war, SERVER_ONLY);
-
         setupKeycloak();
         updateOidcConfigAttributes();
         server.startServer();
@@ -289,10 +289,6 @@ public class OidcTests extends FATServletClient {
     }
 
     private static void setupKeycloak() throws CloneNotSupportedException, Exception {
-        // Expose Liberty server port to container
-        final int localServerPort = server.getHttpDefaultPort();
-        Testcontainers.exposeHostPorts(localServerPort);
-
         // Create realm
         runCommandInContainer("/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 " +
                               "--realm master --user admin --password admin");
