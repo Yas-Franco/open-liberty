@@ -27,7 +27,8 @@ tested.features: \
     concurrent-3.1,\
     restfulws-4.0,\
     servlet-6.1,\
-    pages-3.1
+    pages-3.1,\
+    pages-4.0
 
 -buildpath: \
 	com.ibm.ws.componenttest.2.0;version=latest,\

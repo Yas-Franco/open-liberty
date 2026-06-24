@@ -79,7 +79,7 @@ public class InvalidAsyncTimeoutTest {
     @Mode(TestMode.FULL)
     public void testInvalidAsyncTimeout() throws Exception {
         // Look for the expected error message about invalid configuration
-        String expectedMessage = "The value sheep is not valid for attribute asyncTimeout.name";
+        String expectedMessage = "The value sheep is not valid for attribute Asynchronous request timeout";
 
         assertNotNull("Expected error message about invalid asyncTimeout value not found",
                       server.waitForStringInLog(expectedMessage));
