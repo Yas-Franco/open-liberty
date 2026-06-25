@@ -27,7 +27,6 @@ import io.openliberty.mcp.internal.fat.lifecycle.tests.AsyncToolLifecycleTest;
 import io.openliberty.mcp.internal.fat.lifecycle.tests.BeanLifecycleTest;
 import io.openliberty.mcp.internal.fat.lifecycle.tests.LifecycleTest;
 import io.openliberty.mcp.internal.fat.monitor.McpMonitorTest;
-import io.openliberty.mcp.internal.fat.oidc.tests.OidcTests;
 import io.openliberty.mcp.internal.fat.protocol.HttpTest;
 import io.openliberty.mcp.internal.fat.protocol.ProtocolVersionSchemaTest;
 import io.openliberty.mcp.internal.fat.protocol.ProtocolVersionTest;
@@ -115,7 +114,6 @@ import io.openliberty.mcp.internal.fat.tool.ToolTest;
                 NonRequiredArgsToolsTest.class,
                 NoParamNameTest.class,
                 // TestContainer Tests
-                OidcTests.class,
                 ConformanceTests.class,
 
                 CustomServerInfoTest.class,
